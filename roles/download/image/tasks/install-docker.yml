@@ -1,0 +1,96 @@
+- name: 判断 docker 是否安装(报错请忽略!!)
+  shell: "docker info >/dev/null 2>&1"
+  register: check_docker
+  ignore_errors: true
+
+- block:
+  - name: 删除 firewall
+    yum:
+      name:
+        - firewalld
+        - python-firewall
+        - firewalld-filesystem
+      state: absent
+
+  - name: 临时关闭 selinux
+    shell: "setenforce 0"
+    failed_when: false
+
+  - name: 永久关闭 selinux
+    lineinfile:
+      dest: /etc/selinux/config
+      regexp: "^SELINUX="
+      line: "SELINUX=disabled"
+      backrefs: yes
+
+  - name: 创建 docker 主进程配置文件存放目录
+    file: path="{{ item }}" state=directory
+    with_items:
+      - /etc/docker/
+      - /usr/lib/systemd/system/docker.service.d
+
+  - name: 配置 daemon.json 和 docker sysctl conf
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+    with_items:
+      - { src: "daemon.json", dest: "/etc/docker/daemon.json" }
+      - { src: "docker.conf", dest: "/etc/sysctl.d/docker.conf" }
+
+  - name: 生效 docker 系统参数
+    shell: "sysctl -p /etc/sysctl.d/{{ item }}"
+    with_items:
+      - "docker.conf"
+
+  - name: 配置 docker proxy
+    template:
+      src: "http-proxy.conf.j2"
+      dest: "/usr/lib/systemd/system/docker.service.d/http-proxy.conf"
+  when:
+    - check_docker.rc != 0
+    - 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+- block:
+  - name: 添加 Docker yum 仓库
+    yum_repository:
+      name: docker-ce-stable
+      file: docker-ce
+      description: Docker CE Stable - $basearch
+      baseurl: "https://mirrors.aliyun.com/docker-ce/linux/centos/{{ ansible_distribution_major_version }}/$basearch/stable"
+      enabled: no
+      gpgcheck: no
+      state: present
+
+  - name: 安装 Docker
+    yum:
+      name:
+      - "docker-ce-{{ docker_version }}.ce"
+      state: present
+      enablerepo: docker-ce-stable
+    when: docker_version is version('18.09', '<')
+
+  - name: 安装 Docker
+    yum:
+      name:
+      - "docker-ce-{{ docker_version }}"
+      - "docker-ce-cli-{{ docker_version }}"
+      - "containerd.io-{{ containerd_version.split('-')[0] }}"
+      state: present
+      enablerepo: docker-ce-stable
+    when: docker_version is version('18.09', '>=')
+  when: check_docker.rc != 0
+
+# - name: 安装docker
+#   when: check_docker.rc != 0
+#   script: "get-docker.sh"
+
+- name: 启动 Docker engine，并设置开机启动
+  systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_docker
+  until: started_docker is succeeded
+  retries: 3
+  delay: "5"

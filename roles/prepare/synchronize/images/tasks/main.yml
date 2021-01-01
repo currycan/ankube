@@ -1,0 +1,17 @@
+- name: 创建 docker save images 存放目录
+  when:
+  file: path="{{ cache_dir + 'images' }}" state=directory
+
+- name: 分发文件
+  block:
+    - name: 安装 rsync
+      package: name=rsync state=present
+
+    - debug: msg="同步镜像离线文件包到各节点，可能需要一定时间。。"
+    - name: 从 deploy 节点分发镜像至所有节点
+      synchronize:
+        src: "{{ cache_dir + 'images/' + item.value.file }}.tar"
+        dest: "{{ cache_dir + 'images/' + item.value.file }}.tar"
+      with_dict: "{{ images }}"
+  when:
+    - inventory_hostname != groups['deploy'][0]

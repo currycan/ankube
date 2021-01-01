@@ -1,0 +1,81 @@
+- block:
+  - name: 创建 docker save images 存放目录
+    file: path="{{ cache_dir + 'images' }}" state=directory
+
+  - name: 判断 docker save images tar 包是否存在
+    stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
+    with_dict: "{{ images }}"
+    register: check_images
+
+  - name: 从下载二进制文件时归档文件中获取 calico 镜像
+    when:
+      - not item.stat.exists
+      - item.item.key.split('_')[0] == "calico"
+    copy:
+      src: "{{ cache_dir + item.item.key.split('_')[0] + '-' + item.item.value.name.split(':')[1] +  '/images/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }}"
+      dest: "{{ cache_dir + 'images/' + item.item.value.file }}.tar"
+    with_items: "{{ check_images['results'] }}"
+
+  - block:
+    - name: 安装 docker
+      include_tasks: install-docker.yml
+
+    - name: master 节点各组件镜像重打tag
+      when:
+        - not item.stat.exists
+        - item.item.value.file.split('-')[0] == "kube"
+      shell: >
+        docker load -i {{ cache_dir + 'kubernetes-v' + kube_version + '/server/bin/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
+        docker images | grep kube | grep amd64 | awk '{print "docker tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
+        docker images | grep kube | grep amd64 | awk '{print "docker rmi ",$1":"$2}' | sh -x;
+        docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+      with_items: "{{ check_images['results'] }}"
+
+    - debug: msg="docker pull基础镜像，根据网速不同，可能需要一定时间。。"
+    - name: docker pull images
+      when:
+        - not item.stat.exists
+        - item.item.key.split('_')[0] != "calico"
+      shell: "docker pull {{ item.item.value.name }}"
+      environment:
+        http_proxy: "{{ proxy_env.http_proxy }}"
+        https_proxy: "{{ proxy_env.https_proxy }}"
+      with_items: "{{ check_images['results'] }}"
+
+    - name: save docker images 至 {{ cache_dir + 'images' }}
+      when:
+        - not item.stat.exists
+        - item.item.key.split('_')[0] != "calico"
+      shell: "docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}"
+      with_items: "{{ check_images['results'] }}"
+    when: 'not (frozen_way is defined and frozen_way)'
+
+  - block:
+    - name: 安装 download-frozen-image-v2.sh
+      include_tasks: install-frozen-image.yml
+
+    - name: download-frozen-image-v2.sh 下载 images
+      when:
+        - not item.stat.exists
+        - item.item.key.split('_')[0] != "calico"
+      shell: >
+        mkdir -p /tmp/images/manifests_dir;
+        cd /tmp/images/;
+        download-frozen-image-v2.sh manifests_dir {{ item.item.value.name }};
+        [ `ls -A manifests_dir` ] && \
+        tar -cC manifests_dir . > {{ cache_dir + 'images/' + item.item.value.file }}.tar \
+        || exit 1;
+        rm -rf *
+      environment:
+        http_proxy: "{{ proxy_env.http_proxy }}"
+        https_proxy: "{{ proxy_env.https_proxy }}"
+      loop_control:
+        loop_var: item
+      with_items: "{{ check_images['results'] }}"
+      register: frozen_image
+      until: frozen_image.rc != 0
+      retries: 2
+      delay: "{{ retry_stagger }}"
+    when: 'frozen_way is defined and frozen_way'
+  run_once: true
+  delegate_to: "{{ groups['deploy'][0] }}"

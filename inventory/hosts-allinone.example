@@ -1,0 +1,47 @@
+[deploy]
+10.10.10.10 iface=ens192
+
+[chrony]
+test.andrew iface=ens34
+
+[etcds]
+test.andrew iface=ens34
+[add-etcds]
+
+[delete-etcds]
+
+[masters]
+test.andrew iface=ens34
+[add-masters]
+
+[delete-masters]
+
+[nodes]
+test.andrew iface=ens34
+
+[add-nodes]
+
+[delete-nodes]
+
+[kube-masters:children]
+masters
+add-masters
+delete-masters
+
+[kube-nodes:children]
+masters
+add-masters
+delete-masters
+
+[kube-cluster:children]
+masters
+add-masters
+delete-masters
+nodes
+add-nodes
+delete-nodes
+
+[kube-etcds:children]
+etcds
+add-etcds
+delete-etcds

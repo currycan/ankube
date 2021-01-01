@@ -1,0 +1,91 @@
+- block:
+  # 生成 kubeadm bootstrap token
+  - include_tasks: common/gen_bootstrap_token.yml
+    register: create_token
+
+  - name: 设置 bootstrap_token_id 和 bootstrap_token_secret 参数
+    when: create_token is succeeded
+    set_fact:
+      bootstrap_token_id: "{{ kubeadm_token.split('.')[0] }}"
+      bootstrap_token_secret: "{{ kubeadm_token.split('.')[1] }}"
+
+  - name: 渲染系统 kubelet-bootstrap-secret 文件
+    template: src="bootstrap-secret/kubelet-bootstrap-secret.yaml.j2" dest="{{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml"
+
+  - name: 配置 kubelet-bootstrap-secret
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml
+    environment:
+      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+
+  - name: 同步 bootstrap_token 文件到各 master 节点备份
+    synchronize:
+      src: "{{ item }}"
+      dest: "{{ item }}"
+    with_items:
+      - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+  when: "binary_way is defined and binary_way.enable"
+
+- block:
+  - name: 创建 manifest 文件存放目录
+    file: path="{{ item }}" state=directory
+    with_items:
+      - "{{ rbac_dir }}"
+
+  - name: 配置 rbac 准入文件
+    copy: src="{{ item }}/" dest="{{ rbac_dir }}/{{ item }}"
+    with_items:
+      - system-rbac
+      - rbac
+    register: copy_rbac_file
+
+  - name: 创建 RBAC 资源
+    when: copy_rbac_file is succeeded
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{ item }}
+    environment:
+      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+    with_items:
+      - "{{ rbac_dir }}/system-rbac"
+      - "{{ rbac_dir }}/rbac"
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- block:
+  - name: 创建 Pod 安全策略配置文件
+    template:
+      src: psp/pod-security-policy.yaml.j2
+      dest: "{{ kubernetes_etc_dir }}/pod-security-policy.yaml"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: 配置 Pod 安全策略
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/pod-security-policy.yaml
+    environment:
+      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+  when: '"PodSecurityPolicy" in apiserver.enable_admission_plugins'
+
+# - block:
+#   - name: 生成 kubelet-rubber-stamp 部署清单文件
+#     copy: src="{{ item }}/" dest="{{ kubernetes_etc_dir }}/{{ item }}"
+#     with_items:
+#       - kubelet-rubber-stamp
+#     register: copy_rubber_file
+
+#   - name: 部署 kubelet-rubber-stamp
+#     when: copy_rubber_file is succeeded
+#     shell: >
+#       {{ kubernetes_bin_dir }}/kubectl apply -f {{ item }}
+#     environment:
+#       KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+#     with_items:
+#       - "{{ kubernetes_etc_dir }}/kubelet-rubber-stamp"
+#   delegate_to: "{{ groups['masters'][0] }}"
+#   run_once: true
+#   when: "kubeadm_way is defined and kubeadm_way.enable and kubeadm_way.kubeadm_cert"

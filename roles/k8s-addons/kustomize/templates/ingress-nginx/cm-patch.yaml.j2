@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: {{ addon.namespace }}
+data:
+  allow-backend-server-header: 'true'
+  compute-full-forwarded-for: 'true'
+  enable-underscores-in-headers: 'true'
+  forwarded-for-header: 'X-Forwarded-For'
+  generate-request-id: 'true'
+  ignore-invalid-headers: 'true'
+  log-format-upstream: '{"timestamp": "$time_iso8601", "requestID": "$req_id", "proxyUpstreamName":
+    "$proxy_upstream_name", "proxyAlternativeUpstreamName": "$proxy_alternative_upstream_name","upstreamStatus":
+    "$upstream_status", "upstreamAddr": "$upstream_addr","httpRequest":{"requestMethod":
+    "$request_method", "requestUrl": "$host$request_uri", "status": $status,"requestSize":
+    "$request_length", "responseSize": "$upstream_response_length", "userAgent": "$http_user_agent",
+    "remoteIp": "$remote_addr", "referer": "$http_referer", "latency": "$upstream_response_time s",
+    "protocol":"$server_protocol"}}'
+  max-worker-connections: '65536'
+  proxy-body-size: 20m
+  proxy-connect-timeout: '10'
+  reuse-port: 'true'
+  server-tokens: 'false'
+  ssl-redirect: 'false'
+  use-forwarded-headers: 'true'
+  worker-cpu-affinity: auto
+  client-header-buffer-size: 2m

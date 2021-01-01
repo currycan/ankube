@@ -1,0 +1,16 @@
+- name: 判断 secretkey 文件是否存在
+  stat: path="{{ kustomize_addon_dir }}/{{ addon.directories }}/config/secretkey"
+  register: check_secretkey_file
+
+- block:
+  - name: 创建 {{ addon.name }} kustomize config 目录
+    file: path="{{ kustomize_addon_dir }}/{{ addon.directories }}/config" state=directory
+
+  - name: 生成 secretkey
+    shell: >
+      openssl rand -base64 128
+    register: secretkey
+
+  - name: secretkey 写入配置文件
+    action: copy content="{{ secretkey.stdout }}" dest="{{ kustomize_addon_dir }}/{{ addon.directories }}/config/secretkey"
+  when: not check_secretkey_file.stat.exists

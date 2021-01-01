@@ -1,0 +1,3 @@
+- name: 删除证书签名请求文件
+  file: path="{{ item.path }}" state=absent
+  with_items: "{{ out_item.files }}"

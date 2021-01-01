@@ -1,0 +1,52 @@
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+bindAddress: 0.0.0.0
+healthzBindAddress: "127.0.0.1:{{ kube_proxy.healthz_port }}"
+metricsBindAddress: "0.0.0.0:{{ kube_proxy.metrics_port }}"
+clientConnection:
+  acceptContentTypes: ""
+  burst: 200
+  contentType: application/vnd.kubernetes.protobuf
+  kubeconfig: "{{kube_proxy_data_dir}}/kubeconfig.conf"
+  qps: 100
+clusterCIDR: "{{ pod_network_cidr }}"
+configSyncPeriod: 10m0s
+conntrack:
+  maxPerCore: 32768
+  min: 131072
+  tcpCloseWaitTimeout: 1h0m0s
+  tcpEstablishedTimeout: 24h0m0s
+detectLocalMode: ""
+enableProfiling: false
+hostnameOverride: "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
+featureGates:
+  ValidateProxyRedirects: true
+mode: "{{ kube_proxy.proxy_mode }}"
+iptables:
+  masqueradeAll: false
+  masqueradeBit: 14
+  minSyncPeriod: 0s
+  syncPeriod: 30s
+ipvs:
+  excludeCIDRs: []
+  minSyncPeriod: 0s
+  scheduler: "{{ kube_proxy.ipvs_scheduler }}"
+{% if (kube_version is version('1.15.0', '>=')) %}
+  # metalLB
+  strictARP: true
+{% endif %}
+  syncPeriod: 30s
+  tcpFinTimeout: 5s
+  tcpTimeout: 5s
+  udpTimeout: 5s
+nodePortAddresses: []
+oomScoreAdj: -999
+portRange: ""
+udpIdleTimeout: 250ms
+{% if (kube_version is version('1.15.0', '>=')) %}
+winkernel:
+  enableDSR: false
+  networkName: ""
+  sourceVip: ""
+{% endif %}

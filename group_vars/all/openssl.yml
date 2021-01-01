@@ -1,0 +1,141 @@
+openssl_etcd_certs:
+  - cn: kubernetes
+    file: etcd-openssl.cnf
+    org: etcd
+    profile: v3_ca
+    bare: ca
+    ca: ""
+    dir: "{{ etcd_pki_dir }}"
+  - cn: master
+    file: etcd-openssl.cnf
+    org: etcd
+    profile: v3_req_peer
+    bare: server
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+  - cn: master
+    file: etcd-openssl.cnf
+    org: etcd
+    profile: v3_req_peer
+    bare: peer
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+  - cn: kube-apiserver-etcd-client
+    file: etcd-openssl.cnf
+    org: system:masters
+    profile: v3_req_client
+    bare: apiserver-etcd-client
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: kube-etcd-healthcheck-client
+    file: etcd-openssl.cnf
+    org: system:masters
+    profile: v3_req_client
+    bare: healthcheck-client
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+  - cn: client
+    file: etcd-openssl.cnf
+    org: system:masters
+    profile: v3_req_client
+    bare: client
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+
+# 需要确保在-subj参数中指定用户名和组(CN表示用户名，O表示组)
+openssl_master_certs:
+  - cn: kubernetes
+    file: kube-openssl.cnf
+    org: kubernetes
+    profile: v3_ca
+    bare: front-proxy-ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+  - cn: front-proxy-client
+    file: kube-openssl.cnf
+    org: kubernetes
+    profile: v3_req_client
+    bare: front-proxy-client
+    ca: front-proxy-ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: ca
+    file: kube-openssl.cnf
+    org: kubernetes
+    profile: v3_ca
+    bare: ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+  - cn: kube-apiserver
+    file: kube-openssl.cnf
+    org: kubernetes
+    profile: v3_req_server
+    bare: apiserver
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: apiserver-kubelet-client
+    file: kube-openssl.cnf
+    org: "system:masters"
+    profile: v3_req_client
+    bare: apiserver-kubelet-client
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: "system:kube-controller-manager"
+    file: kube-openssl.cnf
+    org: "system:kube-controller-manager"
+    profile: v3_req_client
+    bare: kube-controller-manager
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: "system:kube-scheduler"
+    file: kube-openssl.cnf
+    org: "system:kube-scheduler"
+    profile: v3_req_client
+    bare: kube-scheduler
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: kubernetes-admin
+    file: kube-openssl.cnf
+    org: "system:masters"
+    profile: v3_req_client
+    bare: admin
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: admin
+    file: kube-openssl.cnf
+    org: "cs:admin"
+    profile: v3_req_client
+    bare: admin-cs
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: ops
+    file: kube-openssl.cnf
+    org: "cs:ops"
+    profile: v3_req_client
+    bare: ops
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: dev
+    file: kube-openssl.cnf
+    org: "cs:dev"
+    profile: v3_req_client
+    bare: dev
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+
+# org 一定要正确，否则认证不过
+# kubectl certificate approve csr-x9t6j
+openssl_worker_certs:
+  - cn: "system:node:{{ inventory_hostname }}"
+    file: kube-openssl.cnf
+    org: "system:nodes"
+    profile: v3_req_kubelet
+    bare: kubelet
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: "system:kube-proxy"
+    file: kube-openssl.cnf
+    org: "system:kube-proxy"
+    profile: v3_req_client
+    bare: kube-proxy
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"

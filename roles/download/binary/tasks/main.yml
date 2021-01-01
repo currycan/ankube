@@ -1,0 +1,31 @@
+- block:
+  - name: 创建下载二进制文件存放目录
+    file: path="{{ cache_dir }}" state=directory
+
+  - name: 判断各组件二进制文件是否存在
+    stat: path="{{ cache_dir + item.value.file }}"
+    with_dict: "{{ binary }}"
+    register: check_files
+
+  - debug: msg="下载二进制文件包，根据网速不同，可能需要一定时间。。"
+  - name: 下载安装文件
+    when: not item.stat.exists
+    get_url:
+      url: "{{ item.item.value.url }}"
+      dest: "{{ cache_dir + item.item.value.file }}"
+      validate_certs: False
+    environment:
+      http_proxy: "{{ proxy_env.http_proxy }}"
+      https_proxy: "{{ proxy_env.https_proxy }}"
+    with_items: "{{ check_files['results'] }}"
+    register: download_files
+
+  - name: 归档二进制文件
+    when: 'download_files is succeeded and out_item.item.value.archive_dir != ""'
+    include_tasks: _binary.yml
+    loop_control:
+      loop_var: out_item
+    with_items: "{{ check_files['results'] }}"
+    register: archive_bin_files
+  run_once: true
+  delegate_to: "{{ groups['deploy'][0] }}"

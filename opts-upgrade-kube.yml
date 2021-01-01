@@ -1,0 +1,26 @@
+- hosts: masters
+  become: true
+  serial: 1
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  - { role: k8s-setup, node_role: 'master' }
+  - { role: download, pkg: "{{ package.kubectl }}" }
+
+- hosts: nodes
+  become: true
+  serial: 2
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  - { role: k8s-setup, node_role: 'node' }
+  - { role: download, pkg: "{{ package.kubectl }}" }
+
+- hosts: add-nodes
+  become: true
+  serial: 2
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  - { role: k8s-setup, node_role: 'node', when: "inventory_hostname not in groups['nodes']" }
+  - { role: download, pkg: "{{ package.kubectl }}" }

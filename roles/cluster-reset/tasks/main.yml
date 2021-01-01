@@ -1,0 +1,15 @@
+- name: Reset kernel module
+  when: reset_kernel_module|default(false)
+  include_tasks: reset-kernel-module.yml
+
+- name: Reset ha
+  when: reset_ha|default(false)
+  include_tasks: reset-ha.yml
+
+- name: Reset Kubernetes cluster
+  when: reset_k8s|default(false)
+  include_tasks: reset-k8s.yml
+
+- name: Reset etcd cluster
+  when: reset_etcd|default(false)
+  include_tasks: reset-etcd.yml

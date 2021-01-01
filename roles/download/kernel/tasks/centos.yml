@@ -1,0 +1,16 @@
+- name: 判断 rpm 文件是否存在
+  stat: path="{{ cache_dir + item }}"
+  with_items: "{{ centos_kernel_rpm_files }}"
+  register: check_rpm
+
+- debug: msg="下载 kernel rpm包，根据网速不同，可能需要一定时间。。"
+- name: "下载 kernel rpm 包"
+  when: not item.stat.exists
+  get_url:
+    url: "{{ centos_kernel_repo }}/{{ item.item }}"
+    dest: "{{ cache_dir + item.item }}"
+    validate_certs: False
+  with_items: "{{ check_rpm['results'] }}"
+  environment:
+      http_proxy: "{{ proxy_env.http_proxy }}"
+      https_proxy: "{{ proxy_env.https_proxy }}"

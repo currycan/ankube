@@ -1,0 +1,73 @@
+- name: 判断 {{ out_item.item.bare }} pem 证书是否存在
+  stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.pem"
+  register: check_cert_pem_files
+
+- name: 渲染 {{ out_item.item.bare }} 证书签名请求文件
+  when: not check_cert_pem_files.stat.exists
+  template:
+    src: >-
+      {% if out_item.item.bare == "kubelet" -%}
+      kubelet-csr.json.j2
+      {%- else -%}
+      ca-csr.json.j2
+      {%- endif %}
+    dest: "{{ out_item.item.dir }}/{{ out_item.item.file }}"
+    owner: root
+    mode: 0644
+
+- name: 生成 {{ out_item.item.bare }} CA 证书和私钥
+  when:
+    - out_item.item.ca == ""
+    - not check_cert_pem_files.stat.exists
+  shell: >
+    {{ cfssl_bin_dir }}/cfssl gencert -initca {{ out_item.item.dir }}/{{ out_item.item.file }} | \
+    {{ cfssl_bin_dir }}/cfssljson -bare {{ out_item.item.dir }}/{{ out_item.item.bare }}
+
+- name: 生成 {{ out_item.item.bare }} 应用服务端和客户端证书
+  when:
+    - out_item.item.ca != ""
+    - not check_cert_pem_files.stat.exists
+  shell: >
+    {{ cfssl_bin_dir }}/cfssl gencert \
+      {% if out_item.item.type is defined -%}
+      {% if 'etcd' in out_item.item.type -%}
+      -ca={{ etcd_ca }} \
+      -ca-key={{ etcd_ca_key }} \
+      {% elif 'kube' in out_item.item.type -%}
+      {% if 'front-proxy' in out_item.item.bare -%}
+      -ca={{ front_ca }} \
+      -ca-key={{ front_ca_key }} \
+      {% else -%}
+      -ca={{ kubernetes_ca }} \
+      -ca-key={{ kubernetes_ca_key }} \
+      {% endif -%}
+      {% endif -%}
+      {% else -%}
+      -ca="{{ out_item.item.dir }}/{{ out_item.item.ca }}.pem" \
+      -ca-key="{{ out_item.item.dir }}/{{ out_item.item.ca }}-key.pem" \
+      {% endif -%}
+      -config={{ ca_config }} \
+      {% if out_item.item.hosts != "" -%}
+      -hostname={{ out_item.item.hosts }} \
+      {% endif -%}
+      -profile={{ out_item.item.profile }} \
+      {{ out_item.item.dir }}/{{ out_item.item.file }} | \
+      {{ cfssl_bin_dir }}/cfssljson -bare {{ out_item.item.dir }}/{{ out_item.item.bare }}
+
+# - name: 判断 {{ out_item.item.bare }} crt 私钥是否存在
+#   stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.key"
+#   register: check_cert_key_files
+
+# - name: 将 pem 私钥转换为 key 格式
+#   when: not check_cert_key_files.stat.exists
+#   shell: >
+#     openssl rsa -in {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.key
+
+# - name: 判断 {{ out_item.item.bare }} crt 证书是否存在
+#   stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.crt"
+#   register: check_cert_crt_files
+
+# - name: 将 pem 证书转换为 crt 格式
+#   when: not check_cert_crt_files.stat.exists
+#   shell: >
+#     openssl x509 -in {{ out_item.item.dir }}/{{ out_item.item.bare }}.pem -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.crt

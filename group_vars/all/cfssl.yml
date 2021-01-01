@@ -1,0 +1,185 @@
+cfssl_etcd_certs:
+  - cn: kubernetes
+    file: ca-csr.json
+    org: etcd
+    hosts: ""
+    profile: ""
+    bare: ca
+    ca: ""
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+  - cn: master
+    file: server-csr.json
+    org: etcd
+    hosts: "{{ etcd_cert_hosts }}"
+    # 此处需要特别注意，由于etcd实现方式不同，server的证书也会用于进行客户端认证，因此要选对等模式
+    profile: peer
+    bare: server
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+  - cn: master
+    file: peer-csr.json
+    org: etcd
+    hosts: "{{ etcd_cert_hosts }}"
+    profile: peer
+    bare: peer
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+  - cn: kube-apiserver-etcd-client
+    file: apiserver-etcd-client-csr.json
+    org: system:masters
+    hosts: ""
+    profile: client
+    bare: apiserver-etcd-client
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: etcd
+  - cn: kube-etcd-healthcheck-client
+    file: healthcheck-client-csr.json
+    org: system:masters
+    hosts: ""
+    profile: client
+    bare: healthcheck-client
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+  - cn: client
+    file: client-csr.json
+    org: system:masters
+    hosts: ""
+    profile: client
+    bare: client
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+
+# CN: Common cn，kube-apiserver 从证书中提取该字段作为请求的用户名 (User)；浏览器使用该字段验证网站是否合法
+# C: Country， 国家
+# L: Locality，地区，城市
+# O: Organization，kube-apiserver 从证书中提取该字段作为请求用户所属的组 (Group)
+# OU: Organization Unit cn，组织单位名称，公司部门
+# ST: State，州，省
+cfssl_master_certs:
+  - cn: kubernetes
+    file: front-proxy-ca-csr.json
+    org: kubernetes
+    hosts: ""
+    profile: ""
+    bare: front-proxy-ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: front-proxy-client
+    file: front-proxy-client-csr.json
+    org: kubernetes
+    hosts: ""
+    profile: client
+    bare: front-proxy-client
+    ca: front-proxy-ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: ca
+    file: ca-csr.json
+    org: kubernetes
+    hosts: ""
+    profile: ""
+    bare: ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: kube-apiserver
+    file: apiserver-csr.json
+    org: kubernetes
+    hosts: "{{ apiserver_hosts }}"
+    profile: peer
+    bare: apiserver
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: apiserver-kubelet-client
+    file: apiserver-kubelet-client-csr.json
+    org: "system:masters"
+    hosts: ""
+    profile: client
+    bare: apiserver-kubelet-client
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: "system:kube-controller-manager"
+    file: controller-manager-csr.json
+    org: "system:kube-controller-manager"
+    hosts: ""
+    profile: client
+    bare: kube-controller-manager
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: "system:kube-scheduler"
+    file: scheduler-csr.json
+    org: "system:kube-scheduler"
+    hosts: ""
+    profile: client
+    bare: kube-scheduler
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: kubernetes-admin
+    file: kubernetes-admin-csr.json
+    org: "system:masters"
+    hosts: ""
+    profile: client
+    bare: admin
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: admin
+    file: admin-csr.json
+    org: "cs:admin"
+    hosts: ""
+    profile: client
+    bare: admin-cs
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: ops
+    file: ops-csr.json
+    org: "cs:ops"
+    hosts: ""
+    profile: client
+    bare: ops
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: dev
+    file: dev-csr.json
+    org: "cs:dev"
+    hosts: ""
+    profile: client
+    bare: dev
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+
+# org 一定要正确，否则认证不过
+# kubectl certificate approve csr-x9t6j
+cfssl_worker_certs:
+  - cn: "system:node:{{ inventory_hostname }}"
+    file: kubelet-csr.json
+    org: "system:nodes"
+    hosts: "{{ inventory_hostname }}"
+    profile: peer
+    bare: kubelet
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes
+  - cn: "system:kube-proxy"
+    file: kube-proxy-csr.json
+    org: "system:kube-proxy"
+    hosts: "{{ inventory_hostname }}"
+    profile: client
+    bare: kube-proxy
+    ca: ca
+    dir: "{{ k8s_pki_dir }}"
+    type: kubernetes

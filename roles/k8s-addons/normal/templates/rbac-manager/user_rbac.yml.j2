@@ -1,0 +1,15 @@
+# 为标签为 zzt 用户创建 default namespace 的 edit rbac 和 kube-system 的 view rbac
+apiVersion: rbacmanager.reactiveops.io/v1beta1
+kind: RBACDefinition
+metadata:
+  name: zzt-access
+rbacBindings:
+  - name: zzt
+    subjects:
+      - kind: User
+        name: zzt@example.com
+    roleBindings:
+      - namespace: kube-system
+        clusterRole: view
+      - namespace: default
+        clusterRole: edit

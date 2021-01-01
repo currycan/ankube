@@ -1,0 +1,70 @@
+- name: master 节点停止运行三大组件
+  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  systemd: name={{ item }} state=stopped enabled=no
+  with_items:
+    - kube-scheduler
+    - kube-controller-manager
+    - kube-apiserver
+  ignore_errors: true
+
+- name: 所有节点停止运行 kubernetes 和 container-runtime 各组件
+  systemd: name={{ item }} state=stopped enabled=no
+  with_items:
+    - kubelet
+    - kube-proxy
+    - ipvsadm.service
+  ignore_errors: true
+
+- name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "{{ cni_etc_dir }}"
+    - "{{ manifest_dir }}"
+    - "{{ kubernetes_log_dir }}"
+    - "{{ cni_etc_dir }}"
+    - "{{ kubelet_data_dir }}"
+    - "{{ kube_proxy_data_dir }}"
+    - "{{ ansible_env.HOME }}/.kube"
+    - "{{ ansible_env.HOME }}/.helm"
+    - "{{ ansible_env.HOME }}/.krew"
+    - "{{ systemd_service_dir }}/kubelet.service.d/"
+    - "{{ systemd_service_dir }}/kubelet.service"
+    - "{{ systemd_service_dir }}/kube-proxy.service"
+    - "{{ systemd_service_dir }}/kube-scheduler.service"
+    - "{{ systemd_service_dir }}/kube-controller-manager.service"
+    - "{{ systemd_service_dir }}/kube-apiserver.service"
+    - "{{ etc_systemd_service_dir }}/kubelet.service.d/"
+    - "{{ etc_systemd_service_dir }}/kubelet.service"
+    - "{{ etc_systemd_service_dir }}/kube-proxy.service"
+    - "{{ etc_systemd_service_dir }}/kube-scheduler.service"
+    - "{{ etc_systemd_service_dir }}/kube-controller-manager.service"
+    - "{{ etc_systemd_service_dir }}/kube-apiserver.service"
+    - "/etc/logrotate.d/kube-apiserver"
+    - "/etc/logrotate.d/kube-controller-manager"
+    - "/etc/logrotate.d/kube-scheduler"
+    - "/etc/logrotate.d/kubelet"
+    - "/etc/logrotate.d/kube-proxy"
+    - "/etc/kube-flannel"
+  ignore_errors: true
+
+# - name: 删除证书和kubeconfig文件
+#   shell: >
+#     rm -f {{ kubernetes_etc_dir }}/*.conf;
+#     rm -f {{ k8s_pki_dir }}/{*.crt,*.key,*.pub,*.pem}
+
+- name: 重启网络
+  systemd:
+    name: >-
+      {% if ansible_os_family == "RedHat" -%}
+      {%- if ansible_distribution_major_version|int == 8 -%}
+      NetworkManager
+      {%- else -%}
+      network
+      {%- endif -%}
+      {%- elif ansible_distribution == "Ubuntu" and ansible_distribution_release == "bionic" -%}
+      systemd-networkd
+      {%- elif ansible_os_family == "Debian" -%}
+      networking
+      {%- endif %}
+    state: restarted
+  ignore_errors: True

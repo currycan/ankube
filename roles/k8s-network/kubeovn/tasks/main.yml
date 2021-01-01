@@ -1,0 +1,61 @@
+- name: 加载 kubeovn daemonSet 镜像
+  when: container_network == 'kubeovn'
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.kubeovn.file }}"
+
+- block:
+  - name: 创建 Kubernetes {{container_network}} 配置清单目录
+    file: path="{{kubernetes_etc_dir}}/{{ container_network }}" state=directory
+
+  - name: 创建 Kubernetes kube-ovn 部署配置清单
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{kubernetes_etc_dir}}/{{ container_network }}/{{ item }}"
+    with_items:
+      - crd.yaml
+      - kube-ovn.yaml
+      - ovn.yaml
+
+  - name: 给部署 ovndb 的机器打标签
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl label node {{ item }} kube-ovn/role=master --overwrite
+    with_items:
+      - "{{ kube_ovn.master }}"
+
+  - name: 部署 kube-ovn
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }}/crd.yaml;
+      sleep 5;
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }}/kube-ovn.yaml;
+      sleep 5;
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }}/ovn.yaml;
+
+  - name: 配置 kube-ovn kubectl plugin
+    template:
+      src: kubectl-ko.j2
+      dest: "{{ kubernetes_bin_dir }}/kubectl-ko"
+      mode: 0755
+
+  - name: 轮询等待 kube-ovn 运行
+    shell: >
+      kubectl get pod --all-namespaces -o wide | grep 'kube-ovn' | awk '{print $4}'
+    register: pod_status
+    until: "'Running' in pod_status.stdout"
+    retries: 15
+    delay: 10
+    ignore_errors: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- name: 获取其他 cni 配置文件
+  find:
+    paths: "{{ cni_etc_dir }}"
+    patterns: "*.conflist,*.conf"
+    # use_regex: true
+  register: find_files_to_delete
+
+- name: 删除其他 cni 配置文件
+  when: "container_network not in item.path"
+  file: path="{{ item.path }}" state=absent
+  with_items: "{{ find_files_to_delete.files }}"

@@ -1,0 +1,18 @@
+- name: 分发文件
+  block:
+    - name: 安装 rsync
+      package: name=rsync state=present
+
+    - debug: msg="同步二进制文件到各节点，可能需要一定时间。。"
+    - name: 从 deploy 节点分发各组件二进制文件至所有节点
+      when: item.value.install_dir != ""
+      copy:
+        src: "{{ item.value.install_dir }}"
+        dest: "{{ item.value.install_dir.split('/')[:-1]|join('/') }}"
+        owner: root
+        group: root
+        mode: 0755
+        remote_src: no
+      with_dict: "{{ binary }}"
+  when:
+    - inventory_hostname != groups['deploy'][0]

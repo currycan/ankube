@@ -1,0 +1,28 @@
+- block:
+  - name: 判断 pyenv-installer 安装工具是否存在
+    stat: path="{{ cache_dir }}pyenv-installer"
+    register: check_pyenv_installer
+
+  - name: 下载 pyenv-installer 安装工具
+    when: not check_pyenv_installer.stat.exists
+    get_url:
+      url: "https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer"
+      dest: "{{ cache_dir }}"
+    environment:
+      http_proxy: "{{ proxy_env.http_proxy }}"
+      https_proxy: "{{ proxy_env.https_proxy }}"
+
+  - name: 判断 Python-{{ python3_version }}.tar.xz 安装包是否存在
+    stat: path="{{ cache_dir }}Python-{{ python3_version }}.tar.xz"
+    register: check_tar_file
+
+  - name: 下载 Python-{{ python3_version }}.tar.xz
+    when: not check_tar_file.stat.exists
+    get_url:
+      url: "http://npm.taobao.org/mirrors/python/{{ python3_version }}/Python-{{ python3_version }}.tar.xz"
+      dest: "{{ cache_dir }}"
+    environment:
+      http_proxy: "{{ proxy_env.http_proxy }}"
+      https_proxy: "{{ proxy_env.https_proxy }}"
+  run_once: true
+  delegate_to: "{{ groups['deploy'][0] }}"

@@ -1,0 +1,6 @@
+[Service]
+{% if docker_enable_proxy is defined and docker_enable_proxy == true -%}
+Environment="HTTP_PROXY={{ proxy_env.http_proxy }}"
+Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
+Environment="NO_PROXY=localhost,127.0.0.1,127.0.0.0/8,registry.docker-cn.com,8trm4p9x.mirror.aliyuncs.com,registry.cn-hangzhou.aliyuncs.com,docker.mirrors.ustc.edu.cn,010a79c4.m.daocloud.io"
+{% endif -%}

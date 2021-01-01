@@ -1,0 +1,11 @@
+# to set up helm
+- hosts: kube-cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  # vars:
+  #   ansible_python_interpreter: "/usr/bin/python3"
+  roles:
+  - { role: k8s-helm/helm3, when: "helm_type == 'helm3'" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2'" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2'" }

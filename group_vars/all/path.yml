@@ -1,0 +1,61 @@
+# cache file paths
+cache_dir: /k8s_cache/
+
+# bin file paths
+base_bin_dir: "/opt"
+cfssl_bin_dir: "{{ base_bin_dir }}/cfssl/bin"
+kubernetes_bin_dir: "{{ base_bin_dir }}/kubernetes/bin"
+etcd_bin_dir: "{{ base_bin_dir }}/etcd/bin"
+containerd_bin_dir: "{{ base_bin_dir }}/containerd/bin"
+docker_bin_dir: "{{ base_bin_dir }}/docker/bin"
+cni_bin_dir: "{{ base_bin_dir }}/cni/bin"
+calico_bin_dir: "{{ base_bin_dir }}/calico/bin"
+helm2_bin_dir: "{{ base_bin_dir }}/helm2/bin"
+helm3_bin_dir: "{{ base_bin_dir }}/helm3/bin"
+helmfile_bin_dir: "{{ base_bin_dir }}/helmfile/bin"
+krew_bin_dir: "{{ base_bin_dir }}/krew/bin"
+argocd_bin_dir: "{{ base_bin_dir }}/argocd/bin"
+vela_bin_dir: "{{ base_bin_dir }}/vela/bin"
+istio_bin_dir: "{{ base_bin_dir }}/istio/bin"
+
+# system paths
+profile_dir: /etc/profile.d
+systemd_service_dir: /usr/lib/systemd/system
+etc_systemd_service_dir: /etc/systemd/system
+
+# container-runtime paths
+docker_etc_dir: /etc/docker
+docker_data_dir: /var/lib/docker
+containerd_etc_dir: /etc/containerd
+containerd_data_dir: /var/lib/containerd
+
+# etcd paths
+# 为了提高性能，一般使用 SSD 或者和 data-dir 和 wal-dir 不同的磁盘；
+etcd_data_dir: /var/lib/etcd
+etcd_wal_dir: /var/lib/wal
+etcd_config_dir: /etc/etcd
+# 配置etcd持久化数据目录
+# 0 3 * * * etcd_cron.sh -c 4 -d /etcd_bak &>/dev/null 2>&1
+etcd_data_bak_dir: /data_bak/etcd
+
+# kubernetes paths
+kubernetes_etc_dir: /etc/kubernetes
+kubernetes_log_dir: /var/log/kubernetes
+kubelet_data_dir: /var/lib/kubelet
+kube_proxy_data_dir: /var/lib/kube-proxy
+cni_etc_dir: /etc/cni/net.d
+manifest_dir: "{{kubernetes_etc_dir}}/manifests"
+rbac_dir: "{{kubernetes_etc_dir}}/rbac"
+normal_addon_dir: "{{kubernetes_etc_dir}}/addons/normal"
+helm_addon_dir: "{{kubernetes_etc_dir}}/addons/helm"
+kustomize_addon_dir: "{{kubernetes_etc_dir}}/addons/kustomize"
+
+# cert paths
+k8s_pki_dir: "{{kubernetes_etc_dir}}/pki"
+etcd_pki_dir: "{{ k8s_pki_dir }}/etcd"
+kubelet_pki_dir: "{{ kubelet_data_dir }}/pki"
+kube_proxy_pki_dir: "{{ kube_proxy_data_dir }}/pki"
+
+# cluster ha dir
+haproxy_etc_dir: /etc/haproxy
+keepalived_etc_dir: /etc/keepalived

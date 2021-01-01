@@ -1,0 +1,33 @@
+- name: helm 安装
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ helm3_bin_dir }}"
+    line: export PATH="{{ helm3_bin_dir }}:$PATH"
+
+- name: 添加 helm 命令自动补全
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: present
+    regexp: 'helm completion'
+    line: 'source <({{ helm3_bin_dir }}/helm completion bash)'
+
+- name: 当前会话加载 helm 命令自动补全
+  shell: >
+    {{ helm3_bin_dir }}/helm completion bash > /etc/bash_completion.d/helm;
+    source /etc/bash_completion.d/helm
+  args:
+    executable: /bin/bash
+
+# 微软仓库（http://mirror.azure.cn/kubernetes/charts/）这个仓库强烈推荐，基本上官网有的chart这里都有。
+# 阿里云仓库（https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts ）
+# 官方仓库（https://hub.kubeapps.com/charts/incubator）官方chart仓库，国内有点不好使
+- name: 添加 helm 仓库
+  shell: >
+    {{ helm3_bin_dir }}/helm repo add stable   http://mirror.azure.cn/kubernetes/charts;
+    {{ helm3_bin_dir }}/helm repo add aliyun   https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts;
+    # cert-manager
+    {{ helm3_bin_dir }}/helm repo add jetstack https://charts.jetstack.io;
+    # bitnami
+    {{ helm3_bin_dir }}/helm repo add bitnami  https://charts.bitnami.com/bitnami;
+    {{ helm3_bin_dir }}/helm repo update

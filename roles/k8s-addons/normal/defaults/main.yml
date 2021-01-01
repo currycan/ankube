@@ -1,0 +1,62 @@
+normal_addons:
+  metric_server:
+    name: metric-server
+    directories:
+      - metric-server
+    templates:
+      - metric-server/metrics-server-sa.yml
+      - metric-server/metrics-server-rbac.yml
+      - metric-server/metrics-apiservice.yml
+      - metric-server/metrics-server-pdb.yaml
+      - metric-server/metrics-server-svc.yml
+      - metric-server/metrics-server-dp.yml
+    worker:
+      - "{{ images.metrics_server.file }}"
+
+  kuboard:
+    name: kuboard
+    directories:
+      - kuboard
+    templates:
+      - kuboard/kuboard.yaml
+    worker:
+      - "{{ images.kuboard.file }}"
+
+  pv_browser:
+    name: pv-browser
+    directories:
+      - pv-browser
+    templates:
+      - pv-browser/deploy.yaml
+    worker:
+      - "{{ images.pv_browser.file }}"
+
+  storage_nfs:
+    name: storage-nfs
+    directories:
+      - storage-nfs
+    templates:
+      - storage-nfs/nfs-client-provisioner.yaml
+      - storage-nfs/storage-class.yaml
+      - storage-nfs/test-nfs-storage-class.yaml
+    worker:
+      - "{{ images.nfs_client_provisioner.file }}"
+
+  rbac_manager:
+    name: rbac-manager
+    directories:
+      - rbac-manager
+    templates:
+      - rbac-manager/rbac-manager.yml
+    worker:
+      - "{{ images.rbac_manager.file }}"
+
+  kubectl_debug:
+    name: kubectl-debug
+    directories:
+      - kubectl-debug
+    templates:
+      - kubectl-debug/kubectl-debug-agent.yaml
+    all:
+      - "{{ images.kubectl_debug.file }}"
+      - "{{ images.netshoot.file }}"

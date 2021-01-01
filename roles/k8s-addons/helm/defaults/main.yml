@@ -1,0 +1,15 @@
+helm_addons:
+  cert_manager:
+    name: cert-manager
+    directories: cert-manager
+    chart_name: jetstack
+    chart_repo: https://charts.jetstack.io
+    chart_project: jetstack/cert-manager
+    namespace: cert-manager
+    set_value: "--set installCRDs=true --set image.tag=v1.1.0 --set prometheus.enabled=false --set webhook.image.tag=v1.1.0 --set cainjector.image.tag=v1.1.0"
+    templates:
+      - cert-manager/values.yaml
+    worker:
+      - "{{ images.cert_manager_cainjector.file }}"
+      - "{{ images.cert_manager_webhook.file }}"
+      - "{{ images.cert_manager_controller.file }}"

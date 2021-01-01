@@ -1,0 +1,25 @@
+## 说明
+## 相较于将一块磁盘设备分别用于存储多个数据包，从而将磁盘进行多个分区，每个分区大小固定
+## 采用目录绑定的形式更加友好，两个数据包共用一个磁盘设备，最大利用磁盘
+## 而还有一种形式是，在一个磁盘分区创建目录，再软链到数据包目录，也没有问题，软链的形式上感觉不够稳定
+
+# 删除分区
+# umount $DISK_DEVICE
+# fdisk $DISK_DEVICE
+# d 1 d w
+# 删除后千万不要忘记删除 /etc/fstab 里的开机启动配置
+
+disk:
+  - device: /dev/sdb
+    partition_number: 1
+    mount_dir: /var/lib/container
+    sub_dir:
+      - /var/lib/docker
+      - /var/lib/kubelet
+
+  - device: /dev/sdc
+    partition_number: 1
+    mount_dir: /app/data
+    sub_dir:
+      - /app/logs
+      - /app/files

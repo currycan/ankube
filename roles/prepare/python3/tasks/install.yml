@@ -1,0 +1,86 @@
+- name: pyenv 方式安装 python, 安装相应依赖
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - git
+    - gcc
+    - zlib-devel
+    - openssl-devel
+    - openssl-static
+    - sqlite-devel
+    - bzip2-devel
+    - bzip2-libs
+    - readline-devel
+    - readline-static
+  when: python3_pyenv != 'None' and 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+- name: pyenv 方式安装 python, 安装相应依赖
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - git
+    - gcc
+    - libreadline-dev
+    - zlib1g-dev
+    - libssl-dev
+    - libbz2-dev
+    - libsqlite3-dev
+  when: python3_pyenv != 'None' and ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int >= 16
+
+- name: 删除 .pyenv 目录
+  file:
+    path: "{{ ansible_user_dir }}/.pyenv"
+    state: absent
+
+- include_tasks: download.yml
+  register: download_rslt
+
+- name: 分发 pyenv-installer
+  when: download_rslt is succeeded
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    remote_src: no
+  with_items:
+    - { src: "{{ cache_dir }}pyenv-installer", dest: "{{ cache_dir }}pyenv-installer", mode: "0755" }
+
+- name: 安装 pyenv
+  shell: "{{ cache_dir }}pyenv-installer"
+  args:
+    executable: /bin/bash
+
+- name: 创建安装依赖目录
+  file: path="{{ item}}" state=directory
+  with_items:
+    - "{{ ansible_user_dir }}/.pyenv/cache"
+    - "{{ ansible_env.HOME }}/.config/pip"
+
+- name: 分发 Python-{{ python3_version }}.tar.xz 安装包
+  when: download_rslt is succeeded
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: no
+  with_items:
+    - { src: "{{ cache_dir }}Python-{{ python3_version }}.tar.xz", dest: "{{ ansible_user_dir }}/.pyenv/cache/Python-{{ python3_version }}.tar.xz" }
+
+- name: 更新 pyenv 仓库
+  shell: "pyenv update"
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_user_dir }}/.pyenv/bin:{{ ansible_user_dir }}/.pyenv/shims:{{ ansible_user_dir }}/.pyenv/versions/{{ python3_pyenv }}/bin"
+
+- name: 使用 pyenv 安装 Python-{{ python3_version }}
+  shell: >
+    pyenv install -f {{ python3_pyenv }};
+    pyenv rehash;
+    pyenv global {{ python3_pyenv }};
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_user_dir }}/.pyenv/versions/{{ python3_pyenv }}"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_user_dir }}/.pyenv/bin:{{ ansible_user_dir }}/.pyenv/shims:{{ ansible_user_dir }}/.pyenv/versions/{{ python3_pyenv }}/bin"

@@ -1,0 +1,169 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/addon: kuboard-system-logs
+    app: kuboard-loki
+  name: kuboard-loki
+  namespace: kube-system
+spec:
+  ports:
+  - name: http-metrics
+    port: 3100
+    protocol: TCP
+    targetPort: http-metrics
+  selector:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/addon: kuboard-system-logs
+    app: kuboard-loki
+  sessionAffinity: None
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/addon: kuboard-system-logs
+    app: kuboard-loki
+  name: kuboard-loki
+  namespace: kube-system
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: ${LOKI_REPLICAS}
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/layer: monitor
+      k8s.kuboard.cn/addon: kuboard-system-logs
+      app: kuboard-loki
+  serviceName: kuboard-loki
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: "true"
+      creationTimestamp: null
+      labels:
+        k8s.kuboard.cn/layer: monitor
+        k8s.kuboard.cn/addon: kuboard-system-logs
+        app: kuboard-loki
+    spec:
+      containers:
+      - args:
+        - -config.file=/etc/loki/loki.yaml
+        image: grafana/loki:1.5.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: http-metrics
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: loki
+        ports:
+        - containerPort: 3100
+          name: http-metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: http-metrics
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          readOnlyRootFilesystem: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/loki
+          name: config
+        - mountPath: /data
+          name: storage
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      serviceAccount: kuboard-loki-promtail-serviceaccount
+      serviceAccountName: kuboard-loki-promtail-serviceaccount
+      terminationGracePeriodSeconds: 4800
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 420
+          name: kuboard-loki-configmap
+  volumeClaimTemplates:
+  - metadata:
+      annotations:
+        k8s.kuboard.cn/pvcType: Dynamic
+      name: storage
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: cluster-storage
+  updateStrategy:
+    type: RollingUpdate
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuboard-loki-configmap
+  namespace: kube-system
+data:
+  loki.yaml: |-
+    auth_enabled: false
+    chunk_store_config:
+      max_look_back_period: 0s
+    ingester:
+      chunk_block_size: 262144
+      chunk_idle_period: 3m
+      chunk_retain_period: 1m
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      max_transfer_retries: 0
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+    schema_config:
+      configs:
+      - from: "2020-01-01"
+        index:
+          period: 168h
+          prefix: index_
+        object_store: filesystem
+        schema: v9
+        store: boltdb
+    server:
+      http_listen_port: 3100
+    storage_config:
+      boltdb:
+        directory: /data/loki/index
+      filesystem:
+        directory: /data/loki/chunks
+    table_manager:
+      retention_deletes_enabled: false
+      retention_period: 0s

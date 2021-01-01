@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{ addon.namespace }}
+
+resources:
+- snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+- snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+- snapshot.storage.k8s.io_volumesnapshots.yaml
+- rbac-csi-snapshotter.yaml
+- rbac-external-provisioner.yaml
+- rbac-snapshot-controller.yaml
+- setup-csi-snapshotter.yaml
+- setup-snapshot-controller.yaml
+# - config/admission-configuration.yaml
+# - webhook.yaml
+
+# replicas:
+# - name: snapshot-validation-deployment
+#   count: 1
+
+{# # # create the secret with CA cert and server cert/key
+# kubectl create secret generic ${secret} \
+#         --from-file=key.pem=${tmpdir}/server-key.pem \
+#         --from-file=cert.pem=${tmpdir}/server-cert.pem \
+#         --dry-run=client -o yaml |
+#     kubectl -n ${namespace} apply -f -
+secretGenerator:
+- name: admission-webhook-example-certs
+  namespace: {{ addon.namespace }}
+  files:
+  - tls.crt={{ kustomize_addon_dir }}/{{ addon.directories }}/config/server-key.pem
+  - tls.key={{ kustomize_addon_dir }}/{{ addon.directories }}/config/server-cert.pem
+  type: "kubernetes.io/tls"
+
+generatorOptions:
+  disableNameSuffixHash: true #}
+
+images:
+- name: snapshot-controller
+  newName: {{ images.snapshot_controller.name.split(':')[0] }}
+  newTag: {{ images.snapshot_controller.name.split(':')[1] }}
+- name: csi-provisioner
+  newName: {{ images.csi_provisioner.name.split(':')[0] }}
+  newTag: {{ images.csi_provisioner.name.split(':')[1] }}
+- name: csi-snapshotter
+  newName: {{ images.csi_snapshotter.name.split(':')[0] }}
+  newTag: {{ images.csi_snapshotter.name.split(':')[1] }}
+- name: hostpath
+  newName: {{ images.hostpathplugin.name.split(':')[0] }}
+  newTag: {{ images.hostpathplugin.name.split(':')[1] }}
+- name: snapshot-validation
+  newName: {{ images.snapshot_validation.name.split(':')[0] }}
+  newTag: {{ images.snapshot_validation.name.split(':')[1] }}

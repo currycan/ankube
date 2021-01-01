@@ -1,0 +1,18 @@
+[Unit]
+Description=Etcd Service
+After=network.target
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/coreos
+
+[Service]
+Type=notify
+Environment="ETCDCTL_API={{ etcd_api_version }}"
+ExecStart={{ etcd_bin_dir }}/etcd --config-file=/etc/etcd/config.yml
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+Alias=etcd3.service

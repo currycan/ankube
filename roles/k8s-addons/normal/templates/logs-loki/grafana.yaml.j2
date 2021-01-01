@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuboard-loki-grafana
+  namespace: kube-system
+  annotations:
+    k8s.kuboard.cn/workload: kuboard-loki-grafana
+    k8s.kuboard.cn/service: ClusterIP
+    k8s.kuboard.cn/ingress: 'false'
+  labels:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/name: kuboard-loki-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/layer: monitor
+      k8s.kuboard.cn/name: kuboard-loki-grafana
+  template:
+    metadata:
+      labels:
+        k8s.kuboard.cn/layer: monitor
+        k8s.kuboard.cn/name: kuboard-loki-grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:7.0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/grafana
+          name: grafana-storage
+          subPath: grafana
+        env:
+        - name: INFLUXDB_HOST
+          value: monitoring-influxdb
+        - name: GF_SERVER_HTTP_PORT
+          value: "3000"
+        - name: GF_AUTH_PROXY_ENABLED
+          value: "true"
+        - name: GF_SERVER_ROOT_URL
+          value: "/proxy/http/kube-system/kuboard-loki-grafana/:/3000/"
+        - name: GF_SERVER_ENABLE_GZIP
+          value: "${GF_SERVER_ENABLE_GZIP}"
+        - name: GF_SECURITY_ADMIN_USER
+          value: "${GF_SECURITY_ADMIN_USER}"
+        - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
+          value: "${GF_USERS_AUTO_ASSIGN_ORG_ROLE}"
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      volumes:
+      - name: grafana-storage
+        emptyDir: {}
+        # persistentVolumeClaim:
+        #   claimName: kubernetes-grafana-pvc
+      tolerations:
+      - operator: Exists
+      - key: node-role.kubernetes.io/master
+        value: ""
+        effect: NoSchedule
+
+---
+
+apiVersion: v1
+
+kind: Service
+
+metadata:
+  name: kuboard-loki-grafana
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/tcp-probe: 'true'
+    prometheus.io/tcp-probe-port: '80'
+    proxy.kuboard.cn/disable-rebase-3000: 'true'
+spec:
+  type: ClusterIP
+  selector:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/name: kuboard-loki-grafana
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000

@@ -1,0 +1,10 @@
+- name: 渲染 pip.conf, pip 设置国内源
+  template: src=pip.conf.j2 dest="{{ ansible_env.HOME }}/.config/pip/pip.conf"
+
+- name: pip 升级安装 pip pipenv virtualenv
+  shell: >
+    pip3 install --upgrade pip;
+    pip3 install --upgrade pipenv;
+    pip3 install --upgrade virtualenv
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_user_dir }}/.pyenv/bin:{{ ansible_user_dir }}/.pyenv/shims:{{ ansible_user_dir }}/.pyenv/versions/{{ python3_pyenv }}/bin"

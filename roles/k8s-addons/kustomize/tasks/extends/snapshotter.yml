@@ -1,0 +1,28 @@
+
+- name: 判断 admission-configuration.yaml 文件是否存在
+  stat: path="{{ kustomize_addon_dir }}/{{ addon.directories }}/config/admission-configuration.yaml"
+  register: check_config_file
+
+- block:
+  - name: 创建 {{ addon.name }} kustomize config 目录
+    file: path="{{ kustomize_addon_dir }}/{{ addon.directories }}/config" state=directory
+
+  - name: 复制 {{ addon.name }} 依赖文件
+    copy: src="{{ item }}" dest="{{ kustomize_addon_dir }}/{{ addon.directories }}/config" mode=0755
+    with_items:
+      - snapshotter/admission-configuration-template
+      - snapshotter/create-cert.sh
+      - snapshotter/patch-ca-bundle.sh
+
+  - name: 创建 {{ addon.name }} 证书
+    script: >
+      {{ kustomize_addon_dir }}/{{ addon.directories }}/config/create-cert.sh --service snapshot-validation-service --secret snapshot-validation-secret --namespace {{ addon.namespace }}
+    args:
+      executable: /bin/bash
+
+  - name: 创建 {{ addon.name }} admission 配置清单
+    shell: >
+      cat {{ kustomize_addon_dir }}/{{ addon.directories }}/config/admission-configuration-template | {{ kustomize_addon_dir }}/{{ addon.directories }}/config/patch-ca-bundle.sh > {{ kustomize_addon_dir }}/{{ addon.directories }}/config/admission-configuration.yaml
+    args:
+      executable: /bin/bash
+  when: not check_config_file.stat.exists

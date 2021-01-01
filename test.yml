@@ -1,0 +1,40 @@
+- hosts: "{{ groups['masters'][0] }}"
+# - hosts:
+#   - kube-cluster
+# - hosts: "{{ groups['masters'] }}"
+# - hosts: kube-cluster
+# - hosts: (groups['nodes'] + groups['add-nodes'])
+# - hosts: etcds
+# - hosts: "{{ groups['deploy'][0] }}"
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    # ansible_python_interpreter: "/usr/bin/python3"
+  # roles:
+  tasks:
+  # - debug: var=ansible_kernel
+  # - debug: var=ansible_facts
+  # - name: test
+  #   include_role:
+  #     name: k8s-setup
+  #     tasks_from: k8s-setup/install/tasks/common/tools.yml
+
+  # - name: Reset etcd cluster
+  #   include_tasks: "{{ inventory_dir }}/roles/k8s-setup/install/tasks/clean.yml"
+
+  # - name: helm 安装 cert-manager
+  #   register: cert_result
+  #   # when: "'cert-manager' not in helm_list_results.stdout"
+  #   shell: >
+  #     [ `{{ kubernetes_bin_dir }}/kubectl get ns cert-manager --ignore-not-found | wc -l` -eq 0 ] && \
+  #     {{ kubernetes_bin_dir }}/kubectl create ns cert-manager;
+  #     {{ helm3_bin_dir }}/helm install cert-manager --namespace cert-manager jetstack/cert-manager \
+  #       --set installCRDs=true \
+  #       --set image.tag=v1.1.0 \
+  #       --set prometheus.enabled=false \
+  #       --set webhook.image.tag=v1.1.0 \
+  #       --set cainjector.image.tag=v1.1.0;
+# "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_letters,digits') | lower | b64encode }}"
+  - debug: msg="{{ b64encode(token_bytes(32)).decode() }}"
+# lookup('token_bytes', '32') | b64encode

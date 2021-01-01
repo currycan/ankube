@@ -1,0 +1,37 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-storage-class
+# 标识StorageClass使用哪个provisioner创建。
+provisioner: nfs-storage-class
+# 需要provisioner支持，阿里云支持cloud_efficiency、cloud_ssd、cloud_essd、available四种参数
+parameters:
+  # waits for nfs.io/storage-path annotation, if not specified will accept as empty string.
+  pathPattern: "${.PVC.namespace}/${.PVC.annotations.nfs.io/storage-path}"
+  # If it exists and has a delete value, delete the directory, if it exists and has a retain value, save the directory.
+  # onDelete: delete
+  # onDelete: retain
+  # If it exists and has a false value, delete the directory. if onDelete exists, archiveOnDelete will be ignored.
+  archiveOnDelete: "false"
+# 云盘的回收策略，默认为Delete，支持Retain。
+# Delete模式：删除PVC的时候，PV和云盘会一起删除。
+# Retain模式：删除PVC的时候，PV和云盘数据不会被删除，需要您手动删除。
+reclaimPolicy: Retain
+# WaitForFirstConsumer时表示使用延迟绑定，即调度器先调度pod，并根据pod的可用区信息创建云盘。
+# volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
+# 配置为true时，可以实现云盘的自动扩容。
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: test-storage-class
+provisioner: nfs-storage-class
+parameters:
+  pathPattern: "${.PVC.namespace}/${.PVC.annotations.nfs.io/storage-path}"
+  archiveOnDelete: "false"
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

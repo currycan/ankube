@@ -1,0 +1,47 @@
+- name: 判断证书私钥是否存在
+  stat: path="{{ item.dir }}/{{ item.bare }}-key.pem"
+  with_items:
+    - "{{ certs }}"
+  register: check_cert_key_files
+
+- name: 从 groups['masters'][0] 节点分发 kubernetes CA 证书到各节点
+  when:
+    - check_cert_key_files['results'][0].item.bare == "kubelet"
+    - inventory_hostname != groups['masters'][0]
+  synchronize:
+    src: "{{ item }}"
+    dest: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_ca }}"
+    - "{{ kubernetes_ca_key }}"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 渲染 ca-config.json 证书配置文件
+  template:
+    src: "{{ item.src }}.j2"
+    dest: "{{ item.dest }}"
+    owner: root
+    mode: 0644
+  with_items:
+    - { src: "ca-config.json", dest: "{{ ca_config }}" }
+
+- include_tasks: "_certs.yml"
+  loop_control:
+    loop_var: out_item
+  with_items: "{{ check_cert_key_files['results'] }}"
+
+- name: 获取待删除的证书临时文件
+  find:
+    paths: "{{ item }}"
+    patterns: "*.csr,*.json"
+    # use_regex: true
+  with_items:
+    - "{{ k8s_pki_dir }}"
+    - "{{ etcd_pki_dir }}"
+  register: find_files_to_delete
+
+- name: 删除证书签名请求文件
+  include_tasks: "_delete_files.yml"
+  loop_control:
+    loop_var: out_item
+  with_items: "{{ find_files_to_delete['results'] }}"

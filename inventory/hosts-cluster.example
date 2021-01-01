@@ -1,0 +1,55 @@
+[deploy]
+10.10.10.10 iface=ens192
+
+[chrony]
+10.10.10.1 iface=ens192
+
+[etcds]
+10.10.10.1 iface=ens192
+10.10.10.2 iface=ens192
+10.10.10.3 iface=ens192
+
+[add-etcds]
+
+[delete-etcds]
+
+[masters]
+10.10.10.1 iface=ens192 lb_role=master
+10.10.10.2 iface=ens192 lb_role=backup
+10.10.10.3 iface=ens192 lb_role=backup
+
+[add-masters]
+
+[delete-masters]
+
+[nodes]
+10.10.10.4 iface=ens192
+10.10.10.5 iface=ens192
+10.10.10.6 iface=ens192
+
+[add-nodes]
+
+[delete-nodes]
+
+[kube-masters:children]
+masters
+add-masters
+delete-masters
+
+[kube-nodes:children]
+masters
+add-masters
+delete-masters
+
+[kube-cluster:children]
+masters
+add-masters
+delete-masters
+nodes
+add-nodes
+delete-nodes
+
+[kube-etcds:children]
+etcds
+add-etcds
+delete-etcds

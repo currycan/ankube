@@ -1,0 +1,65 @@
+- name: 判断执行用户是否存在
+  action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
+  register: user_exist
+  with_items:
+  - "{{ normal_user }}"
+
+- name: 清理 docker bin path
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bash_profile"
+    state: absent
+    regexp: "{{ docker_bin_dir }}"
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 清理 kubectl bin path
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bash_profile"
+    state: absent
+    regexp: "{{ kubernetes_bin_dir }}"
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 清理 helm bin path
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bash_profile"
+    state: absent
+    regexp: "{{ helm2_bin_dir }}"
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 清理 kubectl completion env
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bashrc"
+    state: absent
+    regexp: 'kubectl completion'
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 清理 helm completion env
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bashrc"
+    state: absent
+    regexp: 'helm completion'
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 清理 helm tls env
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bashrc"
+    state: absent
+    regexp: 'HELM_TLS_ENABLE'
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 删除 kubeconfig 认证文件
+  when: 'item.stdout != "0"'
+  file: path="/home/{{ item.item }}/.kube" state=absent
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 删除 helm 认证文件
+  when: 'item.stdout != "0"'
+  file: path="/home/{{ item.item }}/.helm" state=absent
+  with_items:
+  - "{{ user_exist['results'] }}"

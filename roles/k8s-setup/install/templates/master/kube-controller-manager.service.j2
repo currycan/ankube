@@ -1,0 +1,100 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://github.com/kubernetes/kubernetes
+# After=kube-apiserver.service
+# Requires=kube-apiserver.service
+
+[Service]
+ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
+  --allocate-node-cidrs=true \
+  --alsologtostderr=true \
+  --attach-detach-reconcile-sync-period={{ controller_manager.attach_detach_reconcile_sync_period }} \
+  --authentication-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
+  --authorization-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
+  --client-ca-file={{ kubernetes_ca }} \
+  --cloud-provider=external \
+  --cluster-cidr={{ pod_network_cidr }} \
+  --cluster-name={{ cluster_name }} \
+  --cluster-signing-cert-file={{ kubernetes_ca }} \
+  --cluster-signing-key-file={{ kubernetes_ca_key }} \
+  --concurrent-deployment-syncs=10 \
+  --concurrent-gc-syncs=30 \
+  --concurrent-replicaset-syncs=10 \
+  --concurrent-service-syncs=2 \
+  --controllers=*,bootstrapsigner,tokencleaner \
+  --experimental-cluster-signing-duration={{ controller_manager.kube_certs_expired }} \
+  --feature-gates=RotateKubeletServerCertificate=true,VolumeSnapshotDataSource=true \
+  --horizontal-pod-autoscaler-cpu-initialization-period={{ controller_manager.horizontal_pod_autoscaler.cpu_initialization_period }} \
+  --horizontal-pod-autoscaler-downscale-stabilization={{ controller_manager.horizontal_pod_autoscaler.downscale_delay }} \
+  --horizontal-pod-autoscaler-initial-readiness-delay={{ controller_manager.horizontal_pod_autoscaler.readiness_delay }} \
+  --horizontal-pod-autoscaler-sync-period={{ controller_manager.horizontal_pod_autoscaler.sync_period }} \
+  --horizontal-pod-autoscaler-tolerance={{ controller_manager.horizontal_pod_autoscaler.tolerance }} \
+  --kube-api-burst=200 \
+  --kube-api-qps=500 \
+  --kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
+  --leader-elect=true \
+  --log-dir={{ kubernetes_log_dir }}/kube-controller-manager \
+  --logtostderr=false \
+  --node-cidr-mask-size={{ controller_manager.node_cidr_mask_size }} \
+  --node-monitor-grace-period=
+{%- if controller_manager.node_monitor_grace_period is defined -%}
+  {{ controller_manager.node_monitor_grace_period }}
+{%- else -%}
+  {%- if controller_manager.node_status_update == 'Fast' -%}
+    20s
+  {%- elif controller_manager.node_status_update == 'Medium' -%}
+    2m
+  {%- elif controller_manager.node_status_update == 'Low' -%}
+    5m
+  {%- else -%}
+    40s
+  {%- endif -%}
+{%- endif %} \
+  --node-monitor-period=
+{%- if controller_manager.node_monitor_period is defined -%}
+  {{ controller_manager.node_monitor_period }}
+{%- else -%}
+  {%- if controller_manager.node_status_update == 'Fast' -%}
+    2s
+  {%- else -%}
+    5s
+  {%- endif -%}
+{%- endif %} \
+  --pod-eviction-timeout=
+{%- if pod_eviction_timeout is defined -%}
+  {{ controller_manager.pod_eviction_timeout }}
+{%- else -%}
+  {%- if controller_manager.node_status_update == 'Fast' -%}
+    30s
+  {%- elif controller_manager.node_status_update == 'Medium' -%}
+    1m
+  {%- elif controller_manager.node_status_update == 'Low' -%}
+    1m
+  {%- else -%}
+    5m
+  {%- endif -%}
+{%- endif %} \
+  --port={{ controller_manager.insecure_port }} \
+  --profiling=false \
+  --requestheader-allowed-names= \
+  --requestheader-client-ca-file={{ front_ca }} \
+  --root-ca-file={{ kubernetes_ca }} \
+  --secure-port={{ controller_manager.secure_port }} \
+  --service-account-private-key-file={{ sa_private_key }} \
+  --service-cluster-ip-range={{ apiserver.service_ip_range }} \
+{% if controller_manager.terminated_pod_gc_threshold is defined %}
+  --terminated-pod-gc-threshold={{ controller_manager.terminated_pod_gc_threshold }} \
+{% endif %}
+  --tls-cert-file={{ controller_cert_manager }} \
+  --tls-private-key-file={{ controller_cert_manager_key }} \
+  --use-service-account-credentials=true \
+  --v=2
+
+LimitNOFILE=65536
+Restart=always
+RestartSec=3
+StartLimitInterval=0
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,72 @@
+- name: 获取当前内核版本
+  shell: "uname -r"
+  register: get_kernel_version
+
+- name: 设置内核版本参数
+  set_fact:
+    set_fact_kernel_version: "{{ get_kernel_version.stdout.split('-')[0] }}"
+
+- block:
+  - name: 判断 rpm 文件是否存在
+    stat: path="{{ cache_dir + item }}"
+    with_items: "{{ centos_kernel_rpm_files }}"
+    register: check_rpm
+
+  - debug: msg="下载 kernel rpm包，根据网速不同，可能需要一定时间。。"
+  - name: "下载 kernel rpm 包"
+    when: not item.stat.exists
+    get_url:
+      url: "{{ centos_kernel_repo }}/{{ item.item }}"
+      dest: "{{ cache_dir + item.item }}"
+      validate_certs: False
+    with_items: "{{ check_rpm['results'] }}"
+    environment:
+        http_proxy: "{{ proxy_env.http_proxy }}"
+        https_proxy: "{{ proxy_env.https_proxy }}"
+  when: 'centos_kernel_version not in set_fact_kernel_version'
+  run_once: true
+  delegate_to: "{{ groups['deploy'][0] }}"
+
+- name: 从 deploy 节点分发 rpm 文件到各节点
+  when: inventory_hostname != groups['deploy'][0]
+  synchronize: src="{{ cache_dir + item }}" dest="{{ cache_dir + item }}"
+  with_items: "{{ centos_kernel_rpm_files }}"
+
+- debug: msg="rpm 安装内核，可能需要一定时间。。"
+- name: 安装内核
+  shell: "rpm -Uvh --nodeps --force {{ cache_dir + item }}"
+  with_items: "{{ centos_kernel_rpm_files }}"
+  when: 'centos_kernel_version not in set_fact_kernel_version'
+
+- name: 卸载 3.10 版本 kernel
+  shell: "yum remove -y kernel*3.10*"
+
+- name: 卸载 kernel-ml
+  shell: "yum remove -y kernel-ml*"
+  when: 'centos_kernel_type == "lt"'
+
+- name: 卸载 kernel-lt
+  shell: "yum remove -y kernel-lt*"
+  when: 'centos_kernel_type == "ml"'
+
+- name: 设置默认内核为所需版本
+  shell: >
+    grub2-set-default "CentOS Linux ({{ centos_kernel_version }}-1.el7.elrepo.x86_64) 7 (Core)" && grub2-mkconfig -o /boot/grub2/grub.cfg
+
+- name: 禁用内核升级
+  lineinfile:
+    dest: "/etc/yum.conf"
+    state: present
+    regexp: "exclude=kernel"
+    line: |
+      exclude=kernel*
+
+# - name: 检查是否需要重启更新 kernel 版本
+#   shell: uname -r
+#   register: reboot_hint
+
+# - name: 重启中 ...
+#   reboot:
+#     reboot_timeout: 3600
+#   when: 'version.stdout not in reboot_hint.stdout'
+#   register: rebooting

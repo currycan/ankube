@@ -1,0 +1,53 @@
+- name: 修改文件目录权限
+  file:
+    path: "{{ base_bin_dir }}"
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+    mode: 0775
+
+- name: 判断执行用户是否存在
+  action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
+  register: user_exist
+  with_items:
+  - "{{ normal_user }}"
+
+- name: 添加非 root 用户命令执行目录环境变量
+  when: 'item.stdout != "0"'
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bash_profile"
+    state: present
+    regexp: "{{ kubernetes_bin_dir }}"
+    line: export PATH="{{ kubernetes_bin_dir }}:$PATH"
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 从 groups['masters'][0] 节点分发非 root 用户 kubeconfig 认证文件
+  when: 'item.stdout == "1"'
+  synchronize: src="{{ ansible_env.HOME }}/.kube/" dest="/home/{{ item.item }}/.kube/"
+  with_items:
+    - "{{ user_exist['results'] }}"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 修改文件目录权限
+  when: 'item.stdout != "0"'
+  file:
+    path: "/home/{{ item.item }}/.kube/"
+    state: directory
+    recurse: yes
+    owner: "{{ item.item }}"
+    group: "{{ item.item }}"
+    mode: 0700
+  with_items:
+    - "{{ user_exist['results'] }}"
+
+- name: 添加非 root 用户 kubectl 命令自动补全
+  when: 'item.stdout == "1"'
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bashrc"
+    state: present
+    regexp: 'kubectl completion'
+    line: "source <({{ kubernetes_bin_dir }}/kubectl completion bash)"
+  with_items:
+  - "{{ user_exist['results'] }}"

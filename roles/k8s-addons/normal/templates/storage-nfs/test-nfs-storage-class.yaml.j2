@@ -1,0 +1,76 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: data-claim
+spec:
+  storageClassName: nfs-storage-class
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: data-annotation
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "test-storage-class"
+    nfs.io/storage-path: "test-path" # not required, depending on whether this annotation was shown in the storage class description
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
+---
+{% if (kube_version is version('1.14.0', '<')) %}
+apiVersion: extensions/v1beta1
+{% else %}
+apiVersion: apps/v1
+{% endif %}
+kind: Deployment
+metadata:
+  name: test-sc
+  namespace: default
+  labels:
+    app: test-sc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-sc
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: test-sc
+    spec:
+      containers:
+      - name: test-sc
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/bin/sh"
+        args:
+          - "-c"
+          - |
+            echo 'data-claim' > /data-claim/SUCCESS && echo 'data-annotation' > /data-annotation/SUCCESS exit 0 || exit 1;
+            exec "nginx" "-g" "daemon off;"
+        volumeMounts:
+          - name: data-claim
+            mountPath: "/data-claim"
+          - name: data-annotation
+            mountPath: "/data-annotation"
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: false
+      volumes:
+        - name: data-claim
+          persistentVolumeClaim:
+            claimName: data-claim
+        - name: data-annotation
+          persistentVolumeClaim:
+            claimName: data-annotation

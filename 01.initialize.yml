@@ -1,0 +1,12 @@
+# 时间校准(chrony 方式)，初始化
+- hosts:
+  - kube-cluster
+  - etcds
+  - chrony
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: initialize/check-environment }
+  - { role: initialize/chrony, when: "groups['chrony']|length > 0" }
+  - { role: initialize/init }

@@ -1,0 +1,39 @@
+- block:
+  - name: 判断 gen_bootstrap_token 配置文件是否存在
+    stat: path="{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+    register: check_token_file
+
+  - name: 判断 bootstrap_token 是否已经写入配置文件
+    when: check_token_file.stat.exists
+    shell: "cat {{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+    register: token_presence
+
+  - name: 生成 bootstrap_token
+    when: not check_token_file.stat.exists or token_presence.stdout is defined and token_presence.stdout.find('kubeadm_bootstrap_token') == -1
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm token generate
+    register: gen_bootstrap_token
+
+  - name: 获取 bootstrap_token 变量
+    when: not check_token_file.stat.exists or token_presence.stdout is defined and token_presence.stdout.find('kubeadm_bootstrap_token') == -1
+    set_fact:
+      kubeadm_token: "{{ gen_bootstrap_token.stdout }}"
+
+  - name: bootstrap_token 写入独立配置文件
+    when: not check_token_file.stat.exists or token_presence.stdout is defined and token_presence.stdout.find('kubeadm_bootstrap_token') == -1
+    blockinfile:
+      path: "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+      block: |
+        kubeadm_bootstrap_token: {{ kubeadm_token }}
+      create: true
+
+  - name: 获取 bootstrap_token
+    shell: >
+      cat "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml" | grep kubeadm_bootstrap_token | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
+    register: get_bootstrap_token
+
+  - name: 设置 bootstrap_token 变量
+    set_fact:
+      kubeadm_token: "{{ get_bootstrap_token.stdout }}"
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"

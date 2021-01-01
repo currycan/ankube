@@ -1,0 +1,51 @@
+cfssl_helm_certs:
+  - cn: helm-ca
+    file: helm-ca-csr.json
+    org: kubernetes
+    hosts: ""
+    profile: ""
+    bare: helm-ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+  - cn: helm
+    file: helm-csr.json
+    org: "system:helm"
+    hosts: ""
+    profile: client
+    bare: helm
+    ca: helm-ca
+    dir: "{{ k8s_pki_dir }}"
+  - cn: tiller
+    file: tiller-csr.json
+    org: "system:tiller"
+    hosts: ""
+    profile: client
+    bare: tiller
+    ca: helm-ca
+    dir: "{{ k8s_pki_dir }}"
+
+openssl_helm_certs:
+  - cn: helm-ca
+    file: kube-openssl.cnf
+    org: kubernetes
+    profile: v3_ca
+    bare: helm-ca
+    ca: ""
+    dir: "{{ k8s_pki_dir }}"
+    type: helm
+  - cn: helm
+    file: kube-openssl.cnf
+    org: "system:helm"
+    profile: v3_req_client
+    bare: helm
+    ca: helm-ca
+    dir: "{{ k8s_pki_dir }}"
+    type: helm
+  - cn: tiller
+    file: kube-openssl.cnf
+    org: "system:tiller"
+    profile: v3_req_client
+    bare: tiller
+    ca: helm-ca
+    dir: "{{ k8s_pki_dir }}"
+    type: helm

@@ -1,0 +1,43 @@
+- name: 加载 flannel 镜像
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.flannel.file }}"
+
+- block:
+  - name: 创建 Kubernetes {{container_network}} 配置清单目录
+    file: path="{{kubernetes_etc_dir}}/{{ container_network }}" state=directory
+
+  - name: 创建 Kubernetes {{container_network}} 配置清单
+    template:
+      src: "{{ container_network }}.yaml.j2"
+      dest: "{{kubernetes_etc_dir}}/{{ container_network }}/{{ container_network }}.yaml"
+
+  - name: 部署 Kubernetes {{container_network}}
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }};
+    register: apply_cni
+    until: apply_cni.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
+
+  - name: 轮询等待 {{ container_network }} 运行，视下载镜像速度而定
+    shell: "{{ kubernetes_bin_dir }}/kubectl get pod -n kube-system | grep {{ container_network }}"
+    register: cni_status
+    until: '"Running" in cni_status.stdout and "0/" not in cni_status.stdout'
+    retries: 15
+    delay: 10
+    ignore_errors: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- name: 获取其他 cni 配置文件
+  find:
+    paths: "{{ cni_etc_dir }}"
+    patterns: "*.conflist,*.conf"
+    # use_regex: true
+  register: find_files_to_delete
+
+- name: 删除其他 cni 配置文件
+  when: "container_network not in item.path"
+  file: path="{{ item.path }}" state=absent
+  with_items: "{{ find_files_to_delete.files }}"

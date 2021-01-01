@@ -1,0 +1,231 @@
+---
+{% if (kube_version is version('1.15.0', '>=')) %}
+apiVersion: kubeadm.k8s.io/v1beta2
+{% else %}
+apiVersion: kubeadm.k8s.io/v1beta1
+{% endif %}
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {{ apiserver.advertise_address }}
+  bindPort: {{ apiserver_secure_port }}
+nodeRegistration:
+  kubeletExtraArgs:
+    network-plugin: cni
+    root-dir: {{ kubelet_data_dir }}
+    hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
+    pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
+  criSocket: /var/run/dockershim.sock
+  name: {{ inventory_hostname }}
+{% if inventory_hostname in (groups['masters'] + groups['add-masters']) and inventory_hostname not in (groups['nodes'] + groups['add-nodes']) %}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+{% else %}
+  taints: []
+{% endif %}
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  - system:bootstrappers:default-node-token
+  description: "kubeadm bootstrap token"
+  token: {{ kubeadm_token }}
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+---
+{% if (kube_version is version('1.15.0', '>=')) %}
+apiVersion: kubeadm.k8s.io/v1beta2
+{% else %}
+apiVersion: kubeadm.k8s.io/v1beta1
+{% endif %}
+kind: ClusterConfiguration
+kubernetesVersion: v{{ kube_version }}
+clusterName: {{ cluster_name }}
+controlPlaneEndpoint: "{{ apiserver.controlplane_endpoint }}"
+certificatesDir: {{ k8s_pki_dir }}
+{% if (kube_version is version('1.15.0', '>=')) %}
+dns:
+  type: CoreDNS
+{% endif %}
+etcd:
+  external:
+    endpoints:
+{% for host in ((groups['etcds'] | union(groups['add-etcds'])) | difference(groups['delete-etcds'])) %}
+{% if hostvars[host]['ansible_host'] is defined %}
+    - https://{{ hostvars[host]['ansible_host'] }}:2379
+{% else %}
+    - https://{{ host }}:2379
+{% endif %}
+{% endfor %}
+    caFile: {{ etcd_ca }}
+    certFile: {{ etcd_cert_apiserver_server }}
+    keyFile: {{ etcd_cert_apiserver_server_key }}
+imageRepository: "{{ kube_image_repository }}"
+networking:
+  dnsDomain: {{ cluster_domain_name }}
+  podSubnet: {{ pod_network_cidr }}
+  serviceSubnet: {{ apiserver.service_ip_range }}
+apiServer:
+  extraArgs:
+    allow-privileged: "true"
+    apiserver-count: "{{ groups['masters']|length + groups['add-masters']|length }}"
+    audit-log-path: "{{ kubernetes_log_dir }}/audit/apiserver_audit.log"
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    audit-log-truncate-enabled: "true"
+    audit-policy-file: "{{kubernetes_etc_dir}}/audit/policy.yaml"
+{% if apiserver.enable_admission_plugins|length > 0 %}
+    enable-admission-plugins: {{ apiserver.enable_admission_plugins | join(',') }}
+{% endif %}
+{% if apiserver.disable_admission_plugins|length > 0 %}
+    disable-admission-plugins: {{ apiserver.disable_admission_plugins | join(',') }}
+{% endif %}
+{% if (kube_version is version('1.12.0', '>')) %}
+    encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
+{% endif %}
+    kubelet-certificate-authority: {{ kubernetes_ca }}
+    kubelet-client-certificate: {{ apiserver_kubelet_cert }}
+    kubelet-client-key: {{ apiserver_kubelet_cert_key }}
+    kubelet-https: "true"
+    profiling: "false"
+    service-node-port-range: {{ apiserver.service_node_port_range }}
+{% if kubeadm_apiserver_extra_args|length > 0 %}
+{% for key in kubeadm_apiserver_extra_args %}
+    {{ key }}: "{{ kubeadm_apiserver_extra_args[key] }}"
+{% endfor %}
+{% endif %}
+  extraVolumes:
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      pathType: File
+      readOnly: true
+      name: localtime
+    - hostPath: "{{ kubernetes_etc_dir }}/audit"
+      mountPath: "{{ kubernetes_etc_dir }}/audit"
+      pathType: DirectoryOrCreate
+      readOnly: true
+      name: audit-policy
+    - hostPath: "{{ kubernetes_log_dir }}/audit"
+      mountPath: "{{ kubernetes_log_dir }}/audit"
+      pathType: DirectoryOrCreate
+      name: audit-logs
+    - hostPath: "{{ kubernetes_log_dir }}/kube-apiserver"
+      mountPath: "{{ kubernetes_log_dir }}/kube-apiserver"
+      pathType: DirectoryOrCreate
+      name: kube-apiserver-logs
+{% for volume in apiserver_extra_volumes %}
+    - name: {{ volume.name }}
+      hostPath: {{ volume.hostPath }}
+      mountPath: {{ volume.mountPath }}
+      readOnly: {{ volume.readOnly | d(not (volume.writable | d(false))) }}
+{% endfor %}
+  certSANs:
+  - localhost
+  - kubernetes
+  - kubernetes.default
+  - kubernetes.default.svc
+{% for sub_domain in cluster_domain_name.split('.') %}
+  {%- set outer_loop = loop %}
+  - kubernetes.default.svc.{% for domain in cluster_domain_name.split('.') %}{% if loop.index <= outer_loop.index %}{{ domain }}{% if loop.index < outer_loop.index %}.{% endif %}{% endif %}{% endfor %}
+
+{% endfor %}
+{% if hostvars[inventory_hostname]['ansible_host'] is defined %}
+{% for host in (groups['masters'] + groups['add-masters']| default([])) | unique %}
+  - {{ host }}
+{% endfor %}
+{% endif %}
+{% for domain in kube_master_external_domain %}
+  - {{ domain }}
+{% endfor %}
+  - 127.0.0.1
+  - 0:0:0:0:0:0:0:1
+  - {{ api_service_ip }}
+{% if lb_apiserver_ip is defined %}
+  - {{ lb_apiserver_ip }}
+{% endif %}
+{% for host in (groups['masters'] + groups['add-masters'] | default([])) | unique %}
+  - {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
+
+{% endfor %}
+{% for ip in kube_master_external_ip %}
+  - {{ ip }}
+{% endfor %}
+controllerManager:
+  extraArgs:
+    bind-address: 127.0.0.1
+    experimental-cluster-signing-duration: "{{ controller_manager.kube_certs_expired }}"
+    feature-gates: "RotateKubeletServerCertificate=true,VolumeSnapshotDataSource=true"
+    profiling: "false"
+    node-monitor-grace-period: {% if controller_manager.node_monitor_grace_period is defined %}{{ controller_manager.node_monitor_grace_period }}
+{% else %}
+  {%- if controller_manager.node_status_update == 'Fast' %}20s
+  {%- elif controller_manager.node_status_update == 'Medium' %}2m
+  {%- elif controller_manager.node_status_update == 'Low' %}5m
+  {%- else %}40s
+  {% endif %}
+{% endif %}
+    node-monitor-period: {% if controller_manager.node_monitor_period is defined %}{{ controller_manager.node_monitor_period }}
+{% else %}
+  {%- if controller_manager.node_status_update == 'Fast' %}2s
+  {%- else %}5s
+  {% endif %}
+{% endif %}
+    pod-eviction-timeout: {% if pod_eviction_timeout is defined %}{{ controller_manager.pod_eviction_timeout }}
+{% else %}
+  {%- if controller_manager.node_status_update == 'Fast' %}30s
+  {%- elif controller_manager.node_status_update == 'Medium' %}1m
+  {%- elif controller_manager.node_status_update == 'Low' %}1m
+  {%- else %}5m
+  {% endif %}
+{% endif %}
+
+    terminated-pod-gc-threshold: "{{ controller_manager.terminated_pod_gc_threshold }}"
+    node-cidr-mask-size: "{{ controller_manager.node_cidr_mask_size }}"
+{% if kubeadm_controller_extra_args|length > 0 %}
+{% for key in kubeadm_controller_extra_args %}
+    {{ key }}: "{{ kubeadm_controller_extra_args[key] }}"
+{% endfor %}
+{% endif %}
+  extraVolumes:
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      pathType: File
+      readOnly: true
+      name: localtime
+    - hostPath: "{{ kubernetes_log_dir }}/kube-controller-manager"
+      mountPath: "{{ kubernetes_log_dir }}/kube-controller-manager"
+      pathType: DirectoryOrCreate
+      name: kube-controller-manager-logs
+{% for volume in controller_manager_extra_volumes %}
+    - name: {{ volume.name }}
+      hostPath: {{ volume.hostPath }}
+      mountPath: {{ volume.mountPath }}
+      readOnly: {{ volume.readOnly | d(not (volume.writable | d(false))) }}
+{% endfor %}
+scheduler:
+  extraArgs:
+    bind-address: 127.0.0.1
+    profiling: "false"
+{% if kubeadm_scheduler_extra_args|length > 0 %}
+{% for key in kubeadm_scheduler_extra_args %}
+    {{ key }}: "{{ kubeadm_scheduler_extra_args[key] }}"
+{% endfor %}
+{% endif %}
+  extraVolumes:
+    - hostPath: /etc/localtime
+      mountPath: /etc/localtime
+      pathType: File
+      readOnly: true
+      name: localtime
+    - hostPath: "{{ kubernetes_log_dir }}/kube-scheduler"
+      mountPath: "{{ kubernetes_log_dir }}/kube-scheduler"
+      pathType: DirectoryOrCreate
+      name: kube-scheduler-logs
+{% for volume in scheduler_extra_volumes %}
+    - name: {{ volume.name }}
+      hostPath: {{ volume.hostPath }}
+      mountPath: {{ volume.mountPath }}
+      readOnly: {{ volume.readOnly | d(not (volume.writable | d(false))) }}
+{% endfor %}

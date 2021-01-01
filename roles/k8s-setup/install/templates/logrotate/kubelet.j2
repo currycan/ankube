@@ -1,0 +1,10 @@
+{{ kubernetes_log_dir }}/kubelet/kubelet.*.log.* {
+    olddir {{ kubernetes_log_dir }}/kubelet/logrotate
+    rotate 7
+    size 200M
+    missingok
+    compress
+    nodelaycompress
+    copytruncate
+
+}

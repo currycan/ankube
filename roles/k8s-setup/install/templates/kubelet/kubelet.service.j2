@@ -1,0 +1,34 @@
+[Unit]
+Description=Kubernetes Kubelet Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+After={{ container_runtime }}.service
+{% if container_runtime == 'docker' %}
+Wants=docker.socket
+{% else %}
+Wants={{ container_runtime }}.service
+{% endif %}
+
+[Service]
+User=root
+WorkingDirectory={{ kubelet_data_dir }}
+#ExecStartPre=/bin/mount -o remount,rw '/sys/fs/cgroup'
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu,cpuacct/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/{system.slice,podruntime.slice}
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/{system.slice,podruntime.slice}
+
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice/kubelet.service
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice/kubelet.service
+
+ExecStart={{ kubernetes_bin_dir }}/kubelet
+
+Restart=always
+StartLimitInterval=0
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

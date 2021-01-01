@@ -1,0 +1,57 @@
+- name: 创建 {{ out_item.item.bare }} CA 根证书私钥
+  when:
+    - out_item.item.ca == ""
+    - not out_item.stat.exists
+  shell: >
+    openssl genrsa -out {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem {{ cert_key_size }}
+
+- name: 判断 {{ out_item.item.bare }} CA 证书是否存在
+  when: out_item.item.ca == ""
+  stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.pem"
+  register: check_helm_ca_cert_pem_files
+
+- name: 签发 {{ out_item.item.bare }} CA 根证书
+  when:
+    - out_item.item.ca == ""
+    - not check_helm_ca_cert_pem_files.stat.exists
+  shell: >
+    openssl req -x509 -new -nodes -extensions {{ out_item.item.profile }}
+    -subj "/CN={{ out_item.item.cn }}/O={{ out_item.item.org }}"
+    -config {{ kube_openssl_cnf }}
+    -key {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.pem
+    -days {{ ca_certs_expired }};
+
+- name: 创建 {{ out_item.item.bare }} 应用证书私钥
+  when:
+    - out_item.item.ca != ""
+    - not out_item.stat.exists
+  shell: openssl genrsa -out {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem {{ cert_key_size }}
+
+- name: 判断 {{ out_item.item.bare }} 应用证书是否存在
+  when: out_item.item.ca != ""
+  stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.pem"
+  register: check_cert_pem_files
+
+- name: 创建证书请求文件
+  when:
+    - out_item.item.ca != ""
+    - not check_cert_pem_files.stat.exists
+  shell: >
+    openssl req -new
+    -subj "/CN={{ out_item.item.cn }}/O={{ out_item.item.org }}"
+    -key {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.csr
+
+- name: 签发 {{ out_item.item.bare }} 应用证书
+  when:
+    - out_item.item.ca != ""
+    - not check_cert_pem_files.stat.exists
+  shell: >
+    openssl x509 -req -CAcreateserial
+    -extensions {{ out_item.item.profile }}
+    -CA "{{ out_item.item.dir }}/{{ out_item.item.ca }}.pem"
+    -CAkey "{{ out_item.item.dir }}/{{ out_item.item.ca }}-key.pem"
+    -in {{ out_item.item.dir }}/{{ out_item.item.bare }}.csr
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.pem
+    -days {{ certs_expired }}

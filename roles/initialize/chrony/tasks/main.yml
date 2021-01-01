@@ -1,0 +1,46 @@
+- name:  卸载 ntp
+  package: name=ntp state=absent
+
+- name: 停止 systemd-timesyncd.service
+  service: name=systemd-timesyncd state=stopped enabled=no
+  when: ansible_distribution in ["Ubuntu","Debian"]
+
+- name: 安装 chrony
+  package: name=chrony state=present
+
+- block:
+  - name: 配置 chrony server
+    template: src=server-centos.conf.j2 dest=/etc/chrony.conf
+    when: 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+  - name: 配置 chrony server
+    template: src=server-ubuntu.conf.j2 dest=/etc/chrony/chrony.conf
+    when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int >= 16
+
+  - name: 启动 chrony server
+    service: name=chronyd state=restarted enabled=yes
+    when: 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+  - name: 启动 chrony server
+    service: name=chrony state=restarted enabled=yes
+    when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int >= 16
+  when: 'inventory_hostname == groups.chrony[0]'
+
+- block:
+  - name: 配置 chrony client
+    template: src=client-centos.conf.j2 dest=/etc/chrony.conf
+    when: 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+  - name: 配置 chrony client
+    template: src=client-ubuntu.conf.j2 dest=/etc/chrony/chrony.conf
+    when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int >= 16
+
+  - name: 启动 chrony client
+    service: name=chronyd state=restarted enabled=yes
+    when: 'ansible_distribution in ["CentOS","RedHat","Amazon"]'
+
+  - name: 启动 chrony client
+    service: name=chrony state=restarted enabled=yes
+    when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int >= 16
+  when: 'inventory_hostname != groups.chrony[0]'
+

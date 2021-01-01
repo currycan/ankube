@@ -1,0 +1,36 @@
+- name: 确认 kube-apiserve 运行状态
+  command: /bin/true
+  notify:
+    - 启动 kube-controller-manager 服务，并设置开机启动
+    - 以轮询的方式等待 kube-controller-manager 服务启动完成
+    - 检查 kube-controller-manager 服务状态
+
+- name: 启动 kube-controller-manager 服务，并设置开机启动
+  systemd:
+    name: kube-controller-manager
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_change_controller_manager
+  until: started_change_controller_manager is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待 kube-controller-manager 服务启动完成
+  when: started_change_controller_manager is succeeded
+  shell: "systemctl status kube-controller-manager.service | grep Active"
+  register: change_controller_manager_status
+  until: '"running" in change_controller_manager_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"
+
+- name: 检查 kube-controller-manager 服务状态，10s超时
+  when: change_controller_manager_status is succeeded
+  wait_for:
+    host: "127.0.0.1"
+    port: "{{ item }}"
+    delay: 1
+    connect_timeout: 5
+    timeout: 10
+  with_items:
+    - "{{ controller_manager.secure_port }}"

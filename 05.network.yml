@@ -1,0 +1,10 @@
+- hosts: kube-cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'customize'" }
+  - { role: k8s-network/calico/install, when: "container_network == 'calico'" }
+  - { role: k8s-network/cilium, when: "container_network == 'cilium'" }
+  - { role: k8s-network/flannel, when: "container_network == 'flannel'" }
+  - { role: k8s-network/kubeovn, when: "container_network == 'kubeovn'" }

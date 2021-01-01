@@ -1,0 +1,9 @@
+# deploy 节点下载并预装组件
+- hosts:
+  # - deploy
+  - kube-cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: parted_disks }

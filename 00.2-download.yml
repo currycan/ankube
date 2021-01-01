@@ -1,0 +1,10 @@
+# deploy 节点下载并预装组件
+- hosts:
+  - deploy
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: download/binary }
+  - { role: download/image, frozen_way: false, docker_enable_proxy: true }
+  - { role: download/kernel }

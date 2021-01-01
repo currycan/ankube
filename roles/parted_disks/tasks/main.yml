@@ -1,0 +1,19 @@
+- name: 判断磁盘设备是否存在
+  register: dev_status
+  stat:
+    path: "{{ item.device }}"
+  with_items: "{{ disk }}"
+
+- name: 获取磁盘挂载信息(报错请忽略！)
+  when: item.stat.exists
+  shell: >
+    df -h "{{ item.item.device + item.item.partition_number|string }}"
+  with_items: "{{ dev_status['results'] }}"
+  register: disk_info
+  ignore_errors: true
+
+- name: 创建数据分区并挂载
+  include_tasks: parted.yml
+  loop_control:
+    loop_var: out_item
+  with_items: "{{ disk_info['results'] }}"

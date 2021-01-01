@@ -1,0 +1,12 @@
+## Defaults for the python3 role.
+python3_version: 3.6.8
+python3_command: python3.6
+python3_bashrc: "{{ ansible_user_dir}}/.bashrc"
+python3_local: "{{ ansible_user_dir}}/.local/bin"
+python3_pyenv: "{{ python3_version }}"
+
+## pip.conf
+# index_url: https://mirrors.ustc.edu.cn/pypi/web/simple
+# trusted_host: mirrors.ustc.edu.cn
+index_url: https://pypi.tuna.tsinghua.edu.cn/simple
+trusted_host: pypi.tuna.tsinghua.edu.cn

@@ -1,0 +1,15 @@
+# etcd api version
+# 推荐在 Kubernetes 集群中使用 Etcd v3，v2 版本已在 Kubernetes v1.11 中弃用。
+# etcd_api_version: 2
+etcd_api_version: 3
+
+# etcd 集群间通信的IP和端口, 根据etcd组成员自动生成
+etcd_listen_addr: "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
+etcd_listen_peer_urls: "https://{{ etcd_listen_addr }}:2380"
+etcd_listen_client_urls: "https://127.0.0.1:2379,https://{{ etcd_listen_addr }}:2379"
+etcd_initial_advertise_peer_urls: "https://{{ etcd_listen_addr }}:2380"
+etcd_advertise_client_urls: "https://{{ etcd_listen_addr }}:2379"
+
+# etcd 集群初始状态 new/existing
+etcd_initial_token: k8s-etcd-cluster
+etcd_initial_cluster_state: new

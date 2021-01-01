@@ -1,0 +1,138 @@
+- name: 创建 docker 用户组
+  group:
+    name: docker
+    state: present
+
+- name: 创建 docker 用户
+  user:
+    name: docker
+    comment: "Docker user"
+    shell: /sbin/nologin
+    state: present
+    system: yes
+    groups: docker
+
+- name: 检查 docker sysctl 文件是否存在
+  stat: path=/etc/sysctl.d/99-docker.conf
+  register: check_sysctl_conf
+
+- name: 将 bridge-netfilter 和 ip-forward 写入系统变量
+  when: not check_sysctl_conf.stat.exists
+  copy:
+    content: |
+      net.ipv4.ip_forward=1
+      net.bridge.bridge-nf-call-ip6tables=1
+      net.bridge.bridge-nf-call-iptables=1
+      net.ipv4.conf.all.arp_ignore=1
+      net.ipv4.conf.all.arp_announce=2
+    dest: /etc/sysctl.d/99-docker.conf
+
+- name: sysctl 加载 bridge-netfilter 和 ip-forward 系统变量
+  command: "sysctl -p /etc/sysctl.d/99-docker.conf"
+
+- name: 安装 docker
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ item }}"
+    line: export PATH="{{ item }}:$PATH"
+  with_items:
+    - "{{ docker_bin_dir }}"
+
+- name: 安装 docker-compose 和 docker 命令补全工具、 docker orphan 清理工具、docker-tag 工具
+  copy:
+    src: "{{ item.file }}"
+    dest: "{{ item.dir }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - {file: "docker-compose", dir: "/etc/bash_completion.d/", mode: "0644"}
+    - {file: "docker", dir: "/etc/bash_completion.d/", mode: "0644"}
+    - {file: "cleanup-docker-orphans.sh", dir: "{{ docker_bin_dir }}/cleanup-docker-orphans", mode: "0755"}
+    - {file: "docker-tag", dir: "{{ docker_bin_dir }}", mode: "0755"}
+
+- name: docker 命令自动补全
+  shell: >
+    source /etc/bash_completion.d/docker
+  args:
+    executable: /bin/bash
+
+- name: 配置 Docker engine service 文件
+  template:
+    src: "docker/{{ item }}.j2"
+    dest: "{{ systemd_service_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - docker.service
+    - docker.socket
+  register: change_system_service
+  # notify: 确认 docker 运行状态
+
+- name: 创建 docker 配置文件目录
+  file: path="{{ docker_etc_dir }}" state=directory
+
+- name: 配置 daemon.json
+  template: src=docker/daemon.json.j2 dest="{{ docker_etc_dir }}/daemon.json"
+  # notify: 确认 docker 运行状态
+
+- name: flush-iptables
+  shell: >
+    iptables -P INPUT ACCEPT;
+    iptables -F && iptables -X;
+    iptables -F -t nat && iptables -X -t nat;
+    iptables -F -t raw && iptables -X -t raw;
+    iptables -F -t mangle && iptables -X -t mangle;
+    iptables -P FORWARD ACCEPT
+
+- name: 启动 Docker socket
+  when: change_system_service is succeeded
+  systemd:
+    name: docker.socket
+    daemon_reload: yes
+    state: started
+    enabled: yes
+  register: docker_socket_started
+
+- name: 启动 Docker engine，并设置开机启动
+  systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_docker
+  until: started_docker is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待 docker 启动完成
+  when: started_docker is succeeded
+  shell: "systemctl status docker.service | grep Active"
+  register: docker_status
+  until: '"running" in docker_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"
+
+# 非 root 用户添加 docker 执行权限
+- name: 判断执行用户是否存在
+  action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
+  register: user_exist
+  with_items:
+  - "{{ normal_user }}"
+
+- name: 添加非 root 用户命令执行目录环境变量
+  when: 'item.stdout != "0"'
+  lineinfile:
+    dest: "/home/{{ item.item }}/.bash_profile"
+    state: present
+    regexp: "{{ docker_bin_dir }}"
+    line: 'export PATH={{ docker_bin_dir }}:$PATH'
+  with_items:
+  - "{{ user_exist['results'] }}"
+
+- name: 添加非 root 用户 docker 命令权限
+  when: 'item.stdout != "0"'
+  shell: >
+    usermod -aG docker {{ item.item }}
+  with_items:
+  - "{{ user_exist['results'] }}"

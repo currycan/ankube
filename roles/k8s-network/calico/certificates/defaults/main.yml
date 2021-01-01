@@ -1,0 +1,19 @@
+cfssl_calico_certs:
+  - cn: calico
+    file: calico-csr.json
+    org: "system:calico"
+    hosts: ""
+    profile: client
+    bare: calico
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"
+    type: etcd
+
+openssl_calico_certs:
+  - cn: calico
+    file: etcd-openssl.cnf
+    org: "system:calico"
+    profile: v3_req_client
+    bare: calico
+    ca: ca
+    dir: "{{ etcd_pki_dir }}"

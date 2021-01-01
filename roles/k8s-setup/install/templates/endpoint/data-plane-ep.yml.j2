@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  labels:
+    k8s-app: kubelet
+  name: kubelet
+  namespace: kube-system
+subsets:
+- addresses:
+{% for host in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes']) %}
+{% if host not in groups['delete-nodes'] %}
+  - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+    targetRef:
+      kind: Node
+      name: {{ hostvars[host].ansible_hostname }}
+{% endif %}
+{% endfor %}
+{% for host in groups['add-nodes'] %}
+{% if groups['add-nodes'] | length > 0 and host not in groups['delete-nodes']  %}
+  - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+    targetRef:
+      kind: Node
+      name: {{ hostvars[host].ansible_hostname }}
+{% endif %}
+{% endfor %}
+  ports:
+  - name: http-metrics
+    port: {{ kubelet.bind_read_port }}
+    protocol: TCP
+  - name: cadvisor
+    port: 4194
+    protocol: TCP
+  - name: https-metrics
+    port: {{ kubelet.bind_port }}
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-proxy
+  labels:
+    k8s-app: kube-proxy
+spec:
+  selector:
+    component: kube-proxy
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10249
+    targetPort: 10249
+    protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  labels:
+    k8s-app: kube-proxy
+  name: kube-proxy
+  namespace: kube-system
+subsets:
+- addresses:
+{% for host in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes']) %}
+{% if host not in groups['delete-nodes'] %}
+  - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+    targetRef:
+      kind: Node
+      name: {{ hostvars[host].ansible_hostname }}
+{% endif %}
+{% endfor %}
+{% for host in groups['add-nodes'] %}
+{% if groups['add-nodes'] | length > 0 and host not in groups['delete-nodes']  %}
+  - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+    targetRef:
+      kind: Node
+      name: {{ hostvars[host].ansible_hostname }}
+{% endif %}
+{% endfor %}
+  ports:
+  - name: http-metrics
+    port: 10249
+    protocol: TCP

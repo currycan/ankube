@@ -1,0 +1,20 @@
+- block:
+  - include_tasks: haproxy.yml
+  - include_tasks: keepalived.yml
+
+  - name: 启动haproxy keepalived
+    systemd:
+      name: "{{ item }}"
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+    with_items:
+      - keepalived
+      - haproxy
+
+  - wait_for:
+      host: "{{ vip_address }}"
+      delay: 10
+      port: 22
+    connection: local
+  when: inventory_hostname in (groups['masters'] + groups['add-masters'])

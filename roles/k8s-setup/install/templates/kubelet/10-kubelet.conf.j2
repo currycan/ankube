@@ -1,0 +1,17 @@
+[Service]
+Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig={{kubernetes_etc_dir}}/bootstrap-kubelet.conf --kubeconfig={{kubernetes_etc_dir}}/kubelet.conf"
+Environment="KUBELET_CONFIG_ARGS=--config={{ kubelet_data_dir }}/config.yaml"
+{% if (kube_version is version('1.15.0', '<')) %}
+Environment="KUBELET_SYSTEM_ARGS=--allow-privileged=true"
+{% endif %}
+Environment="KUBELET_SYSTEM_PODS_ARGS=--image-pull-progress-deadline=30m0s --runtime-cgroups=/podruntime.slice --pod-infra-container-image={{ kubelet.pod_infra_container_image }} --hostname-override={{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
+{% if container_runtime == "containerd" %}
+Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
+{% elif container_runtime != 'docker' %}
+Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix://{{ runtime_sockets['' + container_runtime] }}"
+{% endif %}
+Environment="KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir={{ cni_etc_dir }} --cni-bin-dir={{ cni_bin_dir }}"
+Environment="KUBELET_CERTIFICATE_ARGS=--tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256"
+Environment="KUBELET_EXTRA_ARGS=--allowed-unsafe-sysctls='kernel.msg*,net.core.somaxconn' --alsologtostderr=true --logtostderr=false --log-dir={{ kubernetes_log_dir }}/kubelet --v=2"
+ExecStart=
+ExecStart={{ kubernetes_bin_dir }}/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_SYSTEM_PODS_ARGS $CRI_RUNTIME_ARGS $KUBELET_NETWORK_ARGS $KUBELET_CERTIFICATE_ARGS $KUBELET_EXTRA_ARGS

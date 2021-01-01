@@ -1,0 +1,28 @@
+# 分发 etcd 证书
+- name: 创建 apiserver etcd client 证书存放目录
+  file: path={{ etcd_pki_dir }} state=directory
+  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+
+- name: 获取 apiserver etcd client 证书
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ etcd_ca }}"
+    - "{{ etcd_cert_apiserver_server }}"
+    - "{{ etcd_cert_apiserver_server_key }}"
+  register: etcd_client_certs
+  delegate_to: "{{ groups['etcds'][0] }}"
+  run_once: true
+
+- name: 分发 apiserver etcd client 证书到 master 节点
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ etcd_client_certs.results }}"
+  when:
+  - inventory_hostname != groups['etcds'][0]
+  - inventory_hostname in (groups['masters'] + groups['add-masters'])

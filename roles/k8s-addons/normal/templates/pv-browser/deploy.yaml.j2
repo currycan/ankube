@@ -1,0 +1,63 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    k8s.kuboard.cn/ingress: 'false'
+    k8s.kuboard.cn/service: none
+    k8s.kuboard.cn/workload: kuboard-pv-browser
+  labels:
+    k8s.kuboard.cn/layer: monitor
+    k8s.kuboard.cn/name: kuboard-pv-browser
+  name: kuboard-pv-browser
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/layer: monitor
+      k8s.kuboard.cn/name: kuboard-pv-browser
+  template:
+    metadata:
+      labels:
+        k8s.kuboard.cn/layer: monitor
+        k8s.kuboard.cn/name: kuboard-pv-browser
+    spec:
+      containers:
+        - image: {{ images.pv_browser.name }}
+          imagePullPolicy: IfNotPresent
+          name: delegator
+          volumeMounts:
+            - mountPath: /var/lib/kubelet
+              name: kubelet
+            - mountPath: /run/mount
+              name: mounts
+        - command:
+            - sleep
+            - '360000'
+          image: {{ images.pv_browser.name }}
+          imagePullPolicy: IfNotPresent
+          name: pv-browser
+          volumeMounts:
+            - mountPath: /var/lib/kubelet
+              name: kubelet
+            - mountPath: /run/mount
+              name: mounts
+      tolerations:
+        - operator: Exists
+        - effect: ''
+          key: node-role.kubernetes.io/master
+          operator: Exists
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet
+            type: DirectoryOrCreate
+          name: kubelet
+        - hostPath:
+            path: /run/mount
+            type: DirectoryOrCreate
+          name: mounts
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

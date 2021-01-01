@@ -1,0 +1,99 @@
+- name: 安装 calicoctl
+  when: container_network == 'calico'
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ calico_bin_dir }}"
+    line: export PATH="{{ calico_bin_dir }}:$PATH"
+
+- name: 创建 calicoctl 配置文件目录
+  when: container_network == 'calico'
+  file: name={{ item }} state=directory
+  with_items:
+    - /etc/calico
+
+- name: 生成 calicoctl 配置文件
+  when: container_network == 'calico'
+  template: src="calicoctl.cfg.j2" dest=/etc/calico/calicoctl.cfg
+
+- name: 加载 calico daemonSet 镜像
+  when: container_network == 'calico'
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.calico_node.file }}"
+    - "{{ images.calico_pod2daemon.file }}"
+    - "{{ images.calico_cni.file }}"
+
+- name: 加载 calico-kube-controllers 镜像
+  when:
+    - container_network == 'calico'
+    - inventory_hostname in groups['nodes']
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.calico_kube_controllers.file }}"
+
+- block:
+  - name: 创建 calico 配置清单目录
+    file: path="{{kubernetes_etc_dir}}/{{ container_network }}" state=directory
+
+  - name: 创建 calico crd 和 psp 配置清单
+    copy:
+      src: "{{ item }}"
+      dest: "{{kubernetes_etc_dir}}/{{ container_network }}"
+      mode: "0644"
+    with_items:
+      - kdd-crds.yaml
+      - calico-psp.yaml
+
+  - name: 创建 calico 应用配置清单
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{kubernetes_etc_dir}}/{{ container_network }}/{{ item }}"
+      mode: "0644"
+    with_items:
+      - calico-config.yaml
+      - calico-node-rbac.yaml
+      - calico-kube-controllers-rbac.yaml
+      - calico-kube-controllers.yaml
+      - calico-node.yaml
+
+  - name: 创建 calico-etcd-secrets
+    when: datastore_type is defined and datastore_type == 'customize'
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl delete secrets -n kube-system calico-etcd-secrets --ignore-not-found;
+      {{ kubernetes_bin_dir }}/kubectl create secret generic -n kube-system calico-etcd-secrets \
+        --from-file=etcd-ca={{ etcd_ca }} \
+        --from-file=etcd-key={{ calico_cert_key }} \
+        --from-file=etcd-cert={{ calico_cert }}
+
+  - name: 部署 calico
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }}/kdd-crds.yaml;
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }}/calico-config.yaml;
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{kubernetes_etc_dir}}/{{ container_network }};
+    register: apply_cni
+    until: apply_cni.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
+
+  - name: 轮询等待 {{ container_network }} 运行，视下载镜像速度而定
+    shell: "{{ kubernetes_bin_dir }}/kubectl get pod -n kube-system | grep {{ container_network }}"
+    register: cni_status
+    until: '"Running" in cni_status.stdout and "0/" not in cni_status.stdout'
+    retries: 15
+    delay: 10
+    ignore_errors: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- name: 获取其他 cni 配置文件
+  find:
+    paths: "{{ cni_etc_dir }}"
+    patterns: "*.conflist,*.conf"
+    # use_regex: true
+  register: find_files_to_delete
+
+- name: 删除其他 cni 配置文件
+  when: "container_network not in item.path"
+  file: path="{{ item.path }}" state=absent
+  with_items: "{{ find_files_to_delete.files }}"

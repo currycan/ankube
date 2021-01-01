@@ -1,0 +1,22 @@
+- name: 升级 linux-base
+  apt:
+    deb: "{{ item }}"
+  with_items: "{{ apt_kernel_linux_base }}"
+
+- name: 安装 kernel-ml
+  apt:
+    deb: "{{ item }}"
+  with_items: "{{ apt_kernel_deb_files }}"
+
+- name: 更新 grub
+  shell: update-grub
+
+- name: 检查是否需要重启更新至所需 kernel 版本
+  shell: uname -r
+  register: reboot_hint
+
+- name: 重启中 ...
+  reboot:
+    reboot_timeout: 3600
+  when:
+  register: rebooting

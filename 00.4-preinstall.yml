@@ -1,0 +1,13 @@
+# 节点预装组件
+- hosts:
+  - deploy
+  - kube-cluster
+  - etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  # 同步二进制文件和离线镜像，默认关闭，第一次部署需打开。同步前，需确认相关文件已下载
+  - { role: prepare/preinstall, when: "inventory_hostname == groups['deploy'][0]" }
+  - { role: prepare/synchronize/binary }
+  - { role: prepare/synchronize/images }

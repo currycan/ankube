@@ -1,0 +1,15 @@
+# 为标签为 dev 的namespace 创建 edit rbac
+apiVersion: rbacmanager.reactiveops.io/v1beta1
+kind: RBACDefinition
+metadata:
+  name: dev-access
+rbacBindings:
+  - name: dev-team
+    subjects:
+      - kind: Group
+        name: dev-team
+    roleBindings:
+      - clusterRole: edit
+        namespaceSelector:
+          matchLabels:
+            team: dev

@@ -1,0 +1,20 @@
+- name: 停止运行 etcd
+  systemd: name=etcd state=stopped enabled=no
+  ignore_errors: True
+
+- name: 删除所有 etcd 文件及目录
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_wal_dir }}"
+    - "{{ etcd_config_dir }}"
+    - "{{ etcd_data_bak_dir }}"
+    - "{{ etcd_bin_dir }}/etcd_cron.sh"
+    - "{{ systemd_service_dir }}/etcd.service"
+    - "{{ etc_systemd_service_dir }}/etcd.service"
+    - "{{ profile_dir }}/etcd.sh"
+
+- name: 删除 etcd 数据备份 crontab 任务
+  cron:
+    name: "create etcd data backup"
+    state: absent

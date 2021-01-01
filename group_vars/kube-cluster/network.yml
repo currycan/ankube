@@ -1,0 +1,41 @@
+# 网络插件，目前只做了 flannel 和 calico 的集成
+# container_network: flannel
+container_network: cilium
+# container_network: kubeovn
+# container_network: calico
+
+# flannel
+# flannel 指定 cni 绑定网卡
+cni_interface: "{{ iface }}"
+# flannel子网段掩码
+flanneld_subnet_len: 24
+# flannel 支持多种模式，常用的是：vxlan 和 host-gw（UDP模式不建议使用，性能差）
+# flanneld_backend_type: "vxlan"
+# host-gw 模式要求集群宿主机之间的网络是二层连通的
+flanneld_backend_type: "host-gw"
+
+# cilium
+cluster_pool_ipv4_mask_size: 24
+
+# kube-ovn
+kube_ovn:
+  master:
+  - "{{ groups['masters'][0] }}"
+  node_switch_cidr: 100.64.0.0/16
+  enable_mirror: true
+  external_dns: "local.sh.in"
+
+# calico
+# 设置访问etcd方式，如果是自定义的话，需要单独创建证书访问etcd，kubernetes模式通过kubernetes访问etcd
+datastore_type: customize
+# datastore_type: kubernetes
+
+# 设置 CALICO_IPV4POOL_IPIP="Off",可以提高网络性能，默认 Always
+# IPIP 模式为了解决两个 node 不在一个子网的问题，二层网络通的情况下，建议不要使用 IPIP 模式
+calico_ipv4pool_ipip: "Off"
+# 设置 Felix 日志级别, 可配置为 warning
+felix_log_lvl: "info"
+
+# calico certificates
+calico_cert: "{{ etcd_pki_dir }}/{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}calico.pem{% else %}calico.crt{%- endif -%}"
+calico_cert_key: "{{ etcd_pki_dir }}/{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}calico-key.pem{% else %}calico.key{%- endif -%}"

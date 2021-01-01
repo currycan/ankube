@@ -1,0 +1,26 @@
+- name: "创建 {{ out_item.item.key }} 归档目录"
+  file: path="{{ cache_dir + in_item }}" state=directory
+  loop_control:
+    loop_var: in_item
+  with_items: "{{ out_item.item.value.archive_dir }}"
+  # register: create_dir
+
+- name: 判断 {{ out_item.item.key}} 二进制归档文件是否存在
+  stat: path="{{ cache_dir + out_item.item.value.archive_dir}}/{{ in_item }}"
+  loop_control:
+    loop_var: in_item
+  with_items: "{{ out_item.item.value.bin }}"
+  register: check_bin_files
+
+- name: "{{ out_item.item.key }} 二进制文件归档"
+  when:
+    # - create_dir.changed == "true"
+    - not in_item.stat.exists
+  unarchive:
+    src: "{{ cache_dir + out_item.item.value.file }}"
+    dest: "{{ cache_dir + out_item.item.value.archive_dir }}"
+    copy: no
+    extra_opts: "{{ out_item.item.value.unarchive.extra_opt }}"
+  loop_control:
+    loop_var: in_item
+  with_items: "{{ check_bin_files['results'] }}"

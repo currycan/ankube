@@ -1,0 +1,22 @@
+---
+{% if (kube_version is version('1.15.0', '>=')) %}
+apiVersion: kubeadm.k8s.io/v1beta2
+{% else %}
+apiVersion: kubeadm.k8s.io/v1beta1
+{% endif %}
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: "{{ apiserver.controlplane_endpoint }}"
+    token: {{ kubeadm_token }}
+    unsafeSkipCAVerification: true
+  timeout: 4m0s
+  tlsBootstrapToken: {{ kubeadm_token }}
+nodeRegistration:
+  kubeletExtraArgs:
+    network-plugin: cni
+    root-dir: {{ kubelet_data_dir }}
+    hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
+    pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
+  criSocket: /var/run/dockershim.sock
+  name: {{ inventory_hostname }}

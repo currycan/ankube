@@ -1,0 +1,177 @@
+- name: 时区修改
+  shell: >
+    timedatectl set-timezone Asia/Shanghai;
+    timedatectl set-local-rtc 0
+
+- name: 禁用系统 swap
+  shell: "swapoff -a && sysctl -w vm.swappiness=0"
+
+- name: 删除fstab swap 相关配置
+  lineinfile:
+    path: /etc/fstab
+    regexp: 'swap'
+    state: absent
+    backup: 'yes'
+
+- name: 启动 irqbalance 服务，并设置开机启动
+  systemd:
+    name: irqbalance
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_irqbalance
+  until: started_irqbalance is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 获取当前内核版本
+  shell: "uname -r"
+  register: get_kernel_version
+
+- name: 设置内核版本参数
+  set_fact:
+    set_fact_kernel_version: "{{ get_kernel_version.stdout.split('-')[0] }}"
+
+- name: 设置 nf_conntrack 模块名
+  set_fact: NF_CONNTRACK="nf_conntrack"
+  when: "set_fact_kernel_version is version('4.19', '>=')"
+
+- name: 设置 nf_conntrack_ipv4 模块名
+  set_fact: NF_CONNTRACK="nf_conntrack_ipv4"
+  when: "set_fact_kernel_version is version('4.19', '<')"
+
+- name: 加载内核模块
+  modprobe: name={{ item }} state=present
+  with_items:
+    - br_netfilter
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
+    - ip_vs_lc
+    - ip_vs_wlc
+    - ip_vs_lblc
+    - ip_vs_lblcr
+    - ip_vs_dh
+    - ip_vs_fo
+    - ip_vs_nq
+    - ip_vs_sed
+    - ip_vs_ftp
+    - "{{ NF_CONNTRACK }}"
+    - sunrpc
+
+- name: 设置 systemd-modules-load 配置
+  template:
+    src: 10-k8s-modules.conf.j2
+    dest: /etc/modules-load.d/10-k8s-modules.conf
+
+- name: 启动 systemd-modules-load 服务，并设置开机启动
+  systemd:
+    name: systemd-modules-load
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_modules
+  until: started_modules is succeeded
+  retries: 2
+  delay: "{{ retry_stagger }}"
+
+- name: 判断 ipvs 规则文件是否存在
+  stat:
+    path: /etc/sysconfig/ipvsadm
+  register: ipvs_file_exist
+
+- name: 配置 ipvsadm
+  shell: ipvsadm --save > /etc/sysconfig/ipvsadm
+  when: 'not ipvs_file_exist.stat.exists'
+
+- name: 启动 ipvsadm，并设置开机启动
+  systemd:
+    name: ipvsadm
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_ipvsadm
+  until: started_ipvsadm is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 设置系统参数
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/sysctl.d/{{ item }}"
+  with_items:
+    - "95-k8s-sysctl.conf"
+
+- name: 生效系统参数
+  shell: "sysctl -p /etc/sysctl.d/{{ item }}"
+  with_items:
+    - "95-k8s-sysctl.conf"
+
+- name: 优化 nfs clinet 配置
+  template:
+    src: sunrpc.conf.j2
+    dest: /etc/modprobe.d/sunrpc.conf
+
+- name: 生效 nfs clinet 配置
+  shell: "sysctl -w sunrpc.tcp_slot_table_entries=128"
+
+- name: 添加集群节点 hostname 信息到 hosts 文件中
+  blockinfile:
+    path: /etc/hosts
+    block: |-
+      {% for item in (groups['kube-cluster']|unique) -%}
+      {% if hostvars[item]['ansible_host'] is defined -%}
+      {{ hostvars[item]['ansible_host'] }} {{ hostvars[item]['inventory_hostname'] }} {{ hostvars[item]['inventory_hostname'] }}.{{ kube_dns_domain }}
+      {% endif %}
+      {% endfor %}
+    state: present
+    create: yes
+    backup: yes
+    marker: "# Ansible inventory hosts {mark}"
+
+- name: 确认 hosts 文件中 localhost ipv4 配置正确
+  lineinfile:
+    dest: /etc/hosts
+    line: "127.0.0.1 localhost localhost.localdomain"
+    regexp: '^127.0.0.1.*$'
+    state: present
+
+- name: 确认 hosts 文件中 localhost ipv6 配置正确
+  lineinfile:
+    dest: /etc/hosts
+    line: "::1 localhost6 localhost6.localdomain"
+    regexp: '^::1.*$'
+    state: present
+
+- name: 创建 systemd 配置目录
+  file:
+    name: /etc/systemd/system.conf.d
+    state: directory
+
+- name: 设置系统 ulimits
+  template:
+    src: 30-k8s-ulimits.conf.j2
+    dest: /etc/systemd/system.conf.d/30-k8s-ulimits.conf
+
+- name: 把SCTP列入内核模块黑名单
+  copy: src=sctp.conf dest=/etc/modprobe.d/sctp.conf
+
+- name: 设置 ulimits
+  lineinfile:
+    dest: /etc/profile
+    regexp: "ulimit -SHn"
+    line: "ulimit -SHn 65535"
+
+# 优化设置 journal 日志相关，避免日志重复搜集，浪费系统资源
+- name: 准备 journal 日志相关目录
+  file: name={{ item }} state=directory
+  with_items:
+  - "/etc/systemd/journald.conf.d"
+  - "/var/log/journal"
+
+- name: 优化设置 journal 日志
+  template: src=95-k8s-journald.conf.j2 dest=/etc/systemd/journald.conf.d/95-k8s-journald.conf
+
+- name: 重启 journald 服务
+  service: name=systemd-journald state=restarted

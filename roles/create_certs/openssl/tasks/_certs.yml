@@ -1,0 +1,97 @@
+- name: 创建 {{ out_item.item.bare }} CA 根证书私钥
+  when:
+    - out_item.item.ca == ""
+    - not out_item.stat.exists
+  shell: openssl genrsa -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.key {{ cert_key_size }}
+
+- name: 判断 {{ out_item.item.bare }} CA 证书是否存在
+  when: out_item.item.ca == ""
+  stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.crt"
+  register: check_ca_cert_crt_files
+
+- name: 签发 {{ out_item.item.bare }} CA 根证书
+  when:
+    - out_item.item.ca == ""
+    - not check_ca_cert_crt_files.stat.exists
+  shell: >
+    openssl req -x509 -new -nodes -extensions {{ out_item.item.profile }}
+    -subj "/CN={{ out_item.item.cn }}/O={{ out_item.item.org }}"
+    {% if 'etcd' in out_item.item.file -%}
+    -config {{ etcd_openssl_cnf }}
+    {% elif 'kube' in out_item.item.file -%}
+    -config {{ kube_openssl_cnf }}
+    {% endif -%}
+    -key {{ out_item.item.dir }}/{{ out_item.item.bare }}.key
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.crt
+    -days {{ ca_certs_expired }};
+
+- name: 创建 {{ out_item.item.bare }} 应用证书私钥
+  when:
+    - out_item.item.ca != ""
+    - not out_item.stat.exists
+  shell: openssl genrsa -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.key {{ cert_key_size }}
+
+- name: 判断 {{ out_item.item.bare }} 应用证书是否存在
+  when: out_item.item.ca != ""
+  stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.crt"
+  register: check_cert_crt_files
+
+- name: 创建证书请求文件
+  when:
+    - out_item.item.ca != ""
+    - not check_cert_crt_files.stat.exists
+  shell: >
+    openssl req -new
+    -subj "/CN={{ out_item.item.cn }}/O={{ out_item.item.org }}"
+    -key {{ out_item.item.dir }}/{{ out_item.item.bare }}.key
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.csr
+
+- name: 签发 {{ out_item.item.bare }} 应用证书
+  when:
+    - out_item.item.ca != ""
+    - not check_cert_crt_files.stat.exists
+  shell: >
+    openssl x509 -req -CAcreateserial
+    -extensions {{ out_item.item.profile }}
+    {% if 'etcd' in out_item.item.file -%}
+    -extfile {{ etcd_openssl_cnf }}
+    -CA {{ etcd_ca }}
+    -CAkey {{ etcd_ca_key }}
+    {% elif 'kube' in out_item.item.file -%}
+    -extfile {{ kube_openssl_cnf }}
+    {% if 'front-proxy' in out_item.item.bare -%}
+    -CA {{ front_ca }}
+    -CAkey {{ front_ca_key }}
+    {% else -%}
+    -CA {{ kubernetes_ca }}
+    -CAkey {{ kubernetes_ca_key }}
+    {% endif -%}
+    {% else -%}
+    -CA "{{ out_item.item.dir }}/{{ out_item.item.ca }}.crt" \
+    -CAkey "{{ out_item.item.dir }}/{{ out_item.item.ca }}.key" \
+    {% endif -%}
+    -in {{ out_item.item.dir }}/{{ out_item.item.bare }}.csr
+    -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.crt
+    -days {{ certs_expired }}
+
+# - block:
+#   - name: 判断 {{ out_item.item.bare }} pem 私钥是否存在
+#     stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem"
+#     register: check_cert_pem_key_files
+
+#   - name: 将 key 私钥转换为 pem 格式
+#     when: not check_cert_pem_key_files.stat.exists
+#     shell: >
+#       openssl rsa -in {{ out_item.item.dir }}/{{ out_item.item.bare }}.key -out {{ out_item.item.dir }}/{{ out_item.item.bare }}-key.pem
+
+#   - name: 判断 {{ out_item.item.bare }} pem 证书是否存在
+#     stat: path="{{ out_item.item.dir }}/{{ out_item.item.bare }}.pem"
+#     register: check_cert_pem_crt_files
+
+#   - name: 将 crt 证书转换为 pem 格式
+#     when: not check_cert_pem_crt_files.stat.exists
+#     shell: >
+#       openssl x509 -in {{ out_item.item.dir }}/{{ out_item.item.bare }}.crt -out {{ out_item.item.dir }}/{{ out_item.item.bare }}.pem
+#   when:
+#     - out_item.item.type is defined
+#     - out_item.item.type == "helm"

@@ -1,0 +1,87 @@
+- name: helm 安装
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ helm2_bin_dir }}"
+    line: export PATH="{{ helm2_bin_dir }}:$PATH"
+
+- name: 添加 helm 命令自动补全
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: present
+    regexp: 'helm completion'
+    line: 'source <({{ helm2_bin_dir }}/helm completion bash)'
+
+- name: 当前会话加载 helm 命令自动补全
+  shell: >
+    {{ helm2_bin_dir }}/helm completion bash > /etc/bash_completion.d/helm;
+    source /etc/bash_completion.d/helm
+  args:
+    executable: /bin/bash
+
+- name: 加载 kubernetes-helm_tiller 镜像
+  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.helm_tiller.file }}"
+
+- block:
+  - name: 创建 helm 配置清单目录
+    file: name={{ item }} state=directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/helm"
+    - "{{ ansible_env.HOME }}/.helm"
+
+  - name: 准备 rbac 配置文件
+    template: src="helm-rbac.yaml.j2" dest="{{ kubernetes_etc_dir }}/helm/helm-rbac.yaml"
+    # template: src=strict-helm-rbac.yaml.j2 dest={{ kubernetes_etc_dir }}/helm/strict-helm-rbac.yaml
+
+  - name: 创建 rbac 资源
+    shell: "{{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/helm"
+
+  - name: 配置 helm 客户端证书
+    synchronize: src="{{ item.src }}" dest="{{ item.dest }}"
+    with_items:
+    - { src: "{{ helm_ca }}", dest: "{{ ansible_env.HOME }}/.helm/ca.pem" }
+    - { src: "{{ helm_cert }}", dest: "{{ ansible_env.HOME }}/.helm/cert.pem" }
+    - { src: "{{ helm_cert_key }}", dest: "{{ ansible_env.HOME }}/.helm/key.pem" }
+
+  # 卸载helm 删除~/.helm 和tiller deployment资源
+  - name: 安装tiller
+    shell: >
+      {{ helm2_bin_dir }}/helm init --upgrade \
+      --tiller-tls \
+      --tiller-tls-verify \
+      --tiller-tls-cert {{ tiller_cert }} \
+      --tiller-tls-key {{ tiller_cert_key }} \
+      --tls-ca-cert {{ helm_ca }} \
+      --service-account {{ tiller_sa }} \
+      --tiller-namespace {{ helm_namespace }} \
+      --tiller-image {{ images.helm_tiller.name }} \
+      --stable-repo-url {{ repo_url }}
+
+  - name: 轮询等待 tiller 运行，视下载镜像速度而定
+    shell: "{{ kubernetes_bin_dir }}/kubectl get pod -n kube-system -o wide | grep tiller"
+    register: tiller_status
+    until: '"Running" in tiller_status.stdout and "0/" not in tiller_status.stdout'
+    retries: 30
+    delay: "{{ retry_stagger }}"
+    ignore_errors: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- name: 创建客户端配置文件存放目录
+  file: path="{{ ansible_env.HOME }}/.helm" state=directory
+
+- name: 从 groups['masters'][0] 节点分发 helm 和 tiller 配置文件
+  synchronize: src="{{ ansible_env.HOME }}/.helm/" dest="{{ ansible_env.HOME }}/.helm/"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name:  配置 helm tls 环境变量
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: present
+    regexp: "HELM_TLS_ENABLE"
+    line: "export HELM_TLS_ENABLE=true"
+
+- include_tasks: normal-user-admission.yml

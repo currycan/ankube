@@ -1,0 +1,54 @@
+- name: 停用systemd自动加载模块服务
+  systemd: name=systemd-modules-load state=stopped enabled=no
+  ignore_errors: True
+
+- name: 删除内核模块开机加载配置
+  file: path=/etc/modules-load.d/10-k8s-modules.conf state=absent
+
+- name: 获取当前内核版本
+  shell: "uname -r"
+  register: get_kernel_version
+
+- name: 设置内核版本参数
+  set_fact:
+    set_fact_kernel_version: "{{ get_kernel_version.stdout.split('-')[0] }}"
+
+- name: 设置 nf_conntrack 模块名
+  set_fact: NF_CONNTRACK="nf_conntrack"
+  when: "set_fact_kernel_version is version('4.19', '>=')"
+
+- name: 设置 nf_conntrack_ipv4 模块名
+  set_fact: NF_CONNTRACK="nf_conntrack_ipv4"
+  when: "set_fact_kernel_version is version('4.19', '<')"
+
+- name: 卸载已加载的内核模块
+  modprobe: name={{ item }} state=absent
+  with_items:
+    - br_netfilter
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
+    - ip_vs_lc
+    - ip_vs_wlc
+    - ip_vs_lblc
+    - ip_vs_lblcr
+    - ip_vs_dh
+    - ip_vs_fo
+    - ip_vs_nq
+    - ip_vs_sed
+    - ip_vs_ftp
+    - "{{ NF_CONNTRACK }}"
+    - sunrpc
+  ignore_errors: true
+
+- name: 删除内核优化
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "95-k8s-sysctl.conf"
+    - "99-docker.conf"
+
+- name: 重新加载系统参数
+  shell: "sysctl --system"

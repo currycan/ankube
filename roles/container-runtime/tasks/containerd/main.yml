@@ -1,0 +1,62 @@
+- name: 安装 cni containerd
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ item }}"
+    line: export PATH="{{ item }}:$PATH"
+  with_items:
+    - "{{ cni_bin_dir }}"
+    - "{{ containerd_bin_dir }}"
+
+- name: crictl 命令自动补全
+  shell: >
+    {{ containerd_bin_dir }}/crictl completion bash > /etc/bash_completion.d/crictl;
+    source /etc/bash_completion.d/crictl
+  args:
+    executable: /bin/bash
+
+- name: 创建 containerd 配置文件目录
+  file: path="{{ containerd_etc_dir }}" state=directory
+
+- name: 加载内核模块 overlay
+  modprobe: name=overlay state=present
+
+- name: 创建 crictl 配置
+  template: src=containerd/crictl.yaml.j2 dest=/etc/crictl.yaml mode=644
+
+- name: 配置 containerd 配置文件
+  when: insecure_registries is defined and insecure_registries | length > 0
+  template: src=containerd/config.toml.j2 dest="{{ containerd_etc_dir }}/config.toml" mode=644
+  # notify: 确认 containerd 运行状态
+
+- name: 配置 containerd service 文件
+  template:
+    src: "containerd/{{ item }}.j2"
+    dest: "{{ systemd_service_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - containerd.service
+    - containerd.socket
+  register: change_system_service
+  # notify: 确认 containerd 运行状态
+
+- name: 启动 containerd，并设置开机启动
+  systemd:
+    name: containerd
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_containerd
+  until: started_containerd is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待 containerd 启动完成
+  when: started_containerd is succeeded
+  shell: "systemctl status containerd.service | grep Active"
+  register: containerd_status
+  until: '"running" in containerd_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"

@@ -1,0 +1,14 @@
+# add-nodes
+- hosts: add-nodes
+  become: true
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  # - { role: prepare/python3 }
+  - { role: prepare/chrony, when: "groups['chrony']|length > 0" }
+  - { role: prepare/initialize }
+  - { role: cert }
+  - { role: k8s-kubeconfig, node_role: 'node' }
+  - { role: container-runtime }
+  - { role: k8s-setup, node_role: 'node' }
+  - { role: k8s-network }

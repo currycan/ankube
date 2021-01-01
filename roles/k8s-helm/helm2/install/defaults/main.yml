@@ -1,0 +1,14 @@
+helm_namespace: kube-system
+tiller_sa: tiller
+# helm certificates
+helm_ca: "{{ k8s_pki_dir }}/helm-ca.pem"
+helm_cert: "{{ k8s_pki_dir }}/helm.pem"
+helm_cert_key: "{{ k8s_pki_dir }}/helm-key.pem"
+tiller_cert: "{{ k8s_pki_dir }}/tiller.pem"
+tiller_cert_key: "{{ k8s_pki_dir }}/tiller-key.pem"
+
+# helm repo remove stable
+# helm repo add stable <repo_url>
+repo_url: https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+# repo_url: http://mirror.azure.cn/kubernetes/charts/
+# repo_url: https://kubernetes-charts.storage.googleapis.com

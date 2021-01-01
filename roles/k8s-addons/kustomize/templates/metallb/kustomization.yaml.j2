@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: {{ addon.namespace }}
+
+resources:
+# - https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
+- metallb.yaml
+- cm-res.yaml
+- test-metallb.yaml
+
+secretGenerator:
+- name: metallb-memberlist
+  namespace: {{ addon.namespace }}
+  files:
+  - config/secretkey
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+images:
+- name: metallb-speaker
+  newName: {{ images.metallb_speaker.name.split(':')[0] }}
+  newTag: {{ images.metallb_speaker.name.split(':')[1] }}
+- name: metallb-controller
+  newName: {{ images.metallb_controller.name.split(':')[0] }}
+  newTag: {{ images.metallb_controller.name.split(':')[1] }}

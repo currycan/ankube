@@ -1,0 +1,51 @@
+- name: worker 节点删除 matser 节点组件
+  file: path="{{ item }}" state=absent
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+
+- name: 配置 kubelet、kube-proxy 和 cni config 文件
+  template:
+    src="{{ item.src }}.j2"
+    dest="{{ item.dest }}"
+    owner="root"
+    group="root"
+    mode="0644"
+  with_items:
+    - { src: "cni-plugin/cni-default.conf", dest: "{{ cni_etc_dir }}/cni-default.conf" }
+    - { src: "kubelet/kubelet-config.yml", dest: "{{ kubelet_data_dir }}/config.yaml" }
+    - { src: "kubelet/10-kubelet.conf", dest: "{{ systemd_service_dir }}/kubelet.service.d/10-kubelet.conf" }
+    - { src: "kubelet/kubelet.service", dest: "{{ systemd_service_dir }}/kubelet.service" }
+    - { src: "kube-proxy/kube-proxy-config.yaml", dest: "{{ kube_proxy_data_dir }}/config.yaml" }
+    - { src: "kube-proxy/kube-proxy.service", dest: "{{ systemd_service_dir }}/kube-proxy.service" }
+
+- name: 加载 infra 镜像
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.infra.file }}"
+
+- name: 启动 kubelet 和 kube-proxy 组件，并设置开机启动
+  systemd:
+    name={{ item }}
+    daemon_reload=yes
+    state=restarted
+    enabled=yes
+  with_items:
+    - kubelet
+    - kube-proxy
+
+- name: 等待 kubelet kube-proxy 件启动，10s超时
+  wait_for:
+    host: "127.0.0.1"
+    port: "{{ item }}"
+    delay: 5
+    connect_timeout: 5
+    timeout: 10
+  with_items:
+    - "{{ kubelet.bind_port }}"
+    - "{{ kubelet.bind_read_port }}"
+    - "{{ kubelet.bind_healthz_port }}"
+    - "{{ kube_proxy.healthz_port }}"
+    - "{{ kube_proxy.metrics_port }}"

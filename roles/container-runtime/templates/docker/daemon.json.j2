@@ -1,0 +1,31 @@
+{
+{# docker的启动参数使用systemd,使用systemd是官方的建议,详见 https://kubernetes.io/docs/setup/cri/ #}
+    "exec-opts": ["native.cgroupdriver={{ cgroup_driver }}"],
+    {% if proxy_registries is defined and proxy_registries | length > 0 -%}
+    "registry-mirrors": [{% for reg in proxy_registries %}"{{ reg }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+    {% endif -%}
+    {% if insecure_registries is defined and insecure_registries | length > 0 -%}
+    "insecure-registries": [{% for reg in insecure_registries %}"{{ reg }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+    {% endif -%}
+    "storage-opts": ["overlay2.override_kernel_check=true"],
+    "max-concurrent-downloads": 10,
+    "log-driver": "{{ log_driver }}",
+    "log-level": "{{ level }}",
+    "experimental" : true,
+    "storage-driver": "overlay2",
+    "log-opts": {
+        "max-size": "{{ maxsize }}",
+        "max-file": "{{ maxfile }}"
+    },
+    "data-root": "{{ docker_data_dir }}",
+    "bip": "{{ bip }}",
+    "userland-proxy": false,
+    {% if enable_remote_api is defined and enable_remote_api == true -%}
+    "hosts": ["tcp://0.0.0.0:2376", "unix:///var/run/docker.sock"],
+    {% endif -%}
+    {% if enable_dockerd_iptables == "false" -%}
+    "iptables": false,
+    {% endif -%}
+    "live-restore": false,
+    "debug": false
+}

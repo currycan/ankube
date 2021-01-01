@@ -1,0 +1,55 @@
+- name: 创建 master 节点各组件所需目录
+  file: path={{ item }} state=directory
+  with_items:
+  - "{{ kubernetes_etc_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/kube-apiserver"
+  - "{{ kubernetes_log_dir }}/kube-controller-manager"
+  - "{{ kubernetes_log_dir }}/kube-scheduler"
+
+# 生成 encryption config
+- include_tasks: common/encryption_config_secret.yml
+  register: create_encryption_config
+
+- name: 同步 encryption_config 文件到各 master 节点备份
+  synchronize:
+    src: "{{ item }}"
+    dest: "{{ item }}"
+  with_items:
+    - "{{kubernetes_etc_dir}}/encryption_config_secret.yml"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: master 节点渲染相关配置文件
+  when:
+    - create_encryption_config is succeeded
+    - "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  template:
+    src="{{ item.src }}.j2"
+    dest="{{ item.dest }}"
+    owner="root"
+    group="root"
+    mode="0644"
+  with_items:
+    - { src: "logrotate/kube-apiserver", dest: "/etc/logrotate.d/kube-apiserver" }
+    - { src: "logrotate/kube-controller-manager", dest: "/etc/logrotate.d/kube-controller-manager" }
+    - { src: "logrotate/kube-scheduler", dest: "/etc/logrotate.d/kube-scheduler" }
+    #  EncryptionConfig 密钥注意不能修改，也就是不要重复生成。https://github.com/kubernetes/kubernetes/issues/66844
+    - { src: "audit/policy.yaml", dest: "{{ kubernetes_etc_dir }}/audit/policy.yaml" }
+    - { src: "encryption/config.yaml", dest: "{{ k8s_pki_dir }}/secrets-encryption.yaml" }
+    - { src: "master/kube-apiserver.service", dest: "{{ systemd_service_dir }}/kube-apiserver.service" }
+    - { src: "master/kube-controller-manager.service", dest: "{{ systemd_service_dir }}/kube-controller-manager.service" }
+    - { src: "master/kube-scheduler.service", dest: "{{ systemd_service_dir }}/kube-scheduler.service" }
+
+- name: 启动 kubernetes master节点 三大核心组件，并设置开机启动
+  systemd:
+    name={{ item }}
+    daemon_reload=yes
+    state=restarted
+    enabled=yes
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+  register: start_service
+
+- include_tasks: common/check_master_status.yml

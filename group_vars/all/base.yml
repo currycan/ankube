@@ -1,0 +1,64 @@
+# 配置各个二进制文件版本，可以手动指定版本，也可以通过 get_version.sh 脚本获取最新版本
+kube_version: "1.20.1"
+docker_version: "20.10.1"
+containerd_version: "1.4.3"
+runc_version: "1.0.0-rc92"
+cri_tools_version: "1.19.0"
+docker_compose_version: "1.27.4"
+cfssl_version: "1.5.0"
+etcd_version: "3.4.14"
+cni_version: "0.9.0"
+flanneld_version: "0.13.0"
+cilium_version: "1.9.1"
+kubeovn_version: "1.4.0"
+calico_version: "3.17.1"
+coredns_version: "1.8.0"
+helm2_version: "2.17.0"
+helm3_version: "3.4.2"
+helmfile_version: "0.135.0"
+kustomize_version: "3.8.8"
+kubecm_version: "0.12.0"
+krew_version: "0.4.0"
+kubectl_debug_version: "0.1.1"
+k9s_version: "0.24.2"
+argocd_version: "1.8.1"
+vela_version: "0.2.2"
+tektoncd_version: "0.15.0"
+istio_version: "1.8.1"
+
+## 设定安装方式：二进制安装或者kubeadm安装
+binary_way:
+  enable: false
+  ## 设定证书生成方式：cfssl或者openssl
+  cfssl_cert: false
+  openssl_cert: true
+kubeadm_way:
+  enable: true
+  ## 设定证书是自定义签发或者kubeadm签发, 使用kubeadm方式搭建集群暂不支持cfssl生成的pem证书
+  kubeadm_cert: false
+
+# docker 设置代理是，不需要代理的镜像仓库（默认已设置过滤阿里云等仓库不代理）
+noproxy_registries:
+  - registry.local.com
+
+# 有效的私有网段，即以下网段及其子网：10.0.0.0/8，172.16-31.0.0/12-16，192.168.0.0/16
+pod_network_cidr: "172.30.0.0/16"
+# 可选范围：10.0.0.0/16-24，172.16-31.0.0/16-24，192.168.0.0/16-24
+service_subnet: 172.31.0.0/16
+api_service_ip: "{{ service_subnet.split('.')[:-1]|join('.') }}.1"
+cluster_dns_ip: "{{ service_subnet.split('.')[:-1]|join('.') }}.10"
+
+# Kubernetes 高可用虚IP
+vip_address: 10.10.10.49
+
+# metallb IP 池
+metallb_vip_pool: 10.10.10.50-10.10.10.99
+
+# ingress metallb IP, ingress 地址要在 metallb 地址池内
+ingress_lb_address: 10.10.10.99
+
+# NFS server地址和路径
+nfs_server: 10.10.10.3
+
+# 选择安装 helm 的版本, helm2 或者 helm3, 默认安装 helm3
+helm_type: helm3

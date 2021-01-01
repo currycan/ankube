@@ -1,0 +1,13 @@
+- block:
+  - name: 创建下载内核文件存放目录
+    file: path="{{ cache_dir }}" state=directory
+
+  - name: centos 系统下载内核
+    include_tasks: centos.yml
+    when: ansible_distribution in [ 'CentOS','RedHat' ]
+
+  - name: ubuntu 系统下载内核
+    include_tasks: ubuntu.yml
+    when: ansible_distribution in [ 'Ubuntu','Debian' ]
+  run_once: true
+  delegate_to: "{{ groups['deploy'][0] }}"

@@ -1,0 +1,85 @@
+# 3.4.10开始是必须0700权限,https://github.com/etcd-io/etcd/blob/master/CHANGELOG-3.4.md#breaking-changes
+- name: 创建 etcd 数据目录
+  file: name={{ item }} state=directory mode=u=rwx,g-rwx,o-rwx
+  with_items:
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_wal_dir }}"
+
+- name: 创建 etcd 安装config目录和数据备份目录
+  file:
+    path: "{{ item }}"
+    recurse: yes
+    state: directory
+  with_items:
+    - "{{ etcd_config_dir }}"
+    - "{{ etcd_data_bak_dir }}"
+
+- name: 安装etcd
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ etcd_bin_dir }}"
+    line: export PATH="{{ etcd_bin_dir }}:$PATH"
+
+- name: 渲染etcd配置文件
+  template: src=etcd-config.yml.j2 dest="/etc/etcd/config.yml"
+  # notify: 确认 etcd 运行状态
+
+- name: 创建 etcd systemd service 文件
+  template:
+    src: etcd.service.j2
+    dest: "{{ systemd_service_dir }}/etcd.service"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: 配置 etcd.sh 到/etc/profile.d/
+  template:
+    src: etcd.sh.j2
+    dest: "{{ profile_dir }}/etcd.sh"
+    owner: root
+    group: root
+    mode: 0770
+
+- name: 配置 etcd 备份脚本
+  template: src={{ item.src }} dest={{ item.dest }}/{{ item.src.split('.')[:-1]|join('.') }} mode=0770
+  with_items:
+    - { src: 'etcd_cron.sh.j2', dest: '{{ etcd_bin_dir }}'}
+
+- name: 设置 etcd 数据备份，每天凌晨3点备份
+  cron:
+    name: "create etcd data backup"
+    minute: "0"
+    hour: "3"
+    job: "{{ etcd_bin_dir }}/etcd_cron.sh -c 4 -d {{ etcd_data_bak_dir }} &>/dev/null 2>&1"
+
+- name: 启动服务，并设置开机启动
+  systemd:
+    name: etcd
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_etcd
+  until: started_etcd is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待服务启动完成
+  when: started_etcd is succeeded
+  shell: "systemctl status etcd.service | grep Active"
+  register: etcd_status
+  until: '"running" in etcd_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"
+
+- name: 检查服务状态
+  uri:
+    method: "GET"
+    url: "https://{{ etcd_listen_addr }}:2379/health"
+    validate_certs: no
+    client_cert: "{{ etcd_cert_healthcheck_client }}"
+    client_key: "{{ etcd_cert_healthcheck_client_key }}"
+  register: result
+  until: result.status is defined and result.status == 200
+  retries: 3
+  delay: "{{ retry_stagger }}"

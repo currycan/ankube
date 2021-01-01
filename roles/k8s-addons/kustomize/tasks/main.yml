@@ -1,0 +1,51 @@
+- block:
+  - name: 所有节点加载 {{ addon.name }} 依赖 daemonSet 镜像
+    when: addon.all is defined and inventory_hostname in groups['kube-cluster']
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.all }}"
+
+  - name: worker 节点加载 {{ addon.name }} 依赖镜像
+    when: addon.worker is defined and inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.worker }}"
+
+  - name: master 节点加载 {{ addon.name }} 依赖镜像
+    when: addon.master is defined and inventory_hostname in (groups['masters'] + groups['add-masters'])
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.master }}"
+  when: addon is defined
+
+- block:
+  - name: 创建 {{ addon.name }} kustomize 配置清单目录
+    file: path="{{ kustomize_addon_dir }}/{{ item }}" state=directory
+    with_items: "{{ addon.directories }}"
+
+  - name: 加载 {{ addon.name }} extend 任务
+    when: addon.extend_task is defined and addon.extend_task != ''
+    include_tasks: extends/{{ addon.extend_task }}
+
+  - name: 渲染 {{ addon.name }} 配置清单
+    when: addon.templates is defined and addon.templates != ''
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{ kustomize_addon_dir }}/{{ addon.directories }}/{{ item.split('/')[-1] }}"
+    with_items: "{{ addon.templates }}"
+
+  - name: 复制 {{ addon.name }} 配置文件
+    when: addon.files is defined and addon.files != ''
+    copy: src="{{ item }}" dest="{{ kustomize_addon_dir }}/{{ addon.directories }}"
+    with_items:
+      - "{{ addon.files }}"
+
+  - name: 创建 {{ addon.name }} 部署 namespace
+    shell: >
+      [ `{{ kubernetes_bin_dir }}/kubectl get ns {{ addon.namespace }} --ignore-not-found | wc -l` -eq 0 ] && \
+      {{ kubernetes_bin_dir }}/kubectl create ns {{ addon.namespace }};
+      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite
+
+  - name:  kustomize 部署 {{ addon.name }} 应用
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -k {{ kustomize_addon_dir }}/{{ addon.directories }}/
+  when:
+  - addon is defined
+  - inventory_hostname == groups['masters'][0]

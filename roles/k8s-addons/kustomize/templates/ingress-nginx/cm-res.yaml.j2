@@ -1,0 +1,18 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: tcp-services
+  namespace: {{ addon.namespace }}
+  labels:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/part-of: nginx-ingress
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: udp-services
+  namespace: {{ addon.namespace }}
+  labels:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/part-of: nginx-ingress

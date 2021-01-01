@@ -1,0 +1,22 @@
+- name: 判断 golang 是否安装
+  shell: "go version >/dev/null 2>&1"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ ansible_user_dir }}/.go/bin"
+  register: check_golang
+
+- name: 安装 jq
+  when: check_golang.rc != 0
+  package:
+    name:
+      - jq
+    state: present
+
+- name: 安装 golang
+  when: check_golang.rc != 0
+  script: "goinstall.sh"
+  environment:
+    http_proxy: "{{ proxy_env.http_proxy }}"
+    https_proxy: "{{ proxy_env.https_proxy }}"
+
+- name: 安装 download-frozen-image-v2.sh
+  copy: src="download-frozen-image-v2.sh" dest="/usr/local/bin" mode=0775

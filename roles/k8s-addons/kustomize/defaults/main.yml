@@ -1,0 +1,76 @@
+kustomiz_addons:
+  kube_dns:
+    name: kube-dns
+    directories: kube-dns
+    namespace: kube-system
+    files: ""
+    templates:
+      - kube-dns/kustomization.yaml
+      - kube-dns/coredns.yaml
+      - kube-dns/autoscale.yaml
+    worker:
+      - "{{ images.coredns.file }}"
+      - "{{ images.autoscaler.file }}"
+
+  metallb:
+    name: metallb
+    directories: metallb
+    namespace: kube-system
+    extend_task: metallb.yml
+    files:
+      - metallb/test-metallb.yaml
+    templates:
+      # https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
+      - metallb/kustomization.yaml
+      - metallb/metallb.yaml
+      - metallb/cm-res.yaml
+    all:
+      - "{{ images.metallb_speaker.file }}"
+    worker:
+      - "{{ images.metallb_controller.file }}"
+
+  # https://github.com/kubernetes-csi/external-snapshotter
+  snapshotter:
+    name: snapshotter
+    directories: snapshotter
+    namespace: kube-system
+    # extend_task: snapshotter.yml
+    files:
+      - snapshotter/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+      - snapshotter/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+      - snapshotter/snapshot.storage.k8s.io_volumesnapshots.yaml
+    templates:
+      - snapshotter/kustomization.yaml
+      - snapshotter/rbac-csi-snapshotter.yaml
+      - snapshotter/rbac-external-provisioner.yaml
+      - snapshotter/rbac-snapshot-controller.yaml
+      - snapshotter/setup-csi-snapshotter.yaml
+      - snapshotter/setup-snapshot-controller.yaml
+      - snapshotter/webhook.yaml
+    worker:
+      - "{{ images.snapshot_controller.file }}"
+      - "{{ images.csi_provisioner.file }}"
+      - "{{ images.csi_snapshotter.file }}"
+      - "{{ images.hostpathplugin.file }}"
+      - "{{ images.snapshot_validation.file }}"
+
+  # https://github.com/kubernetes/ingress-nginx/blob/master/deploy/static/provider/baremetal/deploy.yaml
+  ingress_nginx:
+    name: ingress-nginx
+    namespace: kube-system
+    directories: ingress-nginx
+    files: ""
+    templates:
+      - ingress-nginx/kustomization.yaml
+      - ingress-nginx/deploy.yaml
+      - ingress-nginx/cm-patch.yaml
+      - ingress-nginx/svc-patch.yaml
+      - ingress-nginx/deploy-patch.yaml
+      - ingress-nginx/svc-res.yaml
+      - ingress-nginx/cm-res.yaml
+      - ingress-nginx/limit-res.yaml
+    master:
+      - "{{ images.nginx_ingress_controller.file }}"
+    worker:
+      - "{{ images.webhook_certgen.file }}"
+      - "{{ images.nginx_ingress_defaultbackend.file }}"

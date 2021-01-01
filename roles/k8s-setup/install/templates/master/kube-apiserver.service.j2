@@ -1,0 +1,75 @@
+{% macro etcd_initial_cluster() -%}
+{% for host in groups['etcds'] -%}
+  https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}
+{%- endfor -%}
+{% endmacro -%}
+
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://github.com/kubernetes/kubernetes
+# After=etcd.service
+# Wants=etcd.service
+
+[Service]
+ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
+  --advertise-address={{ apiserver.advertise_address }} \
+  --allow-privileged=true \
+  --alsologtostderr=true \
+  --anonymous-auth=false \
+  --apiserver-count={{ (groups['masters'] + groups['add-masters']) | length }} \
+  --audit-log-maxage=30 \
+  --audit-log-maxbackup=10 \
+  --audit-log-maxsize=100 \
+  --audit-log-path={{ kubernetes_log_dir }}/audit/apiserver_audit.log \
+  --audit-log-truncate-enabled=true \
+  --audit-policy-file={{ kubernetes_etc_dir }}/audit/policy.yaml \
+  --authorization-mode=Node,RBAC \
+  --client-ca-file={{ kubernetes_ca }} \
+  --cloud-provider=external \
+  --enable-admission-plugins={% if apiserver.enable_admission_plugins|length > 0 %}{{ apiserver.enable_admission_plugins | join(',') }}{% endif %} \
+  --enable-aggregator-routing=true \
+  --enable-bootstrap-token-auth=true \
+  {% if (kube_version is version('1.12.0', '>')) %}
+  --encryption-provider-config={{ k8s_pki_dir }}/secrets-encryption.yaml \
+  {% endif %}
+  --etcd-cafile={{ etcd_ca }} \
+  --etcd-certfile={{ etcd_cert_apiserver_server }} \
+  --etcd-keyfile={{ etcd_cert_apiserver_server_key }} \
+  --etcd-servers={{ etcd_initial_cluster() }} \
+  --insecure-port=0 \
+  --kubelet-certificate-authority={{ kubernetes_ca }} \
+  --kubelet-client-certificate={{ apiserver_kubelet_cert }} \
+  --kubelet-client-key={{ apiserver_kubelet_cert_key }} \
+  --kubelet-https=true \
+  --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \
+  --log-dir={{ kubernetes_log_dir }}/kube-apiserver \
+  --logtostderr=false \
+  --max-mutating-requests-inflight=500 \
+  --max-requests-inflight=1500 \
+  --profiling=false \
+  --proxy-client-cert-file={{ front_client }} \
+  --proxy-client-key-file={{ front_client_key }} \
+  --requestheader-allowed-names= \
+  --requestheader-client-ca-file={{ front_ca }} \
+  --requestheader-extra-headers-prefix=X-Remote-Extra- \
+  --requestheader-group-headers=X-Remote-Group \
+  --requestheader-username-headers=X-Remote-User \
+  --runtime-config=api/all=true \
+  --secure-port={{ apiserver_secure_port }} \
+  --service-account-key-file={{ sa_public_key }} \
+  --service-cluster-ip-range={{ apiserver.service_ip_range }} \
+  --service-node-port-range={{ apiserver.service_node_port_range }} \
+  --tls-cert-file={{ apiserver_cert }} \
+  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256 \
+  --tls-private-key-file=/etc/kubernetes/pki/apiserver.key \
+  --tls-private-key-file={{ apiserver_cert_key }} \
+  --v=2
+
+Type=notify
+LimitNOFILE=65536
+Restart=always
+RestartSec=5
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

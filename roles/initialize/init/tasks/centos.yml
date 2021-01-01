@@ -1,0 +1,118 @@
+# - name: 删除centos默认安装
+#   yum:
+#     name:
+#     - firewalld
+#     - python-firewall
+#     - firewalld-filesystem
+#     state: absent
+#     disablerepo: "*"
+
+- name: 判断 firewalld 是否安装
+  shell: >
+    systemctl status firewalld | grep active || echo "not be found"
+  register: firewalld_already_installed
+
+- name: 禁用防火墙
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+  when: '"active" in firewalld_already_installed.stdout'
+
+- name: 设置 yum obsoletes 值为 0
+  lineinfile:
+    path: /etc/yum.conf
+    regexp: '^obsoletes=1'
+    line: obsoletes=0
+
+- name: 添加 epel 仓库
+  yum_repository:
+    name: epel
+    description: EPEL Repository
+    baseurl: "{{ epel_yum_repo }}"
+    enabled: yes
+    gpgcheck: no
+    state: present
+
+# - name: 刷新 yum 缓存
+#   shell: yum clean all && yum makecache fast
+
+- debug: msg="安装基础组件依赖，根据网速不同，可能需要一定时间。。"
+- name: 安装基础软件包
+  yum:
+    name:
+      - conntrack
+      - conntrack-tools     # ipvs 模式需要
+      - psmisc              # 安装psmisc 才能使用命令killall，它在keepalive的监测脚本中使用到
+      - nfs-utils           # 挂载nfs 共享文件需要 (创建基于 nfs的PV 需要)
+      - jq                  # 轻量JSON处理程序，安装docker查询镜像需要
+      - socat               # 用于port forwarding
+      - bash-completion     # bash命令补全工具，需要重新登录服务器生效
+      - rsync               # 文件同步工具，分发证书等配置文件需要
+      - ipset
+      - ipvsadm
+      - tree
+      - git
+      - systemd-devel
+      - systemd-libs
+      - libseccomp
+      - device-mapper-libs
+      - iotop
+      - htop
+      - net-tools
+      - sysstat
+      - device-mapper-persistent-data   # docker会用到
+      - lvm2                            # docker会用到
+      - curl                            # 基础工具
+      - yum-utils                       # 基础工具
+      - nc                              # 使用lb时进行端口判断时会用到
+    state: present
+
+- name: 重新启动 crond 避免因修改时区而导致的作业错乱问题
+  service:
+    name: crond
+    state: restarted
+    enabled: yes
+
+- name: 临时关闭 selinux
+  shell: "setenforce 0"
+  failed_when: false
+
+- name: 永久关闭 selinux
+  lineinfile:
+    dest: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: "SELINUX=disabled"
+    backrefs: yes
+
+- name: 判断 irqbalance 文件是否存在
+  stat: path=/etc/sysconfig/irqbalance
+  register: centos_irq_config_file
+
+- name: 修改 irqbalance 配置文件, 提升CPU性能
+  lineinfile:
+    dest=/etc/sysconfig/irqbalance
+    regexp='(?<!_)ONESHOT='
+    line='ONESHOT=yes'
+  when: centos_irq_config_file.stat.exists
+
+- name: 配置 rsyslog.conf
+  copy: src=rsyslog.conf dest=/etc/rsyslog.conf mode=0644
+
+# 优化设置 journal 日志相关，避免日志重复搜集，浪费系统资源
+# - name: 禁止rsyslog获取journald日志1
+#   lineinfile:
+#     dest: /etc/rsyslog.conf
+#     state: present
+#     regexp: 'ModLoad imjournal'
+#     line: '#$ModLoad imjournal # provides access to the systemd journal'
+
+# - name: 禁止rsyslog获取journald日志2
+#   lineinfile:
+#     dest: /etc/rsyslog.conf
+#     state: present
+#     regexp: 'IMJournalStateFile'
+#     line: '#$IMJournalStateFile imjournal.state'
+
+- name: 重启rsyslog服务
+  service: name=rsyslog state=restarted

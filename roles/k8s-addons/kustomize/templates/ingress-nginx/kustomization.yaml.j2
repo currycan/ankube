@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: {{ addon.namespace }}
+
+resources:
+- deploy.yaml
+- svc-res.yaml
+- cm-res.yaml
+- limit-res.yaml
+
+images:
+- name: ingress-nginx-controller
+  newName: {{ images.nginx_ingress_controller.name.split(':')[0] }}
+  newTag: {{ images.nginx_ingress_controller.name.split(':')[1] }}
+- name: kube-webhook-certgen
+  newName: {{ images.webhook_certgen.name.split(':')[0] }}
+  newTag: {{ images.webhook_certgen.name.split(':')[1] }}
+
+patchesStrategicMerge:
+- cm-patch.yaml
+- svc-patch.yaml
+- deploy-patch.yaml

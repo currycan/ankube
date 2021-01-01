@@ -1,0 +1,17 @@
+- block:
+  - name: rm service keepalived and haproxy
+    service: name={{ item }} state=stopped enabled=no
+    with_items:
+      - keepalived
+      - haproxy
+    ignore_errors: true
+
+  - name: remove files and dirs
+    file: name={{ item }} state=absent
+    with_items:
+      - "{{ keepalived_etc_dir }}"
+      - "{{ haproxy_etc_dir }}"
+      - "{{ systemd_service_dir }}/keepalived.service"
+      - "{{ systemd_service_dir }}/haproxy.service"
+    ignore_errors: True
+  when: "groups['masters'] | length > 1"

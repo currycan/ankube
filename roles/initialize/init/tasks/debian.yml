@@ -1,0 +1,60 @@
+- name: 判断 ufw 是否安装
+  shell: >
+    systemctl status ufw | grep active || echo "not be found"
+  register: ufw_already_installed
+
+- name: 禁用防火墙
+  service:
+    name: ufw
+    state: stopped
+    enabled: no
+  when: '"active" in ufw_already_installed.stdout'
+
+- debug: msg="安装基础组件依赖，根据网速不同，可能需要一定时间。。"
+- name: 安装 ubuntu 基础软件
+  apt:
+    name:
+    - git
+    - iotop
+    - htop
+    - net-tools
+    - sysstat
+    - libseccomp
+    - libseccomp-dev
+    - systemd-devel
+    - systemd-libs
+    - device-mapper-libs
+    - tree
+    - rsync
+    - curl                        # 基础工具
+    - apt-transport-https         # 添加https协议的apt源会用到
+    - lvm2                        # docker会用到
+    - ca-certificates             # docker会用到
+    - software-properties-common  # docker会用到
+    - nfs-common                  # 挂载nfs 共享文件需要 (创建基于 nfs的PV 需要)
+    - conntrack                   # network connection cleanup 用到
+    - jq                          # 轻量JSON处理程序，安装docker查询镜像需要
+    - socat                       # 用于port forwarding
+    - bash-completion             # bash命令补全工具，需要重新登录服务器生效
+    - ipset                       # ipvs 模式需要
+    - ipvsadm                     # ipvs 模式需要
+    - netcat-openbsd              # 使用lb时进行端口判断时会用到
+    state: present
+    allow_unauthenticated: true
+
+- name: 判断 irqbalance 文件是否存在
+  stat: path=/etc/default/irqbalance
+  register: debian_irq_config_file
+
+- name: 修改 irqbalance 配置文件, 提升CPU性能
+  lineinfile:
+    dest=/etc/default/irqbalance
+    regexp='ONESHOT='
+    line='ONESHOT="1"'
+  when: debian_irq_config_file.stat.exists
+
+- name: 重新启动 cron 避免因修改时区而导致的作业错乱问题
+  service:
+    name: cron
+    state: restarted
+    enabled: yes

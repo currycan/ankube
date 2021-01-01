@@ -1,0 +1,113 @@
+- name: 清理 helm2 环境变量配置
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: absent
+    regexp: '{{ item }}'
+  with_items:
+    - "helm"
+    - 'HELM_TLS_ENABLE'
+
+- name: helm 安装
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: present
+    regexp: "{{ helm3_bin_dir }}"
+    line: export PATH="{{ helm3_bin_dir }}:$PATH"
+
+- name: 添加 helm 命令自动补全
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: present
+    regexp: 'helm completion'
+    line: 'source <({{ helm3_bin_dir }}/helm completion bash)'
+
+- name: 当前会话加载 helm 命令自动补全
+  shell: >
+    {{ helm3_bin_dir }}/helm completion bash > /etc/bash_completion.d/helm;
+    source /etc/bash_completion.d/helm
+  args:
+    executable: /bin/bash
+
+- name: 安装升级插件并升级
+  shell: >
+    {{ helm3_bin_dir }}/helm plugin install https://github.com/helm/helm-2to3;
+    {{ helm3_bin_dir }}/helm move config
+
+- name: 获取现有 helm2 应用
+  register: helm2_apps
+  shell: >
+    helm list
+
+# TODO: 未完成
+- name: 校验升级
+  shell: >
+    {{ helm3_bin_dir }}/helm 2to3 convert {{ item }} --dry-run
+  with_items:
+    - "{{ helm2_apps }}"
+
+# TODO: 未完成
+- name: 获取现有 helm2 应用
+  shell: >
+    {{ helm3_bin_dir }}/helm 2to3 convert {{ item }} --tiller-out-cluster
+  with_items:
+    - "{{ helm2_apps }}"
+
+- name: 清理
+  shell:
+    {{ helm3_bin_dir }}/helm 2to3 cleanup
+
+- name: root 用户删除 $HOME/.helm 目录
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "{{ ansible_env.HOME }}/.helm"
+
+- name: 普通用户删除 $HOME/.helm 目录
+  block:
+    - name: 判断执行用户是否存在
+      action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
+      register: user_exist
+      with_items:
+      - "{{ normal_user }}"
+
+    - name: 清理 helm bin path
+      lineinfile:
+        dest: "/home/{{ item.item }}/.bash_profile"
+        state: absent
+        regexp: "{{ helm2_bin_dir }}"
+      with_items:
+      - "{{ user_exist['results'] }}"
+
+    - name: 清理 helm completion env
+      lineinfile:
+        dest: "/home/{{ item.item }}/.bashrc"
+        state: absent
+        regexp: 'helm completion'
+      with_items:
+      - "{{ user_exist['results'] }}"
+
+    - name: 清理 helm tls env
+      lineinfile:
+        dest: "/home/{{ item.item }}/.bashrc"
+        state: absent
+        regexp: 'HELM_TLS_ENABLE'
+      with_items:
+      - "{{ user_exist['results'] }}"
+
+    - name: 删除 helm 认证文件
+      when: 'item.stdout != "0"'
+      file: path="/home/{{ item.item }}/.helm" state=absent
+      with_items:
+      - "{{ user_exist['results'] }}"
+
+# 微软仓库（http://mirror.azure.cn/kubernetes/charts/）这个仓库强烈推荐，基本上官网有的chart这里都有。
+# 阿里云仓库（https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts ）
+# 官方仓库（https://hub.kubeapps.com/charts/incubator）官方chart仓库，国内有点不好使
+- name: 添加 helm 仓库
+  shell: >
+    {{ helm3_bin_dir }}/helm repo add stable   http://mirror.azure.cn/kubernetes/charts;
+    {{ helm3_bin_dir }}/helm repo add aliyun   https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts;
+    # cert-manager
+    {{ helm3_bin_dir }}/helm repo add jetstack https://charts.jetstack.io;
+    # bitnami
+    {{ helm3_bin_dir }}/helm repo add bitnami  https://charts.bitnami.com/bitnami;
+    {{ helm3_bin_dir }}/helm repo update

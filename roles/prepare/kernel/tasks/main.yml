@@ -1,0 +1,11 @@
+- name: 创建下载文件存放目录
+  file: path="{{ cache_dir }}" state=directory
+
+- name: 安装 rsync
+  package: name=rsync state=present
+
+- include_tasks: centos.yml
+  when: ansible_distribution in [ 'CentOS','RedHat' ]
+
+- include_tasks: ubuntu.yml
+  when: ansible_distribution in [ 'Ubuntu','Debian' ]

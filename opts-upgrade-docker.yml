@@ -1,0 +1,15 @@
+- hosts: kube-cluster
+  become: true
+  serial: 2
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  - { role: container-runtime, node_role: 'master' }
+
+- hosts: add-nodes
+  become: true
+  serial: 2
+  roles:
+  - { role: cluster-default }
+  - { role: cluster-path }
+  - { role: container-runtime, node_role: 'node', when: "inventory_hostname not in groups['nodes']" }

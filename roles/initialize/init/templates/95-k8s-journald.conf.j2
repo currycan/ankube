@@ -1,0 +1,24 @@
+[Journal]
+# 持久化保存到磁盘
+Storage=persistent
+
+# 压缩历史日志
+Compress=yes
+
+SyncIntervalSec=5m
+RateLimitInterval=30s
+RateLimitBurst=1000
+
+# 最大占用空间 10G
+SystemMaxUse=10G
+
+# 单日志文件最大 200M
+SystemMaxFileSize=100M
+
+# 日志保存时间 2 周
+MaxRetentionSec=2week
+
+# 禁止转发
+# 以下两个参数默认都是 yes，意味着 journald 收集日志后还会转发到 syslog 中，在日志量很大的情况下, syslog 中的日志量也变得巨大, 而且里面都是容器的日志, 需要把上面两个参数的值改为no
+ForwardToSyslog=no
+ForwardToWall=no

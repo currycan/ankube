@@ -1,0 +1,219 @@
+- name: master 节点停止运行三大组件
+  when: "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  systemd: name={{ item }} state=stopped enabled=no
+  with_items:
+    - kube-scheduler
+    - kube-controller-manager
+    - kube-apiserver
+  ignore_errors: true
+
+- name: 所有节点停止运行 kubernetes 和 container-runtime 各组件
+  systemd: name={{ item }} state=stopped enabled=no
+  with_items:
+    - kubelet
+    - kube-proxy
+    - ipvsadm.service
+    - containerd.service
+    - docker.service
+    - docker.socket
+  ignore_errors: true
+
+- name: kubeadm reset 集群
+  shell: >
+    /opt/kubernetes/bin/kubeadm reset --force
+  register: reset_cluster
+  until: reset_cluster.rc == 0
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "{{ kubernetes_etc_dir }}"
+    - "{{ cni_etc_dir }}"
+    - "{{ kubernetes_log_dir }}"
+    - "{{ ansible_env.HOME }}/.kube"
+    - "{{ ansible_env.HOME }}/.helm"
+    - "{{ ansible_env.HOME }}/.krew"
+    - "{{ systemd_service_dir }}/kubelet.service.d/"
+    - "{{ systemd_service_dir }}/kubelet.service"
+    - "{{ systemd_service_dir }}/kube-proxy.service"
+    - "{{ systemd_service_dir }}/kube-scheduler.service"
+    - "{{ systemd_service_dir }}/kube-controller-manager.service"
+    - "{{ systemd_service_dir }}/kube-apiserver.service"
+    - "{{ etc_systemd_service_dir }}/kubelet.service.d/"
+    - "{{ etc_systemd_service_dir }}/kubelet.service"
+    - "{{ etc_systemd_service_dir }}/kube-proxy.service"
+    - "{{ etc_systemd_service_dir }}/kube-scheduler.service"
+    - "{{ etc_systemd_service_dir }}/kube-controller-manager.service"
+    - "{{ etc_systemd_service_dir }}/kube-apiserver.service"
+    - "{{ docker_etc_dir }}"
+    - "{{ containerd_etc_dir }}"
+    - "{{ systemd_service_dir }}/docker.service"
+    - "{{ systemd_service_dir }}/docker.socket"
+    - "{{ systemd_service_dir }}/containerd.service"
+    - "{{ etc_systemd_service_dir }}/docker.service"
+    - "{{ etc_systemd_service_dir }}/docker.socket"
+    - "{{ etc_systemd_service_dir }}/containerd.service"
+    - "/etc/sysconfig/ipvsadm"
+    - "/etc/logrotate.d/kube-apiserver"
+    - "/etc/logrotate.d/kube-controller-manager"
+    - "/etc/logrotate.d/kube-scheduler"
+    - "/etc/logrotate.d/kubelet"
+    - "/etc/logrotate.d/kube-proxy"
+    - "/etc/kube-flannel"
+
+- name: 删除 IP-in-IP tunnel
+  command: "modprobe -r ipip"
+
+- name: 查找 blackhole 路由规则
+  shell: "ip route | awk '/blackhole/ {print $2}'"
+  register: find_blackhole
+
+- name: 删除 blackhole 路由规则
+  when: find_blackhole.stdout != ""
+  shell: "ip route del {{ find_blackhole.stdout }}"
+  ignore_errors: True
+
+- name: 清理 iptables
+  shell: "{{ item }} || true"
+  with_items:
+  - iptables -F
+  - iptables -X
+  - iptables -F -t nat
+  - iptables -X -t nat
+  - iptables -F -t filter
+  - iptables -X -t filter
+  - iptables -F -t mangle
+  - iptables -X -t mangle
+
+- name: 刷新 iptables
+  iptables:
+    table: "{{ item }}"
+    flush: yes
+  with_items:
+    - filter
+    - nat
+    - mangle
+
+- name: 清理 ipvsadm
+  shell: "{{ item }} || true"
+  with_items:
+  - ipvsadm --clear
+
+- name: 清除虚拟网卡
+  shell: "{{ item }} || true"
+  with_items:
+  - ip link del docker0
+  - ip link del tunl0
+  - ip link del flannel.1
+  - ip link del cni0
+  - ip link del mynet0
+  - ip link del kube-bridge
+  - ip link del dummy0
+  - ip link del kube-ipvs0
+  - ip link del cilium_net
+  - ip link del cilium_vxlan
+  - ip link del ovn0
+  - ip link del ovs-system
+
+- name: 重新加载 daemon
+  systemd:
+    daemon_reload: yes
+
+- name: 重启网络
+  systemd:
+    name: >-
+      {% if ansible_os_family == "RedHat" -%}
+      {%- if ansible_distribution_major_version|int == 8 -%}
+      NetworkManager
+      {%- else -%}
+      network
+      {%- endif -%}
+      {%- elif ansible_distribution == "Ubuntu" and ansible_distribution_release == "bionic" -%}
+      systemd-networkd
+      {%- elif ansible_os_family == "Debian" -%}
+      networking
+      {%- endif %}
+    state: restarted
+
+- name: 清理 'calico' 路由
+  shell: "for rt in `ip route|grep bird|sed 's/blackhole//'|awk '{print $1}'`;do ip route del $rt;done;"
+  when: "container_network == 'calico'"
+  ignore_errors: true
+
+- name: 清理 'BIN PATH'
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    state: absent
+    regexp: '{{ item }}'
+  with_items:
+  - "{{ containerd_bin_dir }}"
+  - "{{ cfssl_bin_dir }}"
+  - "{{ etcd_bin_dir }}"
+  - "{{ kubernetes_bin_dir }}"
+  - "{{ docker_bin_dir }}"
+  - "{{ cni_bin_dir }}"
+  - "{{ helm2_bin_dir }}"
+  - "{{ helm3_bin_dir }}"
+  - "{{ calico_bin_dir }}"
+  - "{{ helmfile_bin_dir }}"
+  - "{{ krew_bin_dir }}"
+  - "{{ argocd_bin_dir }}"
+  - "{{ vela_bin_dir }}"
+  - "{{ istio_bin_dir }}"
+
+- name: 清理 'ENV PATH'
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: absent
+    regexp: '{{ item }}'
+  with_items:
+  - 'crictl completion'
+  - 'kubectl completion'
+  - 'kubeadm completion'
+  - 'HELM_TLS_ENABLE'
+  - 'helm completion'
+  - 'krew'
+
+- name: umount docker 相关文件或目录
+  mount:
+    path: "{{ item }}"
+    state: unmounted
+  with_items:
+  - /var/run/docker
+  - /var/lib/docker/overlay
+  - /var/run/docker/netns/default
+  - "{{ kubelet_data_dir }}"
+  - "{{ kubelet_data_dir }}/pods"
+
+- name: 删除运行时数据目录
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "/var/run/kubernetes"
+    - "/var/run/docker"
+    - "/run/flannel"
+    - "/var/lib/cni"
+    - "/run/containerd"
+    - "{{ containerd_data_dir }}"
+    - "/var/lib/dockershim"
+    - "{{ docker_data_dir }}"
+    - "{{ kubelet_data_dir }}"
+    - "{{ kube_proxy_data_dir}}"
+  register: delete_set_taint
+  until: delete_set_taint is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+  ignore_errors: true
+
+- name: 解挂 /var/lib/kubelet/pod 残留占用，并删除
+  shell: >
+    umount $(df -HT | grep '{{ kubelet_data_dir }}/pods' | awk '{print $7}');
+    rm -rf {{ kubelet_data_dir }}
+
+- name: 确认删除 /var/lib/kubelet
+  file: path="{{ item }}" state=absent
+  with_items: "{{ kubelet_data_dir }}"
+
+- name: 非 root 用户环境变量清理
+  include_tasks: reset-normal-user-admission.yml

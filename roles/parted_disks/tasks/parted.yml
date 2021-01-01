@@ -1,0 +1,60 @@
+- name: 配置 device 参数
+  set_fact:
+    disk_dev: "{{ out_item.item.item }}"
+
+- name: 获取磁盘设备分区信息
+  parted:
+    device: "{{ disk_dev.device }}"
+    unit: MiB
+  register: device_info
+
+- name: 磁盘分区
+  when: device_info.partitions.num is not defined
+  register: parted_result
+  parted:
+    label: gpt
+    device: "{{ disk_dev.device }}"
+    number: "{{ disk_dev.partition_number }}"
+    state: present
+
+- name: 格式化分区，文件格式ext4
+  when:
+    - parted_result.partitions is defined
+    - item.fstype != "ext4"
+  filesystem:
+    dev: "{{ disk_dev.device + disk_dev.partition_number|string }}"
+    fstype: ext4
+  with_items: "{{ parted_result.partitions }}"
+
+- name: 创建分区挂载目录
+  file:
+    dest: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ disk_dev.mount_dir }}"
+    - "{{ disk_dev.sub_dir }}"
+
+- name: 挂载分区
+  mount:
+    path: "{{ disk_dev.mount_dir }}"
+    src: "{{ disk_dev.device + disk_dev.partition_number|string }}"
+    fstype: ext4
+    state: mounted
+    opts: 'defaults,nofail'
+
+- name: 创建绑定目录
+  file:
+    dest: "{{ disk_dev.mount_dir }}/{{ item.split('/')[-1] }}"
+    state: directory
+  with_items:
+    - "{{ disk_dev.sub_dir }}"
+
+- name: 挂载目录
+  mount:
+    path: "{{ item }}"
+    src: "{{ disk_dev.mount_dir }}/{{ item.split('/')[-1] }}"
+    opts: bind
+    state: mounted
+    fstype: none
+  with_items:
+    - "{{ disk_dev.sub_dir }}"

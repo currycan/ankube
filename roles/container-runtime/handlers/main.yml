@@ -1,0 +1,50 @@
+- name: 确认 docker 运行状态
+  command: /bin/true
+  notify:
+    - 启动 Docker engine，并设置开机启动
+    - 以轮询的方式等待 docker 启动完成
+
+- name: 启动 Docker engine，并设置开机启动
+  systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_docker
+  until: started_docker is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待 docker 启动完成
+  when: started_docker is succeeded
+  shell: "systemctl status docker.service | grep Active"
+  register: docker_status
+  until: '"running" in docker_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"
+
+- name: 确认 containerd 运行状态
+  command: /bin/true
+  notify:
+    - 启动 containerd，并设置开机启动
+    - 以轮询的方式等待 containerd 启动完成
+
+- name: 启动 containerd，并设置开机启动
+  when: change_containerd is succeeded
+  systemd:
+    name: containerd
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_containerd
+  until: started_containerd is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
+
+- name: 以轮询的方式等待 containerd 启动完成
+  when: started_containerd is succeeded
+  shell: "systemctl status containerd.service | grep Active"
+  register: containerd_status
+  until: '"running" in containerd_status.stdout'
+  retries: 2
+  delay: "{{ retry_stagger }}"

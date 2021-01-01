@@ -1,0 +1,88 @@
+- name: 加载 cilium daemonSet 镜像
+  when: container_network == 'cilium'
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.cilium.file }}"
+    # - "{{ images.hubble.file }}"
+
+- name: 加载 cilium worker节点镜像
+  when:
+    - container_network == 'cilium'
+    - inventory_hostname in groups['nodes']
+  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+  with_items:
+    - "{{ images.operator_generic.file }}"
+    - "{{ images.json_mock.file }}"
+    - "{{ images.alpine_curl.file }}"
+    # - "{{ images.hubble_relay.file }}"
+    # - "{{ images.hubble_ui.file }}"
+    # - "{{ images.hubble_ui_backend.file }}"
+    # - "{{ images.envoy.file }}"
+    # - "{{ images.certgen.file }}"
+
+- block:
+  - name: 创建 Kubernetes {{container_network}} 配置清单目录
+    file: path="{{kubernetes_etc_dir}}/{{ container_network }}/example" state=directory
+
+  - name: 创建 Kubernetes {{container_network}}、connectivity 检查工具 和 网络可视化神器 Hubble 配置清单
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{kubernetes_etc_dir}}/{{ container_network }}/{{ item }}"
+    with_items:
+      - "{{ container_network }}.yaml"
+      - connectivity-check.yaml
+
+  # - name: 创建测试样例配置清单
+  #   template:
+  #     src: "example/{{ item }}.j2"
+  #     dest: "{{kubernetes_etc_dir}}/{{ container_network }}/example/{{ item }}"
+  #   with_items:
+  #     - allow-starwars-traffic.yaml
+  #     - deathstar.yaml
+  #     - dns-visibility.yaml
+  #     - enterprise.yaml
+  #     - jar-jar-binks.yaml
+  #     - ns.yaml
+  #     - r2d2.yaml
+  #     - vader.yaml
+  #     - x-wing.yaml
+
+  - name: 部署 Kubernetes {{container_network}}
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/{{ container_network }}/{{ container_network }}.yaml
+    register: apply_cni
+    until: apply_cni.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
+
+  - name: 轮询等待 {{ container_network }} 运行，视下载镜像速度而定
+    shell: "{{ kubernetes_bin_dir }}/kubectl get pod -n kube-system | grep {{ container_network }}"
+    register: cni_status
+    until: '"Running" in cni_status.stdout and "0/" not in cni_status.stdout'
+    retries: 15
+    delay: 10
+    ignore_errors: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- name: 获取其他 cni 配置文件
+  find:
+    paths: "{{ cni_etc_dir }}"
+    patterns: "*.conflist,*.conf"
+    # use_regex: true
+  register: find_files_to_delete
+
+- name: 删除其他 cni 配置文件
+  when: "container_network not in item.path"
+  file: path="{{ item.path }}" state=absent
+  with_items: "{{ find_files_to_delete.files }}"
+
+# - name: 部署 connectivity 检查工具 和 测试样例
+#   shell: >
+#     {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/{{ container_network }}/{{ item }}
+#   with_items:
+#     - connectivity-check.yaml
+#     - example/ns.yaml
+#     - example
+#   delegate_to: "{{ groups['masters'][0] }}"
+#   run_once: true

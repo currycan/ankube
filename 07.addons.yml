@@ -1,0 +1,22 @@
+# to set up kubernetes cluster addons
+- hosts:
+  - deploy
+  - kube-cluster
+  become: true
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  # kustomize build
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.kube_dns }}" }
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.metallb}}" }
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.ingress_nginx}}" }
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.snapshotter}}" }
+  #  helm install
+  - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}" }
+  #  kubectl apply
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.rbac_manager }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.kubectl_debug }}" }

@@ -1,0 +1,10 @@
+# update etcd
+- hosts: etcds
+  become: true
+  serial: 1
+  # vars:
+  #   etcd_api_version: 2
+  roles:
+    - { role: cluster-default }
+    - { role: cluster-path }
+    - { role: etcd }

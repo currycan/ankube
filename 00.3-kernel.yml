@@ -1,0 +1,9 @@
+# 升级内核
+- hosts:
+  - deploy
+  - kube-cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: prepare/kernel }

@@ -1,0 +1,77 @@
+- block:
+  - name: 所有节点加载 {{ addon.name }} 依赖 daemonSet 镜像
+    when: addon.all is defined
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.all }}"
+
+  - name: worker 节点加载 {{ addon.name }} 依赖镜像
+    when: addon.worker is defined and inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.worker }}"
+
+  - name: master 节点加载 {{ addon.name }} 依赖镜像
+    when: addon.master is defined and inventory_hostname in (groups['masters'] + groups['add-masters'])
+    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+    with_items: "{{ addon.master }}"
+  when: addon is defined
+
+- block:
+  - name: 创建 {{ addon.name }} kubernetes 配置清单目录
+    file: path="{{ normal_addon_dir }}/{{ item }}" state=directory
+    with_items: "{{ addon.directories }}"
+
+  - name: 生成 {{ addon.name }} kubernetes 配置清单
+    when: addon.dependencies is defined and addon.dependencies != ''
+    template:
+      src: "{{ item.1 }}.j2"
+      dest: "{{ normal_addon_dir }}/{{ item.1 }}"
+    with_subelements:
+      - "{{ addon.dependencies }}"
+      - files
+
+  - name: 部署 {{ addon.name }} 依赖
+    when: addon.dependencies is defined and addon.dependencies != ''
+    shell: "{{ kubernetes_bin_dir }}/apply -f {{ normal_addon_dir }}/{{ item.1 }}"
+    with_subelements:
+      - "{{ addon.dependencies }}"
+      - files
+    register: apply_addon_deps
+    until: apply_addon_deps.rc == 0
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 检查 {{ addon.name }} 依赖运行状态
+    when: addon.dependencies is defined and addon.dependencies != ''
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl -n {{ item.namespace | default('default') }} get {{ item.kind }} --no-headers -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase | \
+        grep {{ item.name }} | awk '{ print $2}' | uniq
+    with_items: "{{ addon.dependencies }}"
+    register: check_addon_deps
+    until: check_addon_deps.stdout == 'Running' or check_addon_deps.stdout == 'Active'
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 生成 {{ addon.name }}  kubernetes 配置清单
+    when: addon.files is defined and addon.files != ''
+    copy:
+      src: "{{ item }}"
+      dest: "{{ normal_addon_dir }}/{{ item }}"
+    with_items: "{{ addon.files }}"
+
+  - name: 渲染 {{ addon.name }} kubernetes 配置清单
+    template:
+      src: "{{ item }}.j2"
+      dest: "{{ normal_addon_dir }}/{{ item }}"
+    with_items: "{{ addon.templates }}"
+
+  - name: 部署 {{ addon.name }}
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl apply -f {{ normal_addon_dir }}/{{ item }}
+    with_items: "{{ addon.directories  }}"
+    register: apply_addon
+    until: apply_addon.rc == 0
+    retries: 1
+    delay: "{{ retry_stagger }}"
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+  when: addon is defined

@@ -1,0 +1,9 @@
+{{ kubernetes_log_dir }}/kube-controller-manager/kube-controller-manager.*.log.* {
+    olddir {{ kubernetes_log_dir }}/kube-controller-manager/logrotate
+    rotate 7
+    size 200M
+    missingok
+    compress
+    nodelaycompress
+    copytruncate
+}

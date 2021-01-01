@@ -1,0 +1,132 @@
+- name: 创建 master 节点各组件所需目录
+  file: path={{ item }} state=directory
+  with_items:
+  - "{{ kubernetes_etc_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/kube-apiserver"
+  - "{{ kubernetes_log_dir }}/kube-controller-manager"
+  - "{{ kubernetes_log_dir }}/kube-scheduler"
+
+# 生成 encryption config
+- include_tasks: common/encryption_config_secret.yml
+  register: create_encryption_config
+
+- name: 同步 encryption_config 和 bootstrap_token 文件到各 master 节点备份
+  synchronize:
+    src: "{{ item }}"
+    dest: "{{ item }}"
+  with_items:
+    - "{{kubernetes_etc_dir}}/encryption_config_secret.yml"
+    - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: master 节点渲染相关配置文件
+  when:
+    - create_encryption_config is succeeded
+    - "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  template:
+    src="{{ item.src }}.j2"
+    dest="{{ item.dest }}"
+    owner="root"
+    group="root"
+    mode="0644"
+  with_items:
+    #  EncryptionConfig 密钥注意不能修改，也就是不要重复生成。https://github.com/kubernetes/kubernetes/issues/66844
+    - { src: "audit/policy.yaml", dest: "{{ kubernetes_etc_dir }}/audit/policy.yaml" }
+    - { src: "encryption/config.yaml", dest: "{{ k8s_pki_dir }}/secrets-encryption.yaml" }
+
+# 同步 etcd-apiserver 证书
+- include_tasks: sync_etcd_certs.yml
+  when: 'kubeadm_way is defined and kubeadm_way.enable and kubeadm_way.kubeadm_cert'
+
+- name: 获取第一个 master 节点各组件状态
+  when: inventory_hostname == groups['masters'][0]
+  shell: >
+    cs_running_num=0;
+    for cs in {kube-apiserver,kube-controller-manager,kube-scheduler};
+    do
+      [ `{{ docker_bin_dir }}/docker ps --filter name=k8s_${cs}.* --filter status=running | wc -l` -eq 2 ] && cs_running_num=`expr $cs_running_num + 1`;
+    done;
+    echo $cs_running_num
+  register: cs_statuses_result
+
+- block:
+  # kubeadm init --pod-network-cidr="172.30.0.0/16" --kubernetes-version=v1.18.6 --image-repository=registry.aliyuncs.com/k8sxio --ignore-preflight-errors=all --dry-run
+  - debug: msg="初始化第一个 master 节点，可能需要一定时间。。"
+  - name: 初始化第一个 master 节点
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+    register: init_rslt
+    ignore_errors: true
+
+  - name: kubeadm 初始化时输出结果写入文本
+    action: copy content="{{ init_rslt.stdout }}" dest="{{ kubernetes_etc_dir }}/kubeadm_init.stdout"
+
+  - name: 校验初始化第一个 master 节点是否成功
+    assert:
+      that: init_rslt is succeeded
+      msg: "节点：{{ inventory_hostname }} kubeadm int 失败"
+
+  - include_tasks: approve/rbac.yml
+    register: rbac_result
+
+  - include_tasks: common/check_master_status.yml
+    register: master_status_result
+    when: rbac_result is succeeded
+  run_once: true
+  when: 'cs_statuses_result.stdout != "3"'
+  delegate_to: "{{ groups['masters'][0] }}"
+
+# 同步 kubernetes 证书到其他master节点
+- include_tasks: sync_kube_certs.yml
+  when:
+    - master_status_result is succeeded
+    - 'kubeadm_way is defined and kubeadm_way.enable and kubeadm_way.kubeadm_cert'
+
+- name: 获取其他 master 节点各组件状态
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl get nodes | grep {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }} | wc -l
+  environment:
+    KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+  register: get_nodes_result
+
+- block:
+  - debug: msg="其他 master 节点加入集群，可能需要一定时间。。"
+  - name: 其他 master 节点加入集群
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+    register: master_join_rslt
+    ignore_errors: true
+
+  # - name: 生成 master 节点 join token
+  #   shell: >
+  #     {{ kubernetes_bin_dir }}/kubeadm token create --print-join-command
+  #   register: master_kubeadm_join_cmd
+
+  # - set_fact:
+  #     kubeadm_join: "{{ master_kubeadm_join_cmd.stdout }}"
+
+  # - debug: msg="其他 master 节点加入集群，可能需要一定时间。。"
+  # - name: 其他 master 节点加入集群
+  #   shell: >
+  #     "{{ kubeadm_join }} --control-plane"
+  #   environment:
+  #     PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+  #   register: master_join_rslt
+
+  - name: master 节点 kubeadm join 输出结果写入文本
+    action: copy content="{{ master_join_rslt.stdout }}" dest="{{ kubernetes_etc_dir }}/master_kubeadm_join_rslt.stdout"
+
+  - name: 校验 master 节点加入集群是否成功
+    assert:
+      that: master_join_rslt is succeeded
+      msg: "节点：{{ inventory_hostname }} kubeadm join 失败"
+
+  - include_tasks: common/check_master_status.yml
+  when:
+    - inventory_hostname != groups['masters'][0]
+    - 'get_nodes_result.stdout != "1"'

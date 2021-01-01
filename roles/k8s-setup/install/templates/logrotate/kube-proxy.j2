@@ -1,0 +1,9 @@
+{{ kubernetes_log_dir }}/kube-proxy/kube-proxy.*.log.* {
+    olddir {{ kubernetes_log_dir }}/kube-proxy/logrotate
+    rotate 7
+    size 200M
+    missingok
+    compress
+    nodelaycompress
+    copytruncate
+}

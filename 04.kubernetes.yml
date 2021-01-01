@@ -1,0 +1,11 @@
+- hosts:
+  - kube-etcds
+  - kube-cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add-masters']) | length > 1" }
+  - { role: k8s-setup/certificates }
+  - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable" }
+  - { role: k8s-setup/install }
