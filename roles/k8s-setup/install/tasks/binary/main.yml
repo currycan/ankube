@@ -1,5 +1,5 @@
 - include_tasks: master.yml
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
   register: setup_master
 
 - include_tasks: approve/rbac.yml

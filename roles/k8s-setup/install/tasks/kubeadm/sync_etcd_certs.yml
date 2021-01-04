@@ -1,7 +1,7 @@
 # 分发 etcd 证书
 - name: 创建 apiserver etcd client 证书存放目录
   file: path={{ etcd_pki_dir }} state=directory
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
 
 - name: 获取 apiserver etcd client 证书
   slurp:
@@ -25,4 +25,4 @@
   with_items: "{{ etcd_client_certs.results }}"
   when:
   - inventory_hostname != groups['etcds'][0]
-  - inventory_hostname in (groups['masters'] + groups['add-masters'])
+  - inventory_hostname in (groups['masters'] + groups['add_masters'])

@@ -4,7 +4,7 @@
     - kube-apiserver
     - kube-controller-manager
     - kube-scheduler
-  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
 
 - name: 配置 kubelet、kube-proxy 和 cni config 文件
   template:

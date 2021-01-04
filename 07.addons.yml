@@ -1,7 +1,7 @@
 # to set up kubernetes cluster addons
 - hosts:
   - deploy
-  - kube-cluster
+  - kube_cluster
   become: true
   gather_facts: false
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

@@ -9,6 +9,7 @@
 # d 1 d w
 # 删除后千万不要忘记删除 /etc/fstab 里的开机启动配置
 
+fstype: xfs
 disk:
   - device: /dev/sdb
     partition_number: 1
@@ -17,9 +18,9 @@ disk:
       - /var/lib/docker
       - /var/lib/kubelet
 
-  - device: /dev/sdc
-    partition_number: 1
-    mount_dir: /app/data
-    sub_dir:
-      - /app/logs
-      - /app/files
+  # - device: /dev/sdc
+  #   partition_number: 1
+  #   mount_dir: /app/data
+  #   sub_dir:
+  #     - /app/logs
+  #     - /app/files

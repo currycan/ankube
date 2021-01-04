@@ -1,7 +1,7 @@
 # 节点预装组件
 - hosts:
   - deploy
-  - kube-cluster
+  - kube_cluster
   - etcds
   become: true
   gather_facts: true

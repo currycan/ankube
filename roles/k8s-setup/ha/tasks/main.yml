@@ -17,4 +17,4 @@
       delay: 10
       port: 22
     connection: local
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])

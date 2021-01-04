@@ -1,6 +1,6 @@
 # 时间校准(chrony 方式)，初始化
 - hosts:
-  - kube-cluster
+  - kube_cluster
   - etcds
   - chrony
   become: true

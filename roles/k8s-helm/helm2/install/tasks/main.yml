@@ -20,7 +20,7 @@
     executable: /bin/bash
 
 - name: 加载 kubernetes-helm_tiller 镜像
-  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
   with_items:
     - "{{ images.helm_tiller.file }}"

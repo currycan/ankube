@@ -17,13 +17,13 @@
     number: "{{ disk_dev.partition_number }}"
     state: present
 
-- name: 格式化分区，文件格式ext4
+- name: 格式化分区，文件格式 {{fstype }}
   when:
     - parted_result.partitions is defined
-    - item.fstype != "ext4"
+    - item.fstype != fstype
   filesystem:
     dev: "{{ disk_dev.device + disk_dev.partition_number|string }}"
-    fstype: ext4
+    fstype: "{{fstype }}"
   with_items: "{{ parted_result.partitions }}"
 
 - name: 创建分区挂载目录
@@ -38,7 +38,7 @@
   mount:
     path: "{{ disk_dev.mount_dir }}"
     src: "{{ disk_dev.device + disk_dev.partition_number|string }}"
-    fstype: ext4
+    fstype: "{{fstype }}"
     state: mounted
     opts: 'defaults,nofail'
 

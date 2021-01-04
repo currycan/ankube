@@ -8,16 +8,16 @@ metadata:
   namespace: kube-system
 subsets:
 - addresses:
-{% for host in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes']) %}
-{% if host not in groups['delete-nodes'] %}
+{% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes']) %}
+{% if host not in groups['delete_nodes'] %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:
       kind: Node
       name: {{ hostvars[host].ansible_hostname }}
 {% endif %}
 {% endfor %}
-{% for host in groups['add-nodes'] %}
-{% if groups['add-nodes'] | length > 0 and host not in groups['delete-nodes']  %}
+{% for host in groups['add_nodes'] %}
+{% if groups['add_nodes'] | length > 0 and host not in groups['delete_nodes']  %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:
       kind: Node
@@ -62,16 +62,16 @@ metadata:
   namespace: kube-system
 subsets:
 - addresses:
-{% for host in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes']) %}
-{% if host not in groups['delete-nodes'] %}
+{% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes']) %}
+{% if host not in groups['delete_nodes'] %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:
       kind: Node
       name: {{ hostvars[host].ansible_hostname }}
 {% endif %}
 {% endfor %}
-{% for host in groups['add-nodes'] %}
-{% if groups['add-nodes'] | length > 0 and host not in groups['delete-nodes']  %}
+{% for host in groups['add_nodes'] %}
+{% if groups['add_nodes'] | length > 0 and host not in groups['delete_nodes']  %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:
       kind: Node

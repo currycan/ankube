@@ -1,5 +1,5 @@
 - hosts:
-  - kube-cluster
+  - kube_cluster
   - etcds
   - chrony
   become: true
@@ -18,7 +18,7 @@
   - { role: etcd/certificates, when: "inventory_hostname in groups['kube-etcds']" }
   - { role: etcd/install, when: "inventory_hostname in groups['kube-etcds']" }
   # 集群高可用
-  - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add-masters']) | length > 1" }
+  - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add_masters']) | length > 1" }
   # kubernetes安装
   - { role: k8s-setup/certificates, when: "inventory_hostname in groups['kube-cluster']" }
   - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable and inventory_hostname in groups['kube-cluster']" }

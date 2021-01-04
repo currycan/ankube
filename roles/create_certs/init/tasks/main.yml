@@ -1,5 +1,5 @@
 - name: 创建 kubernetes 证书存放目录
-  when: "inventory_hostname in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes'])"
+  when: "inventory_hostname in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'])"
   file: path="{{ item }}" state=directory
   with_items:
     - "{{ k8s_pki_dir }}"

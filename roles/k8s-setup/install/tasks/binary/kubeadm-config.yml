@@ -20,4 +20,4 @@
     shell: >
       {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/kubeadm-config/
     when: "inventory_hostname == groups['masters'][0]"
-  when: "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"

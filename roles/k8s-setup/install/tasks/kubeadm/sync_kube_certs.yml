@@ -29,4 +29,4 @@
   with_items: "{{ slurp_kubernetes_master_certs.results }}"
   when:
     - inventory_hostname != groups['masters'][0]
-    - inventory_hostname in (groups['masters'] + groups['add-masters'])
+    - inventory_hostname in (groups['masters'] + groups['add_masters'])

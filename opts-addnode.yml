@@ -1,5 +1,5 @@
-# add-nodes
-- hosts: add-nodes
+# add_nodes
+- hosts: add_nodes
   become: true
   roles:
   - { role: cluster-default }

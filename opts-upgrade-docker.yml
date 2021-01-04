@@ -1,4 +1,4 @@
-- hosts: kube-cluster
+- hosts: kube_cluster
   become: true
   serial: 2
   roles:
@@ -6,7 +6,7 @@
   - { role: cluster-path }
   - { role: container-runtime, node_role: 'master' }
 
-- hosts: add-nodes
+- hosts: add_nodes
   become: true
   serial: 2
   roles:

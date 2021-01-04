@@ -6,7 +6,7 @@
   - { role: cluster-default }
   - { role: cluster-ops/delete }
 
-- hosts: delete-nodes
+- hosts: delete_nodes
   become: yes
   roles:
   - { role: cluster-default }

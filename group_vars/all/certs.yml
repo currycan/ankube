@@ -1,5 +1,5 @@
 # certs hosts
-master_cert_hosts: "{%- if (groups['masters'] + groups['add-masters']) | length > 1 -%}{{ vip_address }},{%- endif %}{% for host in (groups['masters'] + groups['add-masters']) %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in (groups['masters'] + groups['add-masters'])%}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %}"
+master_cert_hosts: "{%- if (groups['masters'] + groups['add_masters']) | length > 1 -%}{{ vip_address }},{%- endif %}{% for host in (groups['masters'] + groups['add_masters']) %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in (groups['masters'] + groups['add_masters'])%}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %}"
 
 etcd_cert_hosts: "{% for host in groups['etcds'] %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in groups['etcds'] %}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %},{{ etcd_domain_name }},127.0.0.1,localhost"
 

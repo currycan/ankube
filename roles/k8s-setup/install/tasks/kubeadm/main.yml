@@ -2,13 +2,13 @@
 - include_tasks: common/gen_bootstrap_token.yml
   register: create_token
 
-- name: 所有 kube-cluster 节点渲染 kubeadm 的配置文件
+- name: 所有 kube_cluster 节点渲染 kubeadm 的配置文件
   when: create_token is succeeded
   template:
     src: >-
       {% if inventory_hostname == groups['masters'][0] -%}
       kubeadm/kubeadm-controlplane-init.yaml.j2
-      {%- elif inventory_hostname in (groups['masters'] + groups['add-masters']) -%}
+      {%- elif inventory_hostname in (groups['masters'] + groups['add_masters']) -%}
       kubeadm/kubeadm-controlplane-join.yaml.j2
       {%- else -%}
       kubeadm/kubeadm-join.yaml.j2
@@ -17,7 +17,7 @@
     owner: root
     mode: 0644
 
-- name: 所有 kube-cluster 节点渲染相关配置文件
+- name: 所有 kube_cluster 节点渲染相关配置文件
   template:
     src="{{ item.src }}.j2"
     dest="{{ item.dest }}"
@@ -38,14 +38,14 @@
     # rm -f {{ kubelet_data_dir }}/config-tmp.yml;
     # rm -f {{ kube_proxy_data_dir }}/config-tmp.yml;
 
-- name: 所有 kube-cluster 节点加载 infra 和 kube-proxy 镜像
+- name: 所有 kube_cluster 节点加载 infra 和 kube-proxy 镜像
   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
   with_items:
     - "{{ images.infra.file }}"
     - "{{ images.proxy.file }}"
 
 - name: 加载 master 节点各组件镜像
-  when: "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"
   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
   with_items:
     - "{{ images.apiserver.file }}"
@@ -53,7 +53,7 @@
     - "{{ images.scheduler.file }}"
 
 - name: worker 节点加载 coredns 镜像
-  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
   with_items:
     - "{{ images.coredns.file }}"
@@ -67,12 +67,12 @@
 
 - include_tasks: master.yml
   register: master_result
-  when: "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+  when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"
 
 - include_tasks: worker.yml
   when:
     - master_result is succeeded
-    - inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+    - inventory_hostname in (groups['nodes'] + groups['add_nodes'])
 
 - name: 手动 approve csr
   when: "kubeadm_way is defined and kubeadm_way.enable and kubeadm_way.kubeadm_cert"

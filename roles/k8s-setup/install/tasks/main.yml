@@ -26,7 +26,7 @@
     - kubectl
     - kubeadm
 
-- name: 所有 kube-cluster 节点创建所需目录
+- name: 所有 kube_cluster 节点创建所需目录
   file:
     name: "{{ item }}"
     state: directory
@@ -55,7 +55,7 @@
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 禁止 master 节点被调度，设置节点标签
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
   shell: >
     {{ kubernetes_bin_dir }}/kubectl cordon {{ inventory_hostname }};
     {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node-role.kubernetes.io/master=true:NoSchedule --overwrite;
@@ -67,7 +67,7 @@
   register: set_taint_master
 
 - name: 允许 worker 节点被调度，设置节点标签
-  when: inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
   shell: >
     [ `{{ kubernetes_bin_dir }}/kubectl get nodes {{ inventory_hostname }} --show-labels | grep cloudprovider` ] && \
     {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node.cloudprovider.kubernetes.io/uninitialized-;

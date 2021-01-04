@@ -12,12 +12,12 @@
     with_items: "{{ addon.all }}"
 
   - name: worker 节点加载 {{ addon.name }} 依赖镜像
-    when: addon.worker is defined and inventory_hostname in (groups['nodes'] + groups['add-nodes'])
+    when: addon.worker is defined and inventory_hostname in (groups['nodes'] + groups['add_nodes'])
     shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
     with_items: "{{ addon.worker }}"
 
   - name: master 节点加载 {{ addon.name }} 依赖镜像
-    when: addon.master is defined and inventory_hostname in (groups['masters'] + groups['add-masters'])
+    when: addon.master is defined and inventory_hostname in (groups['masters'] + groups['add_masters'])
     shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
     with_items: "{{ addon.master }}"
   when:

@@ -23,7 +23,7 @@
 - name: master 节点渲染相关配置文件
   when:
     - create_encryption_config is succeeded
-    - "inventory_hostname in (groups['masters'] + groups['add-masters'])"
+    - "inventory_hostname in (groups['masters'] + groups['add_masters'])"
   template:
     src="{{ item.src }}.j2"
     dest="{{ item.dest }}"

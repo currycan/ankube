@@ -26,7 +26,7 @@ lb_apiserver_ip: "{{ vip_address }}"
 lb_secure_port: 8443
 single_api_url: "https://{{ groups['masters'][0] }}:{{ apiserver_secure_port }}"
 lb_api_url: "https://{{ vip_address }}:{{ lb_secure_port }}"
-api_url: "{%- if (groups['masters'] + groups['add-masters']) | length == 1 -%}{{ single_api_url }}{%- else -%}{{ lb_api_url }}{%- endif %}"
+api_url: "{%- if (groups['masters'] + groups['add_masters']) | length == 1 -%}{{ single_api_url }}{%- else -%}{{ lb_api_url }}{%- endif %}"
 
 # kubernetes各组件镜像仓库前缀，离线镜像包里的镜像是：registry.cn-hangzhou.aliyuncs.com/google_containers(k8s.gcr.io init时会报错)
 # kube_image_repository: k8s.gcr.io

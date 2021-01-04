@@ -1,5 +1,5 @@
 - name: master 节点停止运行三大组件
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
   systemd: name={{ item }} state=stopped enabled=no
   with_items:
     - kube-scheduler

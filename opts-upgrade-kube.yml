@@ -16,7 +16,7 @@
   - { role: k8s-setup, node_role: 'node' }
   - { role: download, pkg: "{{ package.kubectl }}" }
 
-- hosts: add-nodes
+- hosts: add_nodes
   become: true
   serial: 2
   roles:

@@ -4,7 +4,7 @@
     state: directory
   with_items:
     - "{{ kube_proxy_data_dir }}"
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'])
 
 - name: master 节点
   block:
@@ -17,17 +17,17 @@
     when: not item.stat.exists
     include_tasks: "create_kubeconfig.yml"
     with_items: "{{ master_kubeconfig_files['results'] }}"
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
 
 - name: 判断 kubelet 和 kube-proxy 组件的 kubeconfig 文件是否存在
   stat: path="{{ item.path }}"
   with_items: "{{ config.contexts.all }}"
   register: all_kubeconfig_files
-  when: inventory_hostname in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes'])
+  when: inventory_hostname in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'])
 
 - name: 创建 kubelet 和 kube-proxy 组件的 kubeconfig 文件
   include_tasks: "create_kubeconfig.yml"
   with_items: "{{ all_kubeconfig_files['results'] }}"
   when:
     - not item.stat.exists
-    - inventory_hostname in (groups['masters'] + groups['add-masters'] + groups['nodes'] + groups['add-nodes'])
+    - inventory_hostname in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'])

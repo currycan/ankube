@@ -1,4 +1,4 @@
-- hosts: kube-cluster
+- hosts: kube_cluster
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

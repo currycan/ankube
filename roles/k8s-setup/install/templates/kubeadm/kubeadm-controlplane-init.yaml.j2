@@ -16,7 +16,7 @@ nodeRegistration:
     pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
   criSocket: /var/run/dockershim.sock
   name: {{ inventory_hostname }}
-{% if inventory_hostname in (groups['masters'] + groups['add-masters']) and inventory_hostname not in (groups['nodes'] + groups['add-nodes']) %}
+{% if inventory_hostname in (groups['masters'] + groups['add_masters']) and inventory_hostname not in (groups['nodes'] + groups['add_nodes']) %}
   taints:
   - effect: NoSchedule
     key: node-role.kubernetes.io/master
@@ -69,7 +69,7 @@ networking:
 apiServer:
   extraArgs:
     allow-privileged: "true"
-    apiserver-count: "{{ groups['masters']|length + groups['add-masters']|length }}"
+    apiserver-count: "{{ groups['masters']|length + groups['add_masters']|length }}"
     audit-log-path: "{{ kubernetes_log_dir }}/audit/apiserver_audit.log"
     audit-log-maxage: "30"
     audit-log-maxbackup: "10"
@@ -132,7 +132,7 @@ apiServer:
 
 {% endfor %}
 {% if hostvars[inventory_hostname]['ansible_host'] is defined %}
-{% for host in (groups['masters'] + groups['add-masters']| default([])) | unique %}
+{% for host in (groups['masters'] + groups['add_masters']| default([])) | unique %}
   - {{ host }}
 {% endfor %}
 {% endif %}
@@ -145,7 +145,7 @@ apiServer:
 {% if lb_apiserver_ip is defined %}
   - {{ lb_apiserver_ip }}
 {% endif %}
-{% for host in (groups['masters'] + groups['add-masters'] | default([])) | unique %}
+{% for host in (groups['masters'] + groups['add_masters'] | default([])) | unique %}
   - {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
 
 {% endfor %}

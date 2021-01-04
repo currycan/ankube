@@ -21,6 +21,6 @@ listen masters
     option tcplog
     option tcp-check
     balance {{ balance_alg }}
-{% for host in (groups['masters'] + groups['add-masters']) %}
+{% for host in (groups['masters'] + groups['add_masters']) %}
     server {{ hostvars[host].ansible_hostname }} {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:6443 check inter 2000 fall 2 rise 2 weight 1
 {% endfor %}
