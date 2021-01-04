@@ -9,47 +9,43 @@
 10.10.10.2 iface=ens192
 10.10.10.3 iface=ens192
 
-[add-etcds]
+[add_etcds]
 
-[delete-etcds]
+[delete_etcds]
 
 [masters]
 10.10.10.1 iface=ens192 lb_role=master
 10.10.10.2 iface=ens192 lb_role=backup
 10.10.10.3 iface=ens192 lb_role=backup
 
-[add-masters]
+[add_masters]
 
-[delete-masters]
+[delete_masters]
 
 [nodes]
 10.10.10.4 iface=ens192
 10.10.10.5 iface=ens192
 10.10.10.6 iface=ens192
 
-[add-nodes]
+[add_nodes]
 
-[delete-nodes]
+[delete_nodes]
 
-[kube-masters:children]
+[kube_masters:children]
 masters
-add-masters
-delete-masters
+add_masters
+delete_masters
 
-[kube-nodes:children]
-masters
-add-masters
-delete-masters
-
-[kube-cluster:children]
-masters
-add-masters
-delete-masters
+[kube_nodes:children]
 nodes
-add-nodes
-delete-nodes
+add_nodes
+delete_nodes
 
-[kube-etcds:children]
+[kube_cluster:children]
+kube_masters
+kube_nodes
+
+[kube_etcds:children]
 etcds
-add-etcds
-delete-etcds
+add_etcds
+delete_etcds
