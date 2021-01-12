@@ -39,7 +39,7 @@
 
 - debug: msg="安装基础组件依赖，根据网速不同，可能需要一定时间。。"
 - name: 安装基础软件包
-  yum:
+  package:
     name:
       - conntrack
       - conntrack-tools     # ipvs 模式需要

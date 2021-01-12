@@ -1,6 +1,6 @@
 # to install etcd cluster
 - hosts:
-  - kube-etcds
+  - kube_etcds
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

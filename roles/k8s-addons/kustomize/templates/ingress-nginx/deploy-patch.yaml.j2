@@ -7,6 +7,26 @@ metadata:
 spec:
   template:
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:  # 硬策略
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: 'node-role.kubernetes.io/ingress'
+                operator: "Exists"
+          preferredDuringSchedulingIgnoredDuringExecution:  # 软策略
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: 'kubernetes.io/hostname'
+                operator: In
+                values:
+                - 'k8s-master1'
+      tolerations:
+        - operator: Exists
+        - effect: ''
+          key: node-role.kubernetes.io/master
+          operator: Exists
       containers:
         - name: controller
           args:
@@ -31,7 +51,3 @@ spec:
             - name: metrics
               containerPort: 10254
               protocol: TCP
-      tolerations:
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-          operator: Equal

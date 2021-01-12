@@ -28,9 +28,14 @@ apiserver:
     # - PodPreset
     - DenyEscalatingExec
   disable_admission_plugins: []
+  feature_gates:
+    RemoveSelfLink: false
 
 # kube-controller-manager variables
 controller_manager:
+  feature_gates:
+    RotateKubeletServerCertificate: true
+    VolumeSnapshotDataSource: true
   node_cidr_mask_size: 24
   kube_certs_expired: 87600h0m0s
   horizontal_pod_autoscaler:

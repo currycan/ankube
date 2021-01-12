@@ -12,7 +12,7 @@
   roles:
   - { role: cluster-reset, reset_ha: true }
 
-- hosts: "{{ hosts | default('kube-cluster') }}"
+- hosts: "{{ hosts | default('kube_cluster') }}"
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

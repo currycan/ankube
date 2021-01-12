@@ -120,7 +120,7 @@
   blockinfile:
     path: /etc/hosts
     block: |-
-      {% for item in (groups['kube-cluster']|unique) -%}
+      {% for item in (groups['kube_cluster']|unique) -%}
       {% if hostvars[item]['ansible_host'] is defined -%}
       {{ hostvars[item]['ansible_host'] }} {{ hostvars[item]['inventory_hostname'] }} {{ hostvars[item]['inventory_hostname'] }}.{{ kube_dns_domain }}
       {% endif %}

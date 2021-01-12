@@ -7,7 +7,7 @@ export PATH="{{ etcd_bin_dir }}:$PATH"
 :  ${etcd_cert_healthcheck_client:="{{ etcd_cert_healthcheck_client }}"}
 :  ${etcd_cert_healthcheck_client_key:="{{ etcd_cert_healthcheck_client_key }}"}
 :  ${etcd_ca:="{{ etcd_ca }}"}
-:  ${endpoints:="{% for host in (groups['etcds'] + groups['add-etcds']) %}https://{{  hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"}
+:  ${endpoints:="{% for host in (groups['etcds'] + groups['add_etcds']) %}https://{{  hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"}
 
 bak_prefix='etcd-'
 cmd_suffix='date +%Y-%m-%d-%H:%M'

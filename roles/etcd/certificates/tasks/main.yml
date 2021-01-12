@@ -1,6 +1,6 @@
 - name: 创建 etcd 证书存放目录
   file: path={{ etcd_pki_dir }} state=directory
-  when: inventory_hostname in (groups['etcds'] + groups['add-etcds'])
+  when: inventory_hostname in (groups['etcds'] + groups['add_etcds'])
 
 # 分发证书
 - name: 获取 etcd 相关证书
@@ -32,4 +32,4 @@
   with_items: "{{ slurp_etcd_certs.results }}"
   when:
   - inventory_hostname != groups['etcds'][0]
-  - inventory_hostname in (groups['etcds'] + groups['add-etcds'])
+  - inventory_hostname in (groups['etcds'] + groups['add_etcds'])

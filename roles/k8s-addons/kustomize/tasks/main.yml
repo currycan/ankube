@@ -1,6 +1,6 @@
 - block:
   - name: 所有节点加载 {{ addon.name }} 依赖 daemonSet 镜像
-    when: addon.all is defined and inventory_hostname in groups['kube-cluster']
+    when: addon.all is defined and inventory_hostname in groups['kube_cluster']
     shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
     with_items: "{{ addon.all }}"
 

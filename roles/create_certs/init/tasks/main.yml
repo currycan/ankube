@@ -5,7 +5,7 @@
     - "{{ k8s_pki_dir }}"
 
 - name: 创建 etcd 证书存放目录
-  when: "inventory_hostname in (groups['etcds'] + groups['add-etcds'])"
+  when: "inventory_hostname in (groups['etcds'] + groups['add_etcds'])"
   file: path="{{ item }}" state=directory
   with_items:
     - "{{ etcd_pki_dir }}"

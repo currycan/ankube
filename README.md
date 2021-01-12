@@ -99,15 +99,15 @@ fdisk /dev/${DISK1}
 # 创建 PV
 pvcreate /dev/${DISK1}1
 # 创建 VG
-vgcreate vg1 /dev/${DISK1}1
+vgcreate k8s-data /dev/${DISK1}1
 # 创建 LV
-lvcreate -L 50G -n lv1 vg1
+lvcreate -L 35G -n k8s-cache k8s-data
 # 格式化 LVM 分区
-mkfs.ext4 /dev/vg1/lv1
+mkfs.xfs /dev/k8s-data/k8s-cache
 # 挂载 LVM 分区(/k8s_cache)
 mkdir -p /k8s_cache
-mount /dev/vg1/lv1 /k8s_cache
-echo "/dev/vg1/lv1    /k8s_cache     ext4    defaults        0 0" >>/etc/fstab
+mount /dev/k8s-data/k8s-cache /k8s_cache/
+echo "/dev/k8s-data/k8s-cache    /k8s_cache     xfs    defaults        0 0" >>/etc/fstab
 ```
 
 ## 2. 配置

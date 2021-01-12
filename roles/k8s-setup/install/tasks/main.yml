@@ -25,6 +25,7 @@
   with_items:
     - kubectl
     - kubeadm
+    - kustomize
 
 - name: 所有 kube_cluster 节点创建所需目录
   file:

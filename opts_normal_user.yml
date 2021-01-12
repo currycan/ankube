@@ -3,7 +3,7 @@
 # 普通用户（devops）添加集群操作权限
 ########################################################
 
-- hosts: "kube-cluster"
+- hosts: "kube_cluster"
   tasks:
   - name: 判断执行用户是否存在
     action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''

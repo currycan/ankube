@@ -1,5 +1,5 @@
 - hosts:
-  - kube-etcds
+  - kube_etcds
   - kube_cluster
   become: true
   gather_facts: true

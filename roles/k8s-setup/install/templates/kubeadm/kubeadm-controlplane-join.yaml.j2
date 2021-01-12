@@ -49,7 +49,7 @@ dns:
 etcd:
   external:
     endpoints:
-{% for host in ((groups['etcds'] | union(groups['add-etcds'])) | difference(groups['delete-etcds'])) %}
+{% for host in ((groups['etcds'] | union(groups['add_etcds'])) | difference(groups['delete_etcds'])) %}
 {% if hostvars[host]['ansible_host'] is defined %}
     - https://{{ hostvars[host]['ansible_host'] }}:2379
 {% else %}
@@ -83,6 +83,7 @@ apiServer:
 {% if (kube_version is version('1.12.0', '>')) %}
     encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
 {% endif %}
+    feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
     kubelet-certificate-authority: {{ kubernetes_ca }}
     kubelet-client-certificate: {{ apiserver_kubelet_cert }}
     kubelet-client-key: {{ apiserver_kubelet_cert_key }}
@@ -154,7 +155,7 @@ controllerManager:
   extraArgs:
     bind-address: 127.0.0.1
     experimental-cluster-signing-duration: "{{ controller_manager.kube_certs_expired }}"
-    feature-gates: "RotateKubeletServerCertificate=true,VolumeSnapshotDataSource=true"
+    feature-gates: "{% for k,v in controller_manager.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
     profiling: "false"
     node-monitor-grace-period: {% if controller_manager.node_monitor_grace_period is defined %}{{ controller_manager.node_monitor_grace_period }}
 {% else %}

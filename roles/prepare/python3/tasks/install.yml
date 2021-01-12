@@ -1,5 +1,5 @@
 - name: pyenv 方式安装 python, 安装相应依赖
-  yum:
+  package:
     name: "{{ item }}"
     state: present
   with_items:

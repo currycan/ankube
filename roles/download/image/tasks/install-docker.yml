@@ -5,7 +5,7 @@
 
 - block:
   - name: 删除 firewall
-    yum:
+    package:
       name:
         - firewalld
         - python-firewall
@@ -28,6 +28,12 @@
     with_items:
       - /etc/docker/
       - /usr/lib/systemd/system/docker.service.d
+
+  - name: 加载内核模块
+    modprobe: name={{ item }} state=present
+    with_items:
+      - br_netfilter
+      - bridge
 
   - name: 配置 daemon.json 和 docker sysctl conf
     copy:
@@ -62,7 +68,7 @@
       state: present
 
   - name: 安装 Docker
-    yum:
+    package:
       name:
       - "docker-ce-{{ docker_version }}.ce"
       state: present
@@ -70,7 +76,7 @@
     when: docker_version is version('18.09', '<')
 
   - name: 安装 Docker
-    yum:
+    package:
       name:
       - "docker-ce-{{ docker_version }}"
       - "docker-ce-cli-{{ docker_version }}"

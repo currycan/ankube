@@ -1,5 +1,5 @@
 dependencies:
-  - { role: create_certs/init, when: "inventory_hostname in (groups['etcds'] + groups['add-etcds'])" }
+  - { role: create_certs/init, when: "inventory_hostname in (groups['etcds'] + groups['add_etcds'])" }
 
   - { role: create_certs/openssl, certs: "{{ openssl_etcd_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname == groups['etcds'][0]) or (kubeadm_way is defined and kubeadm_way.enable and inventory_hostname == groups['etcds'][0])" }
   - { role: create_certs/cfssl, certs: "{{ cfssl_etcd_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname == groups['etcds'][0]" }
