@@ -7,7 +7,7 @@ metadata:
   name: calico-config
   namespace: kube-system
 data:
-{% if datastore_type is defined and datastore_type == 'customize' %}
+{% if datastore_type is defined and datastore_type == 'custom' %}
   # Configure this with the location of your etcd cluster.
   etcd_endpoints: "{% for host in groups['etcds'] -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}"
   # If you're using TLS enabled etcd uncomment the following.
@@ -38,7 +38,7 @@ data:
           "type": "calico",
           "log_level": "info",
           "log_file_path": "/var/log/calico/cni/cni.log",
-{% if datastore_type is defined and datastore_type == 'customize' %}
+{% if datastore_type is defined and datastore_type == 'custom' %}
           "etcd_endpoints": "__ETCD_ENDPOINTS__",
           "etcd_key_file": "__ETCD_KEY_FILE__",
           "etcd_cert_file": "__ETCD_CERT_FILE__",

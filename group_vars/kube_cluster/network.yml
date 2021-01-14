@@ -27,7 +27,7 @@ kube_ovn:
 
 # calico
 # 设置访问etcd方式，如果是自定义的话，需要单独创建证书访问etcd，kubernetes模式通过kubernetes访问etcd
-datastore_type: customize
+datastore_type: custom
 # datastore_type: kubernetes
 
 # 设置 CALICO_IPV4POOL_IPIP="Off",可以提高网络性能，默认 Always

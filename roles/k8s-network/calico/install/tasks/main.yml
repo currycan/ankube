@@ -58,7 +58,7 @@
       - calico-node.yaml
 
   - name: 创建 calico-etcd-secrets
-    when: datastore_type is defined and datastore_type == 'customize'
+    when: datastore_type is defined and datastore_type == 'custom'
     shell: >
       {{ kubernetes_bin_dir }}/kubectl delete secrets -n kube-system calico-etcd-secrets --ignore-not-found;
       {{ kubernetes_bin_dir }}/kubectl create secret generic -n kube-system calico-etcd-secrets \

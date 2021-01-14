@@ -24,26 +24,28 @@
   - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable and inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-setup/install, when: "inventory_hostname in groups['kube_cluster']"}
   # 网络插件安装
-  - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'customize'" }
+  - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'custom'" }
   - { role: k8s-network/calico/install, when: "container_network == 'calico' and inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-network/cilium, when: "container_network == 'cilium' and inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-network/flannel, when: "container_network == 'flannel' and inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-network/kubeovn, when: "container_network == 'kubeovn' and inventory_hostname in groups['kube_cluster']" }
-  # coredns
-  - { role: k8s-coredns, when: "inventory_hostname in groups['kube_cluster']" }
-  # ## 【可选】以下是可选部分，安装集群相关插件
-  # # helm 安装
-  # - { role: k8s-helm/certificates, when: "inventory_hostname in groups['kube_cluster']"  }
-  # - { role: k8s-helm/install, when: "inventory_hostname in groups['kube_cluster']"  }
+  # helm 安装
+  - { role: k8s-helm/helm3, when: "helm_type == 'helm3' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2' and inventory_hostname in groups['kube_cluster']" }
+  # coreDNS 安装
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.kube_dns }}", when: "inventory_hostname in groups['kube_cluster']" }
   # ## 系统常用应用组件安装
-  # # helm cert-manager
-  # - { role: k8s-addons, addon: helm-cert-manager, when: "inventory_hostname in groups['kube_cluster']" }
-  # # kubectl apply
-  # - { role: k8s-addons, addon: "{{ addons.metallb }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # - { role: k8s-addons, addon: "{{ addons.nginx_ingress }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # - { role: k8s-addons, addon: "{{ addons.metric_server }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # - { role: k8s-addons, addon: "{{ addons.kuboard }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # - { role: k8s-addons, addon: "{{ addons.rbac_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # - { role: k8s-addons, addon: "{{ addons.kubectl_debug }}", when: "inventory_hostname in groups['kube_cluster']" }
-  # # storage nfs（需提前安装好nfs服务端）
-  # - { role: k8s-storage, storage_class: nfs , when: "inventory_hostname in groups['kube_cluster']" }
+  # kustomize build
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.metallb}}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.ingress_nginx}}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.snapshotter}}", when: "inventory_hostname in groups['kube_cluster']" }
+  #  helm install
+  - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
+  #  kubectl apply
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.rbac_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.kubectl_debug }}", when: "inventory_hostname in groups['kube_cluster']" }

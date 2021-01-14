@@ -33,7 +33,7 @@ spec:
           effect: NoSchedule
       serviceAccountName: calico-kube-controllers
       priorityClassName: system-cluster-critical
-{% if datastore_type is defined and datastore_type == 'customize' %}
+{% if datastore_type is defined and datastore_type == 'custom' %}
       # The controllers must run in the host network namespace so that
       # it isn't governed by policy that would prevent it from working.
       hostNetwork: true
@@ -43,7 +43,7 @@ spec:
           image: calico/kube-controllers:v{{ calico_version }}
           imagePullPolicy: IfNotPresent
           env:
-{% if datastore_type is defined and datastore_type == 'customize' %}
+{% if datastore_type is defined and datastore_type == 'custom' %}
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
               valueFrom:

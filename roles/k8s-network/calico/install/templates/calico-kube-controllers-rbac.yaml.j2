@@ -16,7 +16,7 @@ rules:
       - calico-psp
     verbs:
       - use
-{% if datastore_type is defined and datastore_type == 'customize' %}
+{% if datastore_type is defined and datastore_type == 'custom' %}
   # Pods are monitored for changing labels.
   # The node controller monitors Kubernetes nodes.
   # Namespace and serviceaccount labels are used for policy.
