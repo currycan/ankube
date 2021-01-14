@@ -16,7 +16,7 @@
   #  kubectl apply
   - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}" }
-  - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}" }
+  # - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.rbac_manager }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.kubectl_debug }}" }

@@ -35,7 +35,7 @@ etcd_data_dir: /var/lib/etcd
 etcd_wal_dir: /var/lib/wal
 etcd_config_dir: /etc/etcd
 # 配置etcd持久化数据目录
-# 0 3 * * * etcd_cron.sh -c 4 -d /etcd_bak &>/dev/null 2>&1
+# 0 3 * * * etcd_cron.sh -c 4 -d /data_bak/etcd &>/dev/null 2>&1
 etcd_data_bak_dir: /data_bak/etcd
 
 # kubernetes paths
