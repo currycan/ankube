@@ -21,10 +21,15 @@
   - debug: msg="worker 节点加入集群，可能需要一定时间。。"
   - name: worker 节点加入集群
     shell: >
+      rm -rf /etc/kubernetes/manifests/;
+      systemctl stop kubelet.service;
       {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=FileAvailable--etc-kubernetes-pki-ca.crt
     environment:
       PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
     register: worker_join_rslt
+    until: worker_join_rslt.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
     ignore_errors: true
 
   # - name: 生成 worker 节点 join token

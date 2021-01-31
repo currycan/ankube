@@ -27,6 +27,8 @@ apiserver:
     # PodPresets API and admission plugin 在 Kubernetes 1.20 版本中移除
     # - PodPreset
     - DenyEscalatingExec
+    - PersistentVolumeLabel
+    - Priority
   disable_admission_plugins: []
   feature_gates:
     RemoveSelfLink: false

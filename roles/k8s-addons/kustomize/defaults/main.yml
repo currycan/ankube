@@ -8,8 +8,9 @@ kustomiz_addons:
       - kube-dns/kustomization.yaml
       - kube-dns/coredns.yaml
       - kube-dns/autoscale.yaml
-    worker:
+    all:
       - "{{ images.coredns.file }}"
+    worker:
       - "{{ images.autoscaler.file }}"
 
   metallb:

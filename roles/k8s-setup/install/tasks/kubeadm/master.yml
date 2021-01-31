@@ -55,10 +55,15 @@
   - debug: msg="初始化第一个 master 节点，可能需要一定时间。。"
   - name: 初始化第一个 master 节点
     shell: >
+      rm -rf /etc/kubernetes/manifests/;
+      systemctl stop kubelet.service;
       {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
     environment:
       PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
     register: init_rslt
+    until: init_rslt.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
     ignore_errors: true
 
   - name: kubeadm 初始化时输出结果写入文本
@@ -96,10 +101,15 @@
   - debug: msg="其他 master 节点加入集群，可能需要一定时间。。"
   - name: 其他 master 节点加入集群
     shell: >
+      rm -rf /etc/kubernetes/manifests/;
+      systemctl stop kubelet.service;
       {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml
     environment:
       PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
     register: master_join_rslt
+    until: master_join_rslt.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger | random + 2 }}"
     ignore_errors: true
 
   # - name: 生成 master 节点 join token
