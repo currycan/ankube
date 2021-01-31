@@ -1,0 +1,7 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: floatingip-config
+  namespace: kube-system
+data:
+  floatingips: '[{"nodeSubnets":["10.10.10.0/24"],"ips":["10.10.10.100~10.10.10.150"],"subnet":"10.10.10.0/24","gateway":"10.10.10.254"}]'

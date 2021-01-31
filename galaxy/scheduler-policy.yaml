@@ -1,0 +1,32 @@
+# make sue --policy-configmap=scheduler-policy of kube-scheduler is set
+# note that --policy-config-file and --use-legacy-policy-config is conflict with --policy-configmap
+# urlPrefix 这里指定的地址是 galaxy-ipam 的 svc 的 CLUSTER-IP（可以通过kubectl get svc -n kube-system查看）
+# ignoredByScheduler 的说明是这样的If you want to limit each node's max Float IPs, please set ignoredByScheduler to false, then the Float IP resource will be judge by scheduler's PodFitsResource algorithm.。这里没有太理解它的意思，由于我们是自建IDC环境，按照注释提示，应该设为true
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-policy
+  namespace: kube-system
+data:
+  # set "ignoredByScheduler" to true if not ENI
+  policy.cfg: |
+    {
+      "kind": "Policy",
+      "apiVersion": "v1",
+      "extenders": [
+        {
+          "urlPrefix": "http://172.31.0.9:9040/v1",
+          "httpTimeout": 70000000000,
+          "filterVerb": "filter",
+          "BindVerb": "bind",
+          "weight": 1,
+          "enableHttps": false,
+          "managedResources": [
+            {
+              "name": "tke.cloud.tencent.com/eni-ip",
+              "ignoredByScheduler": true
+            }
+          ]
+        }
+      ]
+    }

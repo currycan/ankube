@@ -1,0 +1,192 @@
+---
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: galaxy
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - namespaces
+  - nodes
+  - pods/binding
+  verbs: ["list", "watch", "get", "patch", "create", "update"]
+- apiGroups: ["apps", "extensions"]
+  resources:
+  - statefulsets
+  - deployments
+  verbs: ["list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  - endpoints
+  - events
+  verbs: ["get", "list", "watch", "update", "create", "patch"]
+- apiGroups: ["galaxy.k8s.io"]
+  resources:
+  - pools
+  - floatingips
+  verbs: ["get", "list", "watch", "update", "create", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - "*"
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - networkpolicies
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: galaxy
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: galaxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: galaxy
+subjects:
+  - kind: ServiceAccount
+    name: galaxy
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: galaxy
+  name: galaxy
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: galaxy
+  template:
+    metadata:
+      labels:
+        app: galaxy
+    spec:
+      priorityClassName: system-node-critical
+      serviceAccountName: galaxy
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - image: tkestack/galaxy:v1.0.8
+        command: ["/bin/sh"]
+        # private-cloud should run without --route-eni
+        args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --network-policy --logtostderr=true --v=3"]
+        imagePullPolicy: Always
+        env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: DOCKER_HOST
+            value: unix:///host/run/docker.sock
+        name: galaxy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: galaxy-run
+          mountPath: /var/run/galaxy/
+        - name: flannel-run
+          mountPath: /run/flannel
+        - name: galaxy-log
+          mountPath: /data/galaxy/logs
+        - name: galaxy-etc
+          mountPath: /etc/galaxy
+        - name: cni-config
+          mountPath: /etc/cni/net.d/
+        - name: cni-bin
+          mountPath: /opt/cni/bin
+        - name: cni-etc
+          mountPath: /etc/galaxy/cni
+        - name: cni-state
+          mountPath: /var/lib/cni
+        - name: docker-sock
+          mountPath: /host/run/
+        - name: tz-config
+          mountPath: /etc/localtime
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - operator: Exists
+      volumes:
+      - name: galaxy-run
+        hostPath:
+          path: /var/run/galaxy
+      - name: flannel-run
+        hostPath:
+          path: /run/flannel
+      - name: galaxy-log
+        emptyDir: {}
+      - configMap:
+          defaultMode: 420
+          name: galaxy-etc
+        name: galaxy-etc
+      - name: cni-config
+        hostPath:
+          path: /etc/cni/net.d/
+      - name: cni-bin
+        hostPath:
+          path: /opt/cni/bin
+      - name: cni-state
+        hostPath:
+          path: /var/lib/cni
+      - configMap:
+          defaultMode: 420
+          name: cni-etc
+        name: cni-etc
+      - name: docker-sock
+        # in case of docker restart, /run/docker.sock may change, we have to mount the /run directory
+        hostPath:
+          path: /run/
+      - name: tz-config
+        hostPath:
+          path: /etc/localtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: galaxy-etc
+  namespace: kube-system
+data:
+  # 根据实际情况修改宿主机 device 名称: 如:ens192
+  galaxy.json: |
+    {
+      "NetworkConf":[
+        {"name":"tke-route-eni", "type":"tke-route-eni", "eni":"ens192", "routeTable":1},
+        {"name":"galaxy-flannel", "type":"galaxy-flannel", "delegate":{"type":"galaxy-veth"}, "subnetFile":"/run/flannel/subnet.env"},
+        {"name":"galaxy-k8s-vlan", "type":"galaxy-k8s-vlan", "device":"ens192", "default_bridge_name": "br0"},
+        {"name": "galaxy-k8s-sriov", "type": "galaxy-k8s-sriov", "device": "ens192", "vf_num": 10},
+        {"name":"galaxy-underlay-veth", "type":"galaxy-underlay-veth", "device":"ens192", "switch":"ipvlan", "ipvlan_mode":"l3s"}
+      ],
+      "GratuitousArpRequest": true,
+      "DefaultNetworks": ["galaxy-flannel"],
+      "ENIIPNetwork": "galaxy-underlay-veth"
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cni-etc
+  namespace: kube-system
+data:
+  00-galaxy.conf: |
+    {
+      "name": "galaxy-sdn",
+      "type": "galaxy-sdn",
+      "capabilities": {"portMappings": true},
+      "cniVersion": "0.2.0"
+    }

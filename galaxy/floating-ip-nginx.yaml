@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-floatingip
+spec:
+  strategy:
+    type: Recreate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-floatingip
+  template:
+    metadata:
+      name: nginx-floatingip
+      labels:
+        app: nginx-floatingip
+      annotations:
+        # k8s.v1.cni.cncf.io/networks: "galaxy-k8s-vlan"
+        k8s.v1.cni.cncf.io/networks: "galaxy-underlay-veth"
+        # k8s.v1.cni.galaxy.io/release-policy: "immutable"
+        k8s.v1.cni.galaxy.io/release-policy: "never"
+    spec:
+      tolerations:
+        - operator: "Exists"
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+          - name: http-80
+            containerPort: 80
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: "32Mi"
+            tke.cloud.tencent.com/eni-ip: "1"
+          limits:
+            cpu: "0.1"
+            memory: "32Mi"
+            tke.cloud.tencent.com/eni-ip: "1"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          # tcpSocket:
+          #   port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          # tcpSocket:
+          #   port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 2
+          failureThreshold: 3
+          timeoutSeconds: 1
