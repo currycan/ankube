@@ -28,8 +28,8 @@
     shell: >
       {{ krew_bin_dir }}/krew-linux_amd64 install --manifest={{ krew_bin_dir }}/krew.yaml --archive={{ krew_bin_dir }}/krew-v{{ krew_version }}.tar.gz;
       rm -f {{ ansible_env.HOME }}/krew.tar.gz;
-      {{ ansible_env.HOME }}/.krew/bin/kubectl-krew update;
-      {{ ansible_env.HOME }}/.krew/bin/kubectl-krew install ns;
+      # {{ ansible_env.HOME }}/.krew/bin/kubectl-krew update;
+      # {{ ansible_env.HOME }}/.krew/bin/kubectl-krew install ns;
   when: inventory_hostname == groups['masters'][0]
 
 - name: 从 groups['masters'][0] 节点分发 krew 到各节点

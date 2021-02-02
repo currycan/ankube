@@ -68,6 +68,7 @@ apiServer:
   extraArgs:
     allow-privileged: "true"
     apiserver-count: "{{ groups['masters']|length + groups['add_masters']|length }}"
+    api-audiences: "api,istio-ca"
     audit-log-path: "{{ kubernetes_log_dir }}/audit/apiserver_audit.log"
     audit-log-maxage: "30"
     audit-log-maxbackup: "10"
@@ -83,6 +84,7 @@ apiServer:
 {% if (kube_version is version('1.12.0', '>')) %}
     encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
 {% endif %}
+    endpoint-reconciler-type: "lease"
     feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
     kubelet-certificate-authority: {{ kubernetes_ca }}
     kubelet-client-certificate: {{ apiserver_kubelet_cert }}
