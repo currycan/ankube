@@ -116,6 +116,7 @@ spec:
   # 1. In order to make Addon Manager do not reconcile this replicas parameter.
   # 2. Default is 1.
   # 3. Will be tuned in real time if DNS horizontal auto-scaling is turned on.
+  # 调整CoreDNS副本数与集群节点数到合适比率有助于提升集群服务发现的性能，该比值推荐为1:8，即一个CoreDNS Pod支撑8个集群节点。
   replicas: 2
   strategy:
     type: RollingUpdate
@@ -213,7 +214,7 @@ spec:
       # dnsPolicy 一定要配置成: Default 模式,否则解析失败!! 查了 N 久未果, 修改各种字段参数亲测!!!
       #dnsPolicy: ClusterFirstWithHostNet
       dnsPolicy: Default
-      hostNetwork: true
+      #hostNetwork: true
       volumes:
         - name: config-volume
           configMap:
