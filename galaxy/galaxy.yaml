@@ -168,9 +168,9 @@ data:
       "NetworkConf":[
         {"name":"tke-route-eni", "type":"tke-route-eni", "eni":"ens192", "routeTable":1},
         {"name":"galaxy-flannel", "type":"galaxy-flannel", "delegate":{"type":"galaxy-veth"}, "subnetFile":"/run/flannel/subnet.env"},
-        {"name":"galaxy-k8s-vlan", "type":"galaxy-k8s-vlan", "device":"ens192", "default_bridge_name": "br0"},
+        {"name":"galaxy-k8s-vlan", "type":"galaxy-k8s-vlan", "device":"ens192", "switch":"ipvlan", "ipvlan_mode":"l2"},
         {"name": "galaxy-k8s-sriov", "type": "galaxy-k8s-sriov", "device": "ens192", "vf_num": 10},
-        {"name":"galaxy-underlay-veth", "type":"galaxy-underlay-veth", "device":"ens192", "switch":"ipvlan", "ipvlan_mode":"l3s"}
+        {"name":"galaxy-underlay-veth", "type":"galaxy-underlay-veth", "device":"ens192", "switch":"ipvlan", "ipvlan_mode":"l2"}
       ],
       "GratuitousArpRequest": true,
       "DefaultNetworks": ["galaxy-flannel"],

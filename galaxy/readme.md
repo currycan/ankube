@@ -251,13 +251,17 @@ size: 4
 前面说明中已经给出了如何配置, 部署就很简单, 和部署普通的应用没有差异.
 
 ```bash
+# kube-scheduler 配置, 修改 galaxy.json 配置
 kubectl apply -f galaxy.yaml
-# kube-scheduler 配置,
+# kube-scheduler 配置
 kubectl apply -f scheduler-policy.yaml
 kubectl apply -f clusterrole-kube-scheduler.yaml
 # 所有 master 节点执行, 一定要等上面的 galaxy daemonSet 启动完成后再执行
 sed -i '/--v=2/i\    - --policy-configmap=scheduler-policy' /etc/kubernetes/manifests/kube-scheduler.yaml
 systemctl restart kubelet
+# 二进制安装
+sed -i '/--v=2/i\  --policy-configmap=scheduler-policy' /lib/systemd/system/kube-scheduler.service
+systemctl daemon-reload && systemctl restart kube-scheduler.service
 # 根据实际情况配置浮动 IP
 kubectl apply -f floatingip-config.yaml
 kubectl apply -f galaxy-ipam.yaml
