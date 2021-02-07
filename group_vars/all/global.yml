@@ -33,7 +33,7 @@ api_url: "{%- if (groups['masters'] + groups['add_masters']) | length == 1 -%}{{
 kube_image_repository: registry.cn-hangzhou.aliyuncs.com/google_containers
 # kube_image_repository: registry.aliyuncs.com/k8sxio
 
-# pod cidr
+# 集群参数
 cluster_name: kubernetes
 cluster_domain_name: "cluster.local"
 # k8s 集群 master 节点证书配置，可以添加多个ip和域名（比如增加公网ip和域名）
@@ -51,8 +51,6 @@ ingress_type: nginx_ingress
 
 # storageclass
 nfs_server_path: "/nfs/data"
-nas_server: "xxxxxxxxxxx.cn-hangzhou.nas.aliyuncs.com"
-nas_server_path: "/"
 
 # 普通用户，docker/kubectl/helm 准入管理，非 root 也可以使用kubectl docker helm命令
 normal_user:

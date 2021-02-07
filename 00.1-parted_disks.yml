@@ -1,4 +1,4 @@
-# deploy 节点下载并预装组件
+# 初始化数据磁盘
 - hosts:
   # - deploy
   - kube_cluster

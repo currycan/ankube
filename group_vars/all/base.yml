@@ -37,7 +37,7 @@ kubeadm_way:
   ## 设定证书是自定义签发或者kubeadm签发, 使用kubeadm方式搭建集群暂不支持cfssl生成的pem证书
   kubeadm_cert: false
 
-# docker 设置代理是，不需要代理的镜像仓库（默认已设置过滤阿里云等仓库不代理）
+# docker 设置代理时不需要代理的镜像仓库，如本地环境的镜像仓库（默认已设置过滤阿里云等仓库不代理）
 noproxy_registries:
   - registry.local.com
 

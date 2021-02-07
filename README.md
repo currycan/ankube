@@ -112,7 +112,7 @@ echo "/dev/k8s-data/k8s-cache    /k8s_cache     xfs    defaults        0 0" >>/e
 
 ## 2. 配置
 
-所有配置文件都在 group_varsm, 一般来说只需要自定义修改 [base.yml](group_vars/all/base.yml) 和 [global.yml](group_vars/all/global.yml) 即可.
+所有配置文件都在 group_vars, 一般来说只需要自定义修改 [base.yml](group_vars/all/base.yml) 和 [global.yml](group_vars/all/global.yml) 即可.
 
 另外, 关于 storage class 默认选择的是: nfs, 且安装在 master3 节点, 根据需要可以调整.
 
