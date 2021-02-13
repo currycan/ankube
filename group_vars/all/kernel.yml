@@ -10,7 +10,7 @@ centos_kernel_type: "ml"
 # centos_kernel_type: "lt"
 # 5.x的版本有问题，会导致宿主机的网络不可用，虚机都无法访问
 # centos_kernel_version: "4.20.13"
-centos_kernel_version: "5.10.3"
+centos_kernel_version: "5.10.15"
 centos_kernel_rpm_files:
   - "kernel-{{ centos_kernel_type }}-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
   - "kernel-{{ centos_kernel_type }}-devel-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"

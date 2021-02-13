@@ -99,15 +99,29 @@ fdisk /dev/${DISK1}
 # 创建 PV
 pvcreate /dev/${DISK1}1
 # 创建 VG
-vgcreate k8s-data /dev/${DISK1}1
+vgcreate k8s /dev/${DISK1}1
 # 创建 LV
-lvcreate -L 35G -n k8s-cache k8s-data
+lvcreate -L 35G -n k8s-cache k8s
+lvcreate -L 14G -n data k8s
 # 格式化 LVM 分区
-mkfs.xfs /dev/k8s-data/k8s-cache
+mkfs.xfs /dev/k8s/k8s-cache
+mkfs.xfs /dev/k8s/data
 # 挂载 LVM 分区(/k8s_cache)
 mkdir -p /k8s_cache
-mount /dev/k8s-data/k8s-cache /k8s_cache/
-echo "/dev/k8s-data/k8s-cache    /k8s_cache     xfs    defaults        0 0" >>/etc/fstab
+mkdir -p /var/lib/docker
+mount /dev/k8s/k8s-cache /k8s_cache/
+mount /dev/k8s/data /var/lib/docker
+echo "/dev/k8s/k8s-cache    /k8s_cache     xfs    defaults        0 0" >>/etc/fstab
+echo "/dev/k8s/data   /var/lib/docker    xfs    defaults        0 0" >>/etc/fstab
+```
+
+删除LVM
+
+```bash
+# 查看lvm
+lvs
+# 删除 lvm
+lvremove /dev/k8s/data
 ```
 
 ## 2. 配置
