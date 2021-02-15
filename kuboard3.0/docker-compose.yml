@@ -1,0 +1,54 @@
+version: "3.8"
+services:
+  kuboard:
+    image: swr.cn-east-2.myhuaweicloud.com/kuboard/kuboard:v3
+    container_name: kuboard
+    restart: always
+    # read_only: true
+    ports:
+      - "10080:80"
+      - "443:443"
+      - "10081:10081/tcp"
+      - "10081:10081/udp"
+    environment:
+      KUBOARD_TLS_CERT: "/etc/certs/ssl/server.crt"
+      KUBOARD_TLS_KEY: "/etc/certs/ssl/server.key"
+      KUBOARD_LOGIN_TYPE: "ldap"
+      KUBOARD_ENDPOINT: "https://${KUBOARD_DOMAIN}:443"
+      KUBOARD_AGENT_SERVER_UDP_PORT: "10081"
+      KUBOARD_AGENT_SERVER_TCP_PORT: "10081"
+      KUBOARD_ROOT_USER: "test@demo.com"
+      LDAP_HOST: "${LDAP_DOMAIN}"
+      LDAP_BIND_DN: "${LDAP_BIND_DN}"
+      LDAP_BIND_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
+      LDAP_BASE_DN: "${LDAP_BASE_DN}"
+      LDAP_FILTER: "(objectClass=posixAccount)"
+      LDAP_ID_ATTRIBUTE: "uid"
+      LDAP_USER_NAME_ATTRIBUTE: "uid"
+      LDAP_EMAIL_ATTRIBUTE: "mail"
+      LDAP_DISPLAY_NAME_ATTRIBUTE: "cn"
+      LDAP_GROUP_SEARCH_BASE_DN: "${LDAP_BASE_DN}"
+      LDAP_GROUP_SEARCH_FILTER: "(objectClass=posixGroup)"
+      LDAP_USER_MACHER_USER_ATTRIBUTE: "gidNumber"
+      LDAP_USER_MACHER_GROUP_ATTRIBUTE: "gidNumber"
+      LDAP_GROUP_NAME_ATTRIBUTE: "cn"
+      LDAP_ROOT_CA: "/etc/certs/ldap/ca.pem"
+    extra_hosts:
+    - "${LDAP_DOMAIN}:10.10.10.1"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2048M
+        reservations:
+          memory: 128M
+    volumes:
+      - ./cert/server.crt:/etc/certs/ssl/server.crt
+      - ./cert/server.key:/etc/certs/ssl/server.key
+      - ./cert/ca.pem:/etc/certs/ldap/ca.pem
+      - ./kuboard-data:/data
+    networks:
+      - kuboard
+
+networks:
+  kuboard:

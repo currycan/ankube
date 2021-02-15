@@ -2,3 +2,6 @@
 galaxy-*
 cert
 certs
+https
+*.1
+* copy
