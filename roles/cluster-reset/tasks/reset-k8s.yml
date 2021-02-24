@@ -25,6 +25,7 @@
   until: reset_cluster.rc == 0
   retries: 3
   delay: "{{ retry_stagger }}"
+  ignore_errors: true
 
 - name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
   file: path="{{ item }}" state=absent
