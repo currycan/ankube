@@ -75,6 +75,8 @@ apiServer:
     audit-log-maxsize: "100"
     audit-log-truncate-enabled: "true"
     audit-policy-file: "{{kubernetes_etc_dir}}/audit/policy.yaml"
+    service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
+    service-account-signing-key-file: "{{ sa_private_key }}"
 {% if apiserver.enable_admission_plugins|length > 0 %}
     enable-admission-plugins: {{ apiserver.enable_admission_plugins | join(',') }}
 {% endif %}
