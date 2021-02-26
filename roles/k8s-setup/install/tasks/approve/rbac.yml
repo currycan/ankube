@@ -18,15 +18,25 @@
     environment:
       KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
 
-  - name: 同步 bootstrap_token 文件到各 master 节点备份
-    synchronize:
+  - name: 获取 kubernetes bootstrap_token 文件
+    slurp:
       src: "{{ item }}"
-      dest: "{{ item }}"
     with_items:
       - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
-  delegate_to: "{{ groups['masters'][0] }}"
-  run_once: true
-  when: "binary_way is defined and binary_way.enable"
+    register: slurp_bootstrap_token
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 分发 kubernetes bootstrap_token 文件到各 master 节点
+    when: "binary_way is defined and binary_way.enable"
+    copy:
+      dest: "{{ item.source }}"
+      content: "{{ item.content | b64decode }}"
+      owner: root
+      group: root
+      mode: 0644
+    no_log: true
+    with_items: "{{ slurp_bootstrap_token.results }}"
 
 - block:
   - name: 创建 manifest 文件存放目录

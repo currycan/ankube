@@ -42,6 +42,9 @@ kube_master_external_ip:
 kube_master_external_domain:
   - "kubernetes.io"
 
+# 是否安装 kubectl-krew
+enable_kubectl_krew: true
+
 # metallb
 # 选一段与node节点相同网段的地址
 # metallb_protocol: bgp

@@ -115,24 +115,24 @@
 
 # 非 root 用户添加 docker 执行权限
 - name: 判断执行用户是否存在
-  action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
-  register: user_exist
+  action: shell /usr/bin/getent passwd {{ item }} | grep {{ item }} | cut -d":" -f6
+  register: user_results
   with_items:
   - "{{ normal_user }}"
 
 - name: 添加非 root 用户命令执行目录环境变量
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   lineinfile:
-    dest: "/home/{{ item.item }}/.bash_profile"
+    dest: "{{ item.stdout }}/.bash_profile"
     state: present
     regexp: "{{ docker_bin_dir }}"
-    line: 'export PATH={{ docker_bin_dir }}:$PATH'
+    line: export PATH="{{ docker_bin_dir }}:$PATH"
   with_items:
-  - "{{ user_exist['results'] }}"
+  - "{{ user_results['results'] }}"
 
 - name: 添加非 root 用户 docker 命令权限
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   shell: >
     usermod -aG docker {{ item.item }}
   with_items:
-  - "{{ user_exist['results'] }}"
+  - "{{ user_results['results'] }}"

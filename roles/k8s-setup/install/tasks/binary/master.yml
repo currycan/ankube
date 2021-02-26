@@ -11,13 +11,24 @@
 - include_tasks: common/encryption_config_secret.yml
   register: create_encryption_config
 
-- name: 同步 encryption_config 文件到各 master 节点备份
-  synchronize:
+- name: 获取 kubernetes master 节点 encryption_config 文件
+  slurp:
     src: "{{ item }}"
-    dest: "{{ item }}"
   with_items:
     - "{{kubernetes_etc_dir}}/encryption_config_secret.yml"
+  register: slurp_encryption_config
+  run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 kubernetes encryption_config 文件到各 master 节点
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_encryption_config.results }}"
 
 - name: master 节点渲染相关配置文件
   when:

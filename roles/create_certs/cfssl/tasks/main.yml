@@ -4,17 +4,28 @@
     - "{{ certs }}"
   register: check_cert_key_files
 
-- name: 从 groups['masters'][0] 节点分发 kubernetes CA 证书到各节点
-  when:
-    - check_cert_key_files['results'][0].item.bare == "kubelet"
-    - inventory_hostname != groups['masters'][0]
-  synchronize:
+- name: 获取 kubernetes master 节点 CA 证书
+  slurp:
     src: "{{ item }}"
-    dest: "{{ item }}"
   with_items:
     - "{{ kubernetes_ca }}"
     - "{{ kubernetes_ca_key }}"
+  register: slurp_kubernetes_ca_certs
+  run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 kubernetes CA 证书到各节点
+  when:
+    - check_cert_key_files['results'][0].item.bare == "kubelet"
+    - inventory_hostname != groups['masters'][0]
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_kubernetes_ca_certs.results }}"
 
 - name: 渲染 ca-config.json 证书配置文件
   template:

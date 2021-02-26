@@ -11,14 +11,25 @@
 - include_tasks: common/encryption_config_secret.yml
   register: create_encryption_config
 
-- name: 同步 encryption_config 和 bootstrap_token 文件到各 master 节点备份
-  synchronize:
+- name: 获取 encryption_config 和 bootstrap_token 文件
+  slurp:
     src: "{{ item }}"
-    dest: "{{ item }}"
   with_items:
     - "{{kubernetes_etc_dir}}/encryption_config_secret.yml"
     - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+  register: slurp_config_files
+  run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
+
+- name: master 节点配置 encryption_config 和 bootstrap_token 文件
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_config_files.results }}"
 
 - name: master 节点渲染相关配置文件
   when:

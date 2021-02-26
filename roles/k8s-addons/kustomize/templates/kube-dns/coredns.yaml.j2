@@ -130,9 +130,9 @@ spec:
       labels:
         k8s-app: kube-dns
     spec:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
+      # securityContext:
+      #   seccompProfile:
+      #     type: RuntimeDefault
       priorityClassName: system-cluster-critical
       serviceAccountName: coredns
       tolerations:

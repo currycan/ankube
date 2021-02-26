@@ -50,10 +50,24 @@
   when: "kubeadm_way is defined and kubeadm_way.enable"
   include_tasks: kubeadm/main.yml
 
-- name: 从 groups['masters'][0] 节点分发 kubeconfig admin 文件
-  synchronize: src="{{ kubernetes_etc_dir }}/admin.conf" dest="{{ ansible_env.HOME }}/.kube/config"
-  register: install_res
+- name: 获取 kubeconfig admin 文件
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_etc_dir }}/admin.conf"
+  register: slurp_kubeconfig
+  run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 配置 kubeconfig admin 文件到 $HOME/.kube/config
+  copy:
+    dest: "{{ ansible_env.HOME }}/.kube/config"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0600
+  no_log: true
+  with_items: "{{ slurp_kubeconfig.results }}"
 
 - name: 禁止 master 节点被调度，设置节点标签
   when: inventory_hostname in (groups['masters'] + groups['add_masters'])
@@ -104,8 +118,9 @@
   run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
 
-- name: 安装 k8s 常用工具
-  include_tasks: common/tools.yml
+- name: 安装 k8s kubectl-krew
+  when: enable_kubectl_krew is defined and enable_kubectl_krew
+  include_tasks: common/kubectl-krew.yml
   register: install_tools
 
 - name: 普通用户配置集群访问权限

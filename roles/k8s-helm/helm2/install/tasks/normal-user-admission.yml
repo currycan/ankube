@@ -8,56 +8,69 @@
     mode: 0775
 
 - name: 判断执行用户是否存在
-  action: shell /usr/bin/getent passwd {{ item }} | /usr/bin/wc -l | tr -d ''
-  register: user_exist
+  action: shell /usr/bin/getent passwd {{ item }} | grep {{ item }} | cut -d":" -f6
+  register: user_results
   with_items:
   - "{{ normal_user }}"
 
 - name: 添加非 root 用户命令执行目录环境变量
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   lineinfile:
-    dest: "/home/{{ item.item }}/.bash_profile"
+    dest: "{{ item.stdout }}/.bash_profile"
     state: present
     regexp: "{{ helm2_bin_dir }}"
     line: export PATH="{{ helm2_bin_dir }}:$PATH"
   with_items:
-  - "{{ user_exist['results'] }}"
+  - "{{ user_results['results'] }}"
 
-- name: 从 groups['masters'][0] 节点分发非 root 用户 helm 认证文件
-  when: 'item.stdout != "0"'
-  synchronize: src="{{ ansible_env.HOME }}/.helm/" dest="/home/{{ item.item }}/.helm/"
+- name: 创建 $HOME/.helm/ 配置清单目录
+  when: 'item.stdout != ""'
+  file: name="{{ item.stdout }}/.helm/" state=directory
   with_items:
-  - "{{ user_exist['results'] }}"
-  delegate_to: "{{ groups['masters'][0] }}"
+    - "{{ user_results['results'] }}"
+
+- name: 分发非 root 用户 helm 认证文件
+  include_tasks: _fetch_files.yml
+  loop_control:
+    loop_var: out_item
+  with_items:
+    - "{{ helm_ca }}"
+    - "{{ helm_cert }}"
+    - "{{ helm_cert_key }}"
 
 - name: 修改文件目录权限
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   file:
-    path: "/home/{{ item.item }}/.helm/"
+    path: "{{ item.stdout }}/.helm/"
     state: directory
     recurse: yes
     owner: "{{ item.item }}"
     group: "{{ item.item }}"
     mode: 0700
   with_items:
-    - "{{ user_exist['results'] }}"
+    - "{{ user_results['results'] }}"
 
 - name: 添加非 root 用户 helm 命令 tls 权限
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   lineinfile:
-    dest: "/home/{{ item.item }}/.bashrc"
+    dest: "{{ item.stdout }}/.bashrc"
     state: present
     regexp: 'HELM_TLS_ENABLE=true'
     line: 'export HELM_TLS_ENABLE=true'
   with_items:
-  - "{{ user_exist['results'] }}"
+  - "{{ user_results['results'] }}"
 
 - name: 添加非 root 用户 helm 命令自动补全
-  when: 'item.stdout != "0"'
+  when: 'item.stdout != ""'
   lineinfile:
-    dest: "/home/{{ item.item }}/.bashrc"
+    dest: "{{ item.stdout }}/.bashrc"
     state: present
-    regexp: 'helm completion bash'
-    line: 'source <(helm completion bash)'
+    regexp: 'helm completion'
+    line: 'source <({{ helm2_bin_dir }}/helm completion bash)'
   with_items:
-  - "{{ user_exist['results'] }}"
+  - "{{ user_results['results'] }}"
+
+# 执行完后需要手动添加 repo
+# - name: 非 root 用户添加 stable-repo
+#   shell: >
+#     {{ helm2_bin_dir }}/helm init --tls --client-only --stable-repo-url {{ repo_url }}

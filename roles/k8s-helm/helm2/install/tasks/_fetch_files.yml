@@ -1,0 +1,24 @@
+- name: 判断执行用户是否存在
+  action: shell /usr/bin/getent passwd {{ item }} | grep {{ item }} | cut -d":" -f6
+  register: user_result
+  with_items:
+  - "{{ normal_user }}"
+
+- name: 获取 helm 相关证书
+  slurp:
+    src: "{{ out_item }}"
+  register: slurp_helm_certs
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 helm 相关证书到各节点
+  when: 'item.stdout != ""'
+  copy:
+    dest: "{{ item.stdout }}/.helm/{{ out_item.split('/')[-1] }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0600
+  no_log: true
+  with_items:
+  - "{{ user_result['results'] }}"

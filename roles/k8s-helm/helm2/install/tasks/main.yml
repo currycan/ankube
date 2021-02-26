@@ -25,12 +25,44 @@
   with_items:
     - "{{ images.helm_tiller.file }}"
 
+- name: 创建 helm 客户端配置目录
+  file: name={{ item }} state=directory
+  with_items:
+  - "{{ ansible_env.HOME }}/.helm"
+
+- name: 获取 helm 相关证书
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ helm_ca }}"
+    - "{{ helm_cert }}"
+    - "{{ helm_cert_key }}"
+  register: slurp_helm_certs
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 helm 相关证书到各节点
+  copy:
+    dest: "{{ ansible_env.HOME }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0600
+  no_log: true
+  with_items: "{{ slurp_helm_certs.results }}"
+
+- name:  配置 helm tls 环境变量
+  lineinfile:
+    dest: "{{ ansible_env.HOME }}/.bashrc"
+    state: present
+    regexp: "HELM_TLS_ENABLE"
+    line: "export HELM_TLS_ENABLE=true"
+
 - block:
   - name: 创建 helm 配置清单目录
     file: name={{ item }} state=directory
     with_items:
     - "{{ kubernetes_etc_dir }}/helm"
-    - "{{ ansible_env.HOME }}/.helm"
 
   - name: 准备 rbac 配置文件
     template: src="helm-rbac.yaml.j2" dest="{{ kubernetes_etc_dir }}/helm/helm-rbac.yaml"
@@ -38,13 +70,6 @@
 
   - name: 创建 rbac 资源
     shell: "{{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/helm"
-
-  - name: 配置 helm 客户端证书
-    synchronize: src="{{ item.src }}" dest="{{ item.dest }}"
-    with_items:
-    - { src: "{{ helm_ca }}", dest: "{{ ansible_env.HOME }}/.helm/ca.pem" }
-    - { src: "{{ helm_cert }}", dest: "{{ ansible_env.HOME }}/.helm/cert.pem" }
-    - { src: "{{ helm_cert_key }}", dest: "{{ ansible_env.HOME }}/.helm/key.pem" }
 
   # 卸载helm 删除~/.helm 和tiller deployment资源
   - name: 安装tiller
@@ -69,19 +94,5 @@
     ignore_errors: true
   delegate_to: "{{ groups['masters'][0] }}"
   run_once: true
-
-- name: 创建客户端配置文件存放目录
-  file: path="{{ ansible_env.HOME }}/.helm" state=directory
-
-- name: 从 groups['masters'][0] 节点分发 helm 和 tiller 配置文件
-  synchronize: src="{{ ansible_env.HOME }}/.helm/" dest="{{ ansible_env.HOME }}/.helm/"
-  delegate_to: "{{ groups['masters'][0] }}"
-
-- name:  配置 helm tls 环境变量
-  lineinfile:
-    dest: "{{ ansible_env.HOME }}/.bashrc"
-    state: present
-    regexp: "HELM_TLS_ENABLE"
-    line: "export HELM_TLS_ENABLE=true"
 
 - include_tasks: normal-user-admission.yml
