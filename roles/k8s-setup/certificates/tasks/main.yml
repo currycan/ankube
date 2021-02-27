@@ -52,7 +52,7 @@
     no_log: true
     with_items: "{{ slurp_kubernetes_master_certs.results }}"
     when:
-      - inventory_hostname != groups['masters'][0]
       - inventory_hostname in (groups['masters'] + groups['add_masters'])
+      - inventory_hostname != groups['masters'][0]
   when:
     - "(binary_way is defined and binary_way.enable) or (kubeadm_way is defined and kubeadm_way.enable and not kubeadm_way.kubeadm_cert)"

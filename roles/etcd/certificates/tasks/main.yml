@@ -31,5 +31,5 @@
   no_log: true
   with_items: "{{ slurp_etcd_certs.results }}"
   when:
-  - inventory_hostname != groups['etcds'][0]
   - inventory_hostname in (groups['etcds'] + groups['add_etcds'])
+  - inventory_hostname != groups['etcds'][0]

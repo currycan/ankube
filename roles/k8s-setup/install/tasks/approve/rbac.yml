@@ -1,42 +1,45 @@
-- block:
-  # 生成 kubeadm bootstrap token
-  - include_tasks: common/gen_bootstrap_token.yml
-    register: create_token
+# 生成 kubeadm bootstrap token
+- include_tasks: common/gen_bootstrap_token.yml
+  register: create_token
 
-  - name: 设置 bootstrap_token_id 和 bootstrap_token_secret 参数
-    when: create_token is succeeded
-    set_fact:
-      bootstrap_token_id: "{{ kubeadm_token.split('.')[0] }}"
-      bootstrap_token_secret: "{{ kubeadm_token.split('.')[1] }}"
+- name: 设置 bootstrap_token_id 和 bootstrap_token_secret 参数
+  when: create_token is succeeded
+  set_fact:
+    bootstrap_token_id: "{{ kubeadm_token.split('.')[0] }}"
+    bootstrap_token_secret: "{{ kubeadm_token.split('.')[1] }}"
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
 
-  - name: 渲染系统 kubelet-bootstrap-secret 文件
-    template: src="bootstrap-secret/kubelet-bootstrap-secret.yaml.j2" dest="{{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml"
+- name: 渲染系统 kubelet-bootstrap-secret 文件
+  template: src="bootstrap-secret/kubelet-bootstrap-secret.yaml.j2" dest="{{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml"
 
-  - name: 配置 kubelet-bootstrap-secret
-    shell: >
-      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml
-    environment:
-      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+- name: 配置 kubelet-bootstrap-secret
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml
+  environment:
+    KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
 
-  - name: 获取 kubernetes bootstrap_token 文件
-    slurp:
-      src: "{{ item }}"
-    with_items:
-      - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
-    register: slurp_bootstrap_token
-    run_once: true
-    delegate_to: "{{ groups['masters'][0] }}"
+- name: 获取 kubernetes bootstrap_token 文件
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
+  register: slurp_bootstrap_token
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
 
-  - name: 分发 kubernetes bootstrap_token 文件到各 master 节点
-    when: "binary_way is defined and binary_way.enable"
-    copy:
-      dest: "{{ item.source }}"
-      content: "{{ item.content | b64decode }}"
-      owner: root
-      group: root
-      mode: 0644
-    no_log: true
-    with_items: "{{ slurp_bootstrap_token.results }}"
+- name: 分发 kubernetes bootstrap_token 文件到各 master 节点
+  when: "binary_way is defined and binary_way.enable"
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_bootstrap_token.results }}"
 
 - block:
   - name: 创建 manifest 文件存放目录

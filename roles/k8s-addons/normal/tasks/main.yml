@@ -64,6 +64,12 @@
       dest: "{{ normal_addon_dir }}/{{ item }}"
     with_items: "{{ addon.templates }}"
 
+  - name: metric-server 配置 tls
+    when: addon.name  == 'metric-server'
+    shell: >
+      [ ! `{{ kubernetes_bin_dir }}/kubectl -n kube-system get configmap | grep front-proxy-ca` ] && \
+      {{ kubernetes_bin_dir }}/kubectl -n kube-system create configmap front-proxy-ca --from-file={{ front_ca }}
+
   - name: 部署 {{ addon.name }}
     shell: >
       {{ kubernetes_bin_dir }}/kubectl apply -f {{ normal_addon_dir }}/{{ item }}

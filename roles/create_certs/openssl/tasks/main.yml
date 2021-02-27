@@ -13,6 +13,7 @@
   register: check_helm_cert_key_files
 
 - name: 获取 kubernetes master 节点 CA 证书
+  when: check_cert_key_files['results'][0].item.bare == "kubelet"
   slurp:
     src: "{{ item }}"
   with_items:

@@ -27,6 +27,9 @@ spec:
       # mount in tmp so we can safely use from-scratch images and/or read-only containers
       - name: tmp-dir
         emptyDir: {}
+      - name: front-proxy-ca
+        configMap:
+          name: front-proxy-ca
       priorityClassName: system-cluster-critical
       containers:
       - name: metrics-server
@@ -41,6 +44,7 @@ spec:
           - --secure-port=4443
           - --logtostderr
           - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+          - --requestheader-client-ca-file=/front-proxy-ca.crt
 {% if (images.metrics_server.file.split('-')[-1].split('v')[-1] is version('0.3.6', '>')) %}
           - --kubelet-use-node-status-port
         readinessProbe:
@@ -65,5 +69,9 @@ spec:
         volumeMounts:
         - name: tmp-dir
           mountPath: /tmp
+        - name: front-proxy-ca
+          mountPath: /front-proxy-ca.crt
+          subPath: front-proxy-ca.crt
+          readOnly: true
       nodeSelector:
         kubernetes.io/os: linux

@@ -32,9 +32,7 @@
   with_items: "{{ slurp_config_files.results }}"
 
 - name: master 节点渲染相关配置文件
-  when:
-    - create_encryption_config is succeeded
-    - "inventory_hostname in (groups['masters'] + groups['add_masters'])"
+  when: create_encryption_config is succeeded
   template:
     src="{{ item.src }}.j2"
     dest="{{ item.dest }}"
@@ -149,5 +147,5 @@
 
   - include_tasks: common/check_master_status.yml
   when:
-    - inventory_hostname != groups['masters'][0]
     - 'get_nodes_result.stdout != "1"'
+    - inventory_hostname != groups['masters'][0]

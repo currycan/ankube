@@ -68,15 +68,15 @@ apiServer:
   extraArgs:
     allow-privileged: "true"
     apiserver-count: "{{ groups['masters']|length + groups['add_masters']|length }}"
-    api-audiences: "api,istio-ca"
+    # api-audiences: "api,istio-ca"
     audit-log-path: "{{ kubernetes_log_dir }}/audit/apiserver_audit.log"
     audit-log-maxage: "30"
     audit-log-maxbackup: "10"
     audit-log-maxsize: "100"
     audit-log-truncate-enabled: "true"
     audit-policy-file: "{{kubernetes_etc_dir}}/audit/policy.yaml"
-    service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
-    service-account-signing-key-file: "{{ sa_private_key }}"
+    # service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
+    # service-account-signing-key-file: "{{ sa_private_key }}"
 {% if apiserver.enable_admission_plugins|length > 0 %}
     enable-admission-plugins: {{ apiserver.enable_admission_plugins | join(',') }}
 {% endif %}
@@ -86,7 +86,7 @@ apiServer:
 {% if (kube_version is version('1.12.0', '>')) %}
     encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
 {% endif %}
-    endpoint-reconciler-type: "lease"
+    # endpoint-reconciler-type: "lease"
     feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
     kubelet-certificate-authority: {{ kubernetes_ca }}
     kubelet-client-certificate: {{ apiserver_kubelet_cert }}
