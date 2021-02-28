@@ -14,6 +14,11 @@
     - "{{ etc_systemd_service_dir }}/etcd.service"
     - "{{ profile_dir }}/etcd.sh"
 
+# - name: 删除所有 etcd 证书文件
+#   file: path="{{ item }}" state=absent
+#   with_items:
+#     - "{{ etcd_pki_dir }}"
+
 - name: 删除 etcd 数据备份 crontab 任务
   cron:
     name: "create etcd data backup"

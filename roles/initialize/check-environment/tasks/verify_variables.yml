@@ -60,7 +60,7 @@
 
   - name: 校验 lb_apiserver_ip 是否为节点 IP
     assert:
-      that: lb_apiserver_ip != "{% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %}"
+      that: lb_apiserver_ip != "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
       msg: "lb_apiserver_ip 不能设置为集群节点的 IP。"
   when: lb_apiserver_ip is defined
 

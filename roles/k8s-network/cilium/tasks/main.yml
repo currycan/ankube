@@ -62,8 +62,8 @@
     retries: 15
     delay: 10
     ignore_errors: true
-  delegate_to: "{{ groups['masters'][0] }}"
   run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 获取其他 cni 配置文件
   find:
@@ -84,5 +84,5 @@
 #     - connectivity-check.yaml
 #     - example/ns.yaml
 #     - example
-#   delegate_to: "{{ groups['masters'][0] }}"
 #   run_once: true
+#   delegate_to: "{{ groups['masters'][0] }}"

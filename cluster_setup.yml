@@ -1,6 +1,6 @@
 - hosts:
   - kube_cluster
-  - etcds
+  - kube_etcds
   - chrony
   become: true
   gather_facts: true
@@ -15,7 +15,7 @@
   # 安装容器运行时
   - { role: container-runtime, when: "inventory_hostname in groups['kube_cluster']" }
   # 安装etcd
-  - { role: etcd/certificates, when: "inventory_hostname in groups['kube_etcds']" }
+  - { role: etcd/certificates }
   - { role: etcd/install, when: "inventory_hostname in groups['kube_etcds']" }
   # 集群高可用
   - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add_masters']) | length > 1" }

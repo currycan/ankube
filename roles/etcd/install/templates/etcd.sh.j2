@@ -1,5 +1,5 @@
 {% macro initial_cluster() -%}
-{% for host in groups['etcds'] -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}
+{% for host in (groups['etcds'] + groups['add_etcds']) -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}
 {% endmacro -%}
 
 export PATH="{{ etcd_bin_dir }}:$PATH"

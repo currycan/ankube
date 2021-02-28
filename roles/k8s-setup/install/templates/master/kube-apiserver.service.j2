@@ -1,5 +1,5 @@
 {% macro etcd_initial_cluster() -%}
-{% for host in groups['etcds'] -%}
+{% for host in (groups['etcds'] + groups['add_etcds']) -%}
   https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}
 {%- endfor -%}
 {% endmacro -%}

@@ -18,16 +18,17 @@
     {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml
   environment:
     KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
-  delegate_to: "{{ groups['masters'][0] }}"
   run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 获取 kubernetes bootstrap_token 文件
   slurp:
     src: "{{ item }}"
   with_items:
-    - "{{kubernetes_etc_dir}}/gen_bootstrap_token.yml"
-  register: slurp_bootstrap_token
+    - "{{ kubernetes_etc_dir }}/gen_bootstrap_token.yml"
+    - "{{ kubernetes_etc_dir }}/kubelet-bootstrap-secret.yaml"
   run_once: true
+  register: slurp_bootstrap_token
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 分发 kubernetes bootstrap_token 文件到各 master 节点
@@ -63,8 +64,8 @@
     with_items:
       - "{{ rbac_dir }}/system-rbac"
       - "{{ rbac_dir }}/rbac"
-  delegate_to: "{{ groups['masters'][0] }}"
   run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
 
 - block:
   - name: 创建 Pod 安全策略配置文件
@@ -80,8 +81,8 @@
       {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/pod-security-policy.yaml
     environment:
       KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
-  delegate_to: "{{ groups['masters'][0] }}"
   run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
   when: '"PodSecurityPolicy" in apiserver.enable_admission_plugins'
 
 # - block:

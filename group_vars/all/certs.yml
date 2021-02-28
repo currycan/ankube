@@ -1,9 +1,9 @@
 # certs hosts
 master_cert_hosts: "{%- if (groups['masters'] + groups['add_masters']) | length > 1 -%}{{ vip_address }},{%- endif %}{% for host in (groups['masters'] + groups['add_masters']) %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in (groups['masters'] + groups['add_masters'])%}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %}"
 
-etcd_cert_hosts: "{% for host in groups['etcds'] %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in groups['etcds'] %}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %},{{ etcd_domain_name }},127.0.0.1,localhost"
+etcd_cert_hosts: "{% for host in (groups['etcds'] + groups['add_etcds']) %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in (groups['etcds'] + groups['add_etcds']) %}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %},{{ etcd_domain_name }},127.0.0.1,localhost"
 
-apiserver_hosts: "{{ master_cert_hosts }},{{ api_service_ip }},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local,*.master.kubernetes.node,127.0.0.1,localhost"
+apiserver_hosts: "{{ master_cert_hosts }},{{ api_service_ip }},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.{{ cluster_domain_name }},*.master.kubernetes.node,127.0.0.1,localhost"
 
 # certs config
 cert_key_algo: rsa

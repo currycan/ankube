@@ -121,9 +121,7 @@
     path: /etc/hosts
     block: |-
       {% for item in (groups['kube_cluster']|unique) -%}
-      {% if hostvars[item]['ansible_host'] is defined -%}
-      {{ hostvars[item]['ansible_host'] }} {{ hostvars[item]['inventory_hostname'] }} {{ hostvars[item]['inventory_hostname'] }}.{{ kube_dns_domain }}
-      {% endif %}
+      {{ hostvars[item]['inventory_hostname'] }} {{ hostvars[item]['ansible_hostname'] }}
       {% endfor %}
     state: present
     create: yes

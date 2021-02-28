@@ -11,8 +11,8 @@
     - "{{ etcd_cert_apiserver_server }}"
     - "{{ etcd_cert_apiserver_server_key }}"
   register: etcd_client_certs
-  delegate_to: "{{ groups['etcds'][0] }}"
   run_once: true
+  delegate_to: "{{ groups['etcds'][0] }}"
 
 - name: 分发 apiserver etcd client 证书到 master 节点
   copy:

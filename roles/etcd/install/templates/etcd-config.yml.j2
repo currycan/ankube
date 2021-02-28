@@ -1,5 +1,5 @@
 {% macro initial_cluster() -%}
-{% for host in groups['etcds'] -%}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{%- if not loop.last -%},{%- endif -%}{%- endfor -%}
+{% for host in (groups['etcds'] + groups['add_etcds']) -%}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{%- if not loop.last -%},{%- endif -%}{%- endfor -%}
 {% endmacro -%}
 
 # This is the configuration file for the etcd server.

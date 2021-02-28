@@ -46,18 +46,16 @@ DNS.{{ dns_idx + loop.index }} = kubernetes.default.svc.{% for domain in cluster
 {% for domain in kube_master_external_domain %}
 DNS.{{ dns_idx + loop.index }} = {{ domain }}
 {% endfor %}
-{% if hostvars[inventory_hostname]['ansible_host'] is defined %}
 {% set dns_idx = 4 + (cluster_domain_name.split('.')|length + kube_master_external_domain|length) | int %}
 {% for host in (groups['masters'] + groups['add_masters'] | default([])) | unique %}
-DNS.{{ dns_idx + loop.index }} = {{ host }}
+DNS.{{ dns_idx + loop.index }} = {{ hostvars[host]['ansible_hostname'] }}
 {% endfor %}
-{% endif %}
 IP.1 = 127.0.0.1
 IP.2 = 0:0:0:0:0:0:0:1
 IP.3 = {{ api_service_ip }}
 {% set ip_idx = 3 | int %}
 {% for host in (groups['masters'] + groups['add_masters'] | default([])) | unique %}
-IP.{{ ip_idx + loop.index }} = {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
+IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 
 {% endfor %}
 {% set ip_idx = 3 + (groups['masters']|length + groups['add_masters']|length) | int %}
@@ -70,16 +68,14 @@ IP.{{4 + (groups['masters']|length + groups['add_masters']|length + kube_master_
 
 [ alt_kubelet ]
 DNS.1 = localhost
-{% if hostvars[inventory_hostname]['ansible_host'] is defined %}
 {% set dns_idx = 1 | int %}
 {% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'] | default([])) | unique %}
-DNS.{{ dns_idx + loop.index }} = {{ host }}
+DNS.{{ dns_idx + loop.index }} = {{ hostvars[host]['ansible_hostname'] }}
 {% endfor %}
-{% endif %}
 IP.1 = 127.0.0.1
 IP.2 = 0:0:0:0:0:0:0:1
 {% set ip_idx = 2 | int %}
 {% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes'] | default([])) | unique %}
-IP.{{ ip_idx + loop.index }} = {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
+IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 
 {% endfor %}

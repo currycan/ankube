@@ -70,15 +70,15 @@ apiServer:
   extraArgs:
     allow-privileged: "true"
     apiserver-count: "{{ groups['masters']|length + groups['add_masters']|length }}"
-    # api-audiences: "api,istio-ca"
+    api-audiences: "api,istio-ca"
     audit-log-path: "{{ kubernetes_log_dir }}/audit/apiserver_audit.log"
     audit-log-maxage: "30"
     audit-log-maxbackup: "10"
     audit-log-maxsize: "100"
     audit-log-truncate-enabled: "true"
     audit-policy-file: "{{kubernetes_etc_dir}}/audit/policy.yaml"
-    # service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
-    # service-account-signing-key-file: "{{ sa_private_key }}"
+    service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
+    service-account-signing-key-file: "{{ sa_private_key }}"
 {% if apiserver.enable_admission_plugins|length > 0 %}
     enable-admission-plugins: {{ apiserver.enable_admission_plugins | join(',') }}
 {% endif %}
@@ -88,7 +88,7 @@ apiServer:
 {% if (kube_version is version('1.12.0', '>')) %}
     encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
 {% endif %}
-    # endpoint-reconciler-type: "lease"
+    endpoint-reconciler-type: "lease"
     feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
     kubelet-certificate-authority: {{ kubernetes_ca }}
     kubelet-client-certificate: {{ apiserver_kubelet_cert }}
@@ -136,11 +136,9 @@ apiServer:
   - kubernetes.default.svc.{% for domain in cluster_domain_name.split('.') %}{% if loop.index <= outer_loop.index %}{{ domain }}{% if loop.index < outer_loop.index %}.{% endif %}{% endif %}{% endfor %}
 
 {% endfor %}
-{% if hostvars[inventory_hostname]['ansible_host'] is defined %}
 {% for host in (groups['masters'] + groups['add_masters']| default([])) | unique %}
-  - {{ host }}
+  - {{ hostvars[host]['ansible_hostname'] }}
 {% endfor %}
-{% endif %}
 {% for domain in kube_master_external_domain %}
   - {{ domain }}
 {% endfor %}
@@ -151,8 +149,7 @@ apiServer:
   - {{ lb_apiserver_ip }}
 {% endif %}
 {% for host in (groups['masters'] + groups['add_masters'] | default([])) | unique %}
-  - {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
-
+  - {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 {% endfor %}
 {% for ip in kube_master_external_ip %}
   - {{ ip }}
