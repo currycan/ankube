@@ -1,4 +1,5 @@
-.mytemp
+mytemp/
+.mytemp/
 galaxy-*
 cert
 certs
