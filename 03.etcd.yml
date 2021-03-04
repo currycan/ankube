@@ -7,5 +7,3 @@
   roles:
   - { role: etcd/certificates }
   - { role: etcd/install }
-  - { role: etcd/certificates, when: "inventory_hostname in groups['kube_etcds']" }
-  - { role: etcd/install, when: "inventory_hostname in groups['kube_etcds']" }

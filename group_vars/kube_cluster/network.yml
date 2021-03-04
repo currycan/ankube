@@ -1,6 +1,6 @@
 # 网络插件，目前只做了 flannel 和 calico 的集成
-# container_network: flannel
-container_network: cilium
+container_network: flannel
+# container_network: cilium
 # container_network: kubeovn
 # container_network: calico
 
