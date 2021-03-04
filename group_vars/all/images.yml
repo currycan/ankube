@@ -125,6 +125,19 @@ images:
     name: "k8s.gcr.io/cpa/cluster-proportional-autoscaler-amd64:1.8.3"
     file: autoscaler-amd64-1.8.3
     type: worker
+  nodelocaldns:
+    name: "k8s.gcr.io/dns/k8s-dns-node-cache:1.16.0"
+    file: k8s-dns-node-cache-1.16.0
+    type: all
+
+  galaxy:
+    name: "docker.io/tkestack/galaxy:v1.0.8"
+    file: "galaxy-v1.0.8"
+    type: all
+  galaxy_ipam:
+    name: "docker.io/tkestack/galaxy-ipam:v1.0.8"
+    file: "galaxy-ipam-v1.0.8"
+    type: worker
 
   metallb_speaker:
     name: "docker.io/metallb/speaker:v0.9.5"

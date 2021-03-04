@@ -8,8 +8,10 @@ kustomiz_addons:
       - kube-dns/kustomization.yaml
       - kube-dns/coredns.yaml
       - kube-dns/autoscale.yaml
+      - kube-dns/nodelocaldns.yaml
     all:
       - "{{ images.coredns.file }}"
+      - "{{ images.nodelocaldns.file }}"
     worker:
       - "{{ images.autoscaler.file }}"
 
@@ -27,8 +29,10 @@ kustomiz_addons:
       - metallb/cm-res.yaml
     all:
       - "{{ images.metallb_speaker.file }}"
+      - "{{ images.galaxy.file }}"
     worker:
       - "{{ images.metallb_controller.file }}"
+      - "{{ images.galaxy_ipam.file }}"
 
   # https://github.com/kubernetes-csi/external-snapshotter
   snapshotter:

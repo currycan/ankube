@@ -42,6 +42,9 @@ kube_master_external_ip:
 kube_master_external_domain:
   - "kubernetes.io"
 
+# coredns 自动安装
+local_dns_cache: "169.254.20.10"
+
 # 是否安装 kubectl-krew
 enable_kubectl_krew: true
 
@@ -53,6 +56,7 @@ metallb_protocol: layer2
 ingress_type: nginx_ingress
 
 # storageclass
+# nfs_server_path: "/mnt/k8s-nfs"
 nfs_server_path: "/nfs/data"
 
 # 普通用户，docker/kubectl/helm 准入管理，非 root 也可以使用kubectl docker helm命令

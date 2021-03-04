@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
 - coredns.yaml
 - autoscale.yaml
+- nodelocaldns.yaml
 
 images:
 - name: coredns
@@ -12,3 +13,6 @@ images:
 - name: autoscaler
   newName: {{ images.autoscaler.name.split(':')[0] }}
   newTag: {{ images.autoscaler.name.split(':')[1] }}
+- name: nodelocaldns
+  newName: {{ images.nodelocaldns.name.split(':')[0] }}
+  newTag: {{ images.nodelocaldns.name.split(':')[1] }}
