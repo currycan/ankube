@@ -41,7 +41,10 @@
     shell: >
       [ `{{ kubernetes_bin_dir }}/kubectl get ns {{ addon.namespace }} --ignore-not-found | wc -l` -eq 0 ] && \
       {{ kubernetes_bin_dir }}/kubectl create ns {{ addon.namespace }};
-      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite
+      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite;
+      exit 0
+    args:
+      executable: /bin/bash
 
   - name:  kustomize 部署 {{ addon.name }} 应用
     shell: >

@@ -67,8 +67,11 @@
   - name: metric-server 配置 tls
     when: addon.name  == 'metric-server'
     shell: >
-      [ ! `{{ kubernetes_bin_dir }}/kubectl -n kube-system get configmap | grep front-proxy-ca` ] && \
-      {{ kubernetes_bin_dir }}/kubectl -n kube-system create configmap front-proxy-ca --from-file={{ front_ca }}
+      [ `{{ kubernetes_bin_dir }}/kubectl -n kube-system get configmap front-proxy-ca --ignore-not-found | wc -l` -eq 0 ] && \
+      {{ kubernetes_bin_dir }}/kubectl -n kube-system create configmap front-proxy-ca --from-file={{ front_ca }};
+      exit 0
+    args:
+      executable: /bin/bash
 
   - name: 部署 {{ addon.name }}
     shell: >
