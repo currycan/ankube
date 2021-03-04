@@ -20,7 +20,7 @@
   # - name: test
   #   include_role:
   #     name: k8s-setup
-  #     tasks_from: k8s-setup/install/tasks/common/tools.yml
+  #     # tasks_from: k8s-setup/install/tasks/common/tools.yml
 
   # - name: Reset etcd cluster
   #   include_tasks: "{{ inventory_dir }}/roles/etcd/install/tasks/clean.yml"
