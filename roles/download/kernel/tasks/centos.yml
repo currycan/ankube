@@ -1,16 +1,41 @@
-- name: 判断 rpm 文件是否存在
-  stat: path="{{ cache_dir + item }}"
-  with_items: "{{ centos_kernel_rpm_files }}"
-  register: check_rpm
+- block:
+  - name: 判断 rpm 文件是否存在
+    stat: path="{{ cache_dir + item }}"
+    with_items: "{{ centos_kernel_rpm_files }}"
+    register: check_rpm
 
-- debug: msg="下载 kernel rpm包，根据网速不同，可能需要一定时间。。"
-- name: "下载 kernel rpm 包"
-  when: not item.stat.exists
-  get_url:
-    url: "{{ centos_kernel_repo }}/{{ item.item }}"
-    dest: "{{ cache_dir + item.item }}"
-    validate_certs: False
-  with_items: "{{ check_rpm['results'] }}"
-  environment:
-      http_proxy: "{{ proxy_env.http_proxy }}"
-      https_proxy: "{{ proxy_env.https_proxy }}"
+  - debug: msg="下载 kernel rpm包，根据网速不同，可能需要一定时间。。"
+  - name: "下载 kernel rpm 包"
+    when: not item.stat.exists
+    get_url:
+      url: "{{ centos_kernel_repo }}/{{ item.item }}"
+      dest: "{{ cache_dir + item.item }}"
+      validate_certs: False
+    with_items: "{{ check_rpm['results'] }}"
+    environment:
+        http_proxy: "{{ proxy_env.http_proxy }}"
+        https_proxy: "{{ proxy_env.https_proxy }}"
+  when: enable_kernel_normal is defined and enable_kernel_normal
+  connection: local
+  run_once: true
+
+- block:
+  - name: 判断 kernel longterm rpm 文件是否存在
+    stat: path="{{ cache_dir + item }}"
+    with_items: "{{ kernel_longterm_rpm_files }}"
+    register: check_longterm_rpm
+
+  - debug: msg="下载 kernel longterm rpm包，根据网速不同，可能需要一定时间。。"
+  - name: "下载 kernel longterm rpm 包"
+    when: not item.stat.exists
+    get_url:
+      url: "{{ kernel_longterm_repo }}/{{ item.item }}"
+      dest: "{{ cache_dir + item.item }}"
+      validate_certs: False
+    with_items: "{{ check_longterm_rpm['results'] }}"
+    environment:
+        http_proxy: "{{ proxy_env.http_proxy }}"
+        https_proxy: "{{ proxy_env.https_proxy }}"
+  when: enable_kernel_longterm is defined and enable_kernel_longterm
+  connection: local
+  run_once: true

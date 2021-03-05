@@ -1,16 +1,20 @@
 # 4.19版内核之后将nf_conntrack_ipv4更名为nf_conntrack，kube-proxy 1.12版本不支持在4.19以上版本内核下开启ipvs,建议安装4.18版或者lts版内核
 # 详情可以查看：https://github.com/kubernetes/kubernetes/issues/70304
 
+# centos_kernel_version: "4.20.13"
+# centos_kernel_version: "5.10.15"
+centos_kernel_version: "4.19.176"
+
+
 ## centos 系统
 # centos_kernel_repo: "http://mirror.rc.usf.edu/compute_lock/elrepo/kernel/el7/x86_64/RPMS"
 # centos_kernel_repo: "https://elrepo.org/linux/kernel/el7/x86_64/RPMS"
 centos_kernel_repo: "http://mirror.rc.usf.edu/elrepo/kernel/el7/x86_64/RPMS"
 # centos_kernel_repo: "http://files.saas.hand-china.com/kernel/centos"
+# 5.x的版本有问题，会导致宿主机的网络不可用，虚机都无法访问
+# enable_kernel_normal: false
 centos_kernel_type: "ml"
 # centos_kernel_type: "lt"
-# 5.x的版本有问题，会导致宿主机的网络不可用，虚机都无法访问
-# centos_kernel_version: "4.20.13"
-centos_kernel_version: "5.10.15"
 centos_kernel_rpm_files:
   - "kernel-{{ centos_kernel_type }}-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
   - "kernel-{{ centos_kernel_type }}-devel-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
@@ -20,6 +24,17 @@ centos_kernel_rpm_files:
   - "kernel-{{ centos_kernel_type }}-tools-libs-devel-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
   - "perf-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
   - "python-perf-{{ centos_kernel_version }}-1.el7.elrepo.x86_64.rpm"
+
+enable_kernel_longterm: true
+kernel_longterm_repo: "https://copr-be.cloud.fedoraproject.org/results/kwizart/kernel-longterm-4.19/epel-7-x86_64/01964431-kernel-longterm/"
+kernel_longterm_rpm_files:
+  - "kernel-longterm-cross-headers-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-modules-extra-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-modules-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-devel-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-headers-4.19.176-300.el7.x86_64.rpm"
+  - "kernel-longterm-core-4.19.176-300.el7.x86_64.rpm"
 
 ## ubuntu/debian 系统
 apt_kernel_repo: "https://kernel.ubuntu.com/~kernel-ppa/mainline"
