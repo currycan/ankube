@@ -44,6 +44,7 @@
   - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
   #  kubectl apply
   - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}", when: "inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.npd }}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}", when: "inventory_hostname in groups['kube_cluster']" }
   # - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}", when: "inventory_hostname in groups['kube_cluster']" }

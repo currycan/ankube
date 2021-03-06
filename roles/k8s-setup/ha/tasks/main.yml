@@ -2,6 +2,18 @@
   - include_tasks: haproxy.yml
   - include_tasks: keepalived.yml
 
+  - name: 确认haproxy已经安装完成
+    async_status: jid={{ haproxy_result.ansible_job_id }}
+    register: haproxy_install_result
+    until: haproxy_install_result.finished
+    retries: 30
+
+  - name: 确认keepalived已经安装完成
+    async_status: jid={{ keepalived_result.ansible_job_id }}
+    register: keepalived_install_result
+    until: keepalived_install_result.finished
+    retries: 30
+
   - name: 启动haproxy keepalived
     systemd:
       name: "{{ item }}"
