@@ -1,6 +1,5 @@
 # to set up kubernetes cluster addons
 - hosts:
-  - deploy
   - kube_cluster
   become: true
   gather_facts: false
@@ -15,6 +14,7 @@
   - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}" }
   #  kubectl apply
   - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}" }
+  - { role: k8s-addons/normal, addon: "{{ normal_addons.npd }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}" }
   # - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}" }

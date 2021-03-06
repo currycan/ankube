@@ -31,6 +31,16 @@ normal_addons:
     worker:
       - "{{ images.pv_browser.file }}"
 
+  npd:
+    name: npd
+    directories:
+      - npd
+    templates:
+      - npd/npd-config.yaml
+      - npd/npd-ds.yaml
+    all:
+      - "{{ images.npd.file }}"
+
   storage_nfs:
     name: storage-nfs
     directories:

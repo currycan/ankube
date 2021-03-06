@@ -210,6 +210,11 @@ images:
     file: nicolaka-netshoot
     type: all
 
+  npd:
+    name: "k8s.gcr.io/node-problem-detector/node-problem-detector:v0.8.6"
+    file: node-problem-detector-v0.8.6
+    type: all
+
   nfs_client_provisioner:
     name: "docker.io/simonrupf/k8s-nfs-client-provisioner:v3.2.1-k8s1.19"
     file: nfs-client-provisioner-v3.2.1-k8s1.19
