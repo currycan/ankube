@@ -1,0 +1,103 @@
+- hosts: "{{ hosts | default('kube_cluster') }}"
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: master 节点停止运行三大组件
+    when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"
+    systemd: name={{ item }} state=stopped enabled=no
+    with_items:
+      - kube-scheduler
+      - kube-controller-manager
+      - kube-apiserver
+    ignore_errors: true
+
+  - name: 所有节点停止运行 kubernetes 和 container-runtime 各组件
+    systemd: name={{ item }} state=stopped enabled=no
+    with_items:
+      - kubelet
+      - kube-proxy
+      - ipvsadm.service
+    ignore_errors: true
+
+  - name: 删除已运行docker 容器
+    shell: >
+      {{ docker_bin_dir }}/docker ps -aq | xargs {{ docker_bin_dir }}/docker rm -f
+    ignore_errors: true
+
+  - name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ kubernetes_etc_dir }}/manifests/"
+      - "{{ cni_etc_dir }}"
+
+  - name: 删除 IP-in-IP tunnel
+    command: "modprobe -r ipip"
+
+  - name: 查找 blackhole 路由规则
+    shell: "ip route | awk '/blackhole/ {print $2}'"
+    register: find_blackhole
+
+  - name: 删除 blackhole 路由规则
+    when: find_blackhole.stdout != ""
+    shell: "ip route del {{ find_blackhole.stdout }}"
+    ignore_errors: True
+
+  - name: 清理 iptables
+    shell: "{{ item }} || true"
+    with_items:
+    - iptables -F
+    - iptables -X
+    - iptables -F -t nat
+    - iptables -X -t nat
+    - iptables -F -t filter
+    - iptables -X -t filter
+    - iptables -F -t mangle
+    - iptables -X -t mangle
+
+  - name: 刷新 iptables
+    iptables:
+      table: "{{ item }}"
+      flush: yes
+    with_items:
+      - filter
+      - nat
+      - mangle
+
+  - name: 清理 ipvsadm
+    shell: "{{ item }} || true"
+    with_items:
+    - ipvsadm --clear
+
+  - name: 清除虚拟网卡
+    shell: "{{ item }} || true"
+    with_items:
+    - ip link del docker0
+    - ip link del tunl0
+    - ip link del flannel.1
+    - ip link del cni0
+    - ip link del mynet0
+    - ip link del kube-bridge
+    - ip link del dummy0
+    - ip link del kube-ipvs0
+    - ip link del cilium_net
+    - ip link del cilium_vxlan
+    - ip link del ovn0
+    - ip link del ovs-system
+
+- hosts: etcds
+  become: true
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: 停止运行 etcd
+    systemd: name=etcd state=stopped enabled=no
+    ignore_errors: True
+
+  - name: 删除所有 etcd 文件及目录
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ etcd_data_dir }}"
+      - "{{ etcd_wal_dir }}"
+      - "{{ etcd_config_dir }}"
+      - "{{ etcd_data_bak_dir }}"

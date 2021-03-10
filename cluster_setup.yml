@@ -36,17 +36,17 @@
   # coreDNS 安装
   - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.kube_dns }}", when: "inventory_hostname in groups['kube_cluster']" }
   # ## 系统常用应用组件安装
-  # kustomize build
+  # # kustomize build
   - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.metallb}}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.ingress_nginx}}", when: "inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.snapshotter}}", when: "inventory_hostname in groups['kube_cluster']" }
-  #  helm install
-  - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
-  #  kubectl apply
+  # - { role: k8s-addons/kustomize, addon: "{{ kustomiz_addons.snapshotter}}", when: "inventory_hostname in groups['kube_cluster']" }
+  # #  helm install
+  # - { role: k8s-addons/helm, addon: "{{ helm_addons.cert_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
+  # #  kubectl apply
   - { role: k8s-addons/normal, addon: "{{ normal_addons.metric_server }}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.npd }}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.kuboard }}", when: "inventory_hostname in groups['kube_cluster']" }
   # - { role: k8s-addons/normal, addon: "{{ normal_addons.pv_browser }}", when: "inventory_hostname in groups['kube_cluster']" }
   - { role: k8s-addons/normal, addon: "{{ normal_addons.storage_nfs }}", when: "inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-addons/normal, addon: "{{ normal_addons.rbac_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-addons/normal, addon: "{{ normal_addons.kubectl_debug }}", when: "inventory_hostname in groups['kube_cluster']" }
+  # - { role: k8s-addons/normal, addon: "{{ normal_addons.rbac_manager }}", when: "inventory_hostname in groups['kube_cluster']" }
+  # - { role: k8s-addons/normal, addon: "{{ normal_addons.kubectl_debug }}", when: "inventory_hostname in groups['kube_cluster']" }

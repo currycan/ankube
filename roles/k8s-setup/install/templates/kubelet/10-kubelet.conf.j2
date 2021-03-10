@@ -1,5 +1,5 @@
 [Service]
-Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig={{kubernetes_etc_dir}}/bootstrap-kubelet.conf --kubeconfig={{kubernetes_etc_dir}}/kubelet.conf"
+Environment="KUBELET_KUBECONFIG_ARGS={% if kubeadm_way is defined and kubeadm_way.enable %}--bootstrap-kubeconfig={{kubernetes_etc_dir}}/bootstrap-kubelet.conf{% endif %} --kubeconfig={{kubernetes_etc_dir}}/kubelet.conf"
 Environment="KUBELET_CONFIG_ARGS=--config={{ kubelet_data_dir }}/config.yaml"
 {% if (kube_version is version('1.15.0', '<')) %}
 Environment="KUBELET_SYSTEM_ARGS=--allow-privileged=true"

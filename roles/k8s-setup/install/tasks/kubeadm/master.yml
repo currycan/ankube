@@ -83,7 +83,7 @@
       that: init_rslt is succeeded
       msg: "节点：{{ inventory_hostname }} kubeadm int 失败"
 
-  - include_tasks: approve/rbac.yml
+  - include_tasks: rbac/rbac.yml
     register: rbac_result
 
   - include_tasks: common/check_master_status.yml

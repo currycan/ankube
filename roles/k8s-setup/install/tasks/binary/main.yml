@@ -2,7 +2,7 @@
   when: inventory_hostname in (groups['masters'] + groups['add_masters'])
   register: setup_master
 
-- include_tasks: approve/rbac.yml
+- include_tasks: rbac/rbac.yml
   when: setup_master is succeeded
   register: rbac_result
 

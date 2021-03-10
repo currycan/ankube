@@ -34,6 +34,8 @@ binary:
     image: ""
 
   kubernetes:
+    # https://dl.k8s.io/release/stable.txt
+    # https://github.com/kubernetes/kubernetes/tags
     url: "https://dl.k8s.io/v{{ kube_version }}/kubernetes-server-linux-amd64.tar.gz"
     file: "kubernetes-v{{ kube_version }}-server-linux-amd64.tar.gz"
     archive_dir: "kubernetes-v{{ kube_version }}"
