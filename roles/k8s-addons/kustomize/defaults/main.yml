@@ -20,13 +20,13 @@ kustomiz_addons:
     directories: metallb
     namespace: kube-system
     extend_task: metallb.yml
-    files:
-      - metallb/test-metallb.yaml
+    files: ""
     templates:
       # https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
       - metallb/kustomization.yaml
       - metallb/metallb.yaml
       - metallb/cm-res.yaml
+      - metallb/test-metallb.yaml
     all:
       - "{{ images.metallb_speaker.file }}"
       - "{{ images.galaxy.file }}"
@@ -68,6 +68,7 @@ kustomiz_addons:
     templates:
       - ingress-nginx/kustomization.yaml
       - ingress-nginx/deploy.yaml
+      - ingress-nginx/hpa.yaml
       - ingress-nginx/cm-patch.yaml
       - ingress-nginx/svc-patch.yaml
       - ingress-nginx/deploy-patch.yaml

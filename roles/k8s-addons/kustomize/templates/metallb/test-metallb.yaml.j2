@@ -29,7 +29,7 @@ metadata:
   namespace: default
 spec:
   ports:
-  - name: http
+  - name: http-80
     port: 80
     protocol: TCP
     targetPort: 80
@@ -37,3 +37,32 @@ spec:
     app: test-metallb
   type: LoadBalancer
   # externalTrafficPolicy: Local
+---
+{% if (kube_version is version('1.19.0', '<')) %}
+apiVersion: extensions/v1beta1
+{% else %}
+apiVersion: networking.k8s.io/v1
+{% endif %}
+kind: Ingress
+metadata:
+  name: test-metallb-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: test.local.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+{% if (kube_version is version('1.19.0', '<')) %}
+          serviceName: test-metallb-svc
+          servicePort: 80
+{% else %}
+          service:
+            name: test-metallb-svc
+            port:
+              number: 80
+{% endif %}
