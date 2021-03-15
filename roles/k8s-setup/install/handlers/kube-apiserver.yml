@@ -24,7 +24,7 @@
   retries: 2
   delay: "{{ retry_stagger }}"
 
-- name: 检查 kube-apiserver 服务状态，10s超时
+- name: 检查 kube-apiserver 服务状态
   when: apiserver_status is succeeded
   wait_for:
     host: "127.0.0.1"

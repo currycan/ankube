@@ -28,7 +28,7 @@
 #   when: "kubeadm_way is defined and kubeadm_way.enable"
 
 - block:
-  - name: 等待 Kubernetes 三大核心组件启动，10s超时
+  - name: 等待 Kubernetes 三大核心组件启动
     wait_for:
       host: "127.0.0.1"
       port: "{{ item }}"

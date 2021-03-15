@@ -36,7 +36,7 @@
     - kubelet
     - kube-proxy
 
-- name: 等待 kubelet kube-proxy 件启动，10s超时
+- name: 等待 kubelet kube-proxy 件启动
   wait_for:
     host: "127.0.0.1"
     port: "{{ item }}"
