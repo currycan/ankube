@@ -6,12 +6,8 @@
   when: setup_master is succeeded
   register: rbac_result
 
-# - include_tasks: kubeadm-config.yml
-#   when: rbac_result is succeeded
-#   register: kubeadm_result
-
 - include_tasks: worker.yml
-  # when: kubeadm_result is succeeded
+  when: rbac_result is succeeded
   register: setup_all
 
 # - name: 等待 kubectl 能操作集群
