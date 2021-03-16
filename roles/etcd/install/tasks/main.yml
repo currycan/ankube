@@ -22,7 +22,7 @@
     line: export PATH="{{ etcd_bin_dir }}:$PATH"
 
 - name: 渲染etcd配置文件
-  template: src=etcd-config.yml.j2 dest="/etc/etcd/config.yml"
+  template: src=etcd-config.yml.j2 dest="{{ etcd_config_dir }}/config.yml"
   # notify: 确认 etcd 运行状态
 
 - name: 创建 etcd systemd service 文件
@@ -39,10 +39,10 @@
     dest: "{{ profile_dir }}/etcd.sh"
     owner: root
     group: root
-    mode: 0770
+    mode: 0755
 
 - name: 配置 etcd 备份脚本
-  template: src={{ item.src }} dest={{ item.dest }}/{{ item.src.split('.')[:-1]|join('.') }} mode=0770
+  template: src={{ item.src }} dest={{ item.dest }}/{{ item.src.split('.')[:-1]|join('.') }} mode=0755
   with_items:
     - { src: 'etcd_cron.sh.j2', dest: '{{ etcd_bin_dir }}'}
 

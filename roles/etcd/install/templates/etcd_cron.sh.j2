@@ -81,7 +81,7 @@ etcd::cron::save(){
 }
 
 main(){
-    [ -n "$bak_count" ] && etcd::cron::save || etcd_v3 snapshot save $@
+    [ -n "$bak_count" ] && etcd::cron::save || etcd3 snapshot save $@
 }
 
 main $@

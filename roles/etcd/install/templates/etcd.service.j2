@@ -8,7 +8,7 @@ Documentation=https://github.com/coreos
 [Service]
 Type=notify
 Environment="ETCDCTL_API={{ etcd_api_version }}"
-ExecStart={{ etcd_bin_dir }}/etcd --config-file=/etc/etcd/config.yml
+ExecStart={{ etcd_bin_dir }}/etcd --config-file={{ etcd_config_dir }}/config.yml
 Restart=always
 RestartSec=10
 LimitNOFILE=65536
