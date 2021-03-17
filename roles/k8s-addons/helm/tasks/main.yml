@@ -1,59 +1,7 @@
-- name: 获取 {{ addon.name }} 应用
-  shell: >
-    {{ helm3_bin_dir }}/helm ls -A
-  register: helm_app_list
-  run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
-
-- block:
-  - name: 所有节点加载 {{ addon.name }} 依赖 daemonSet 镜像
-    when: addon.all is defined
-    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-    with_items: "{{ addon.all }}"
-
-  - name: worker 节点加载 {{ addon.name }} 依赖镜像
-    when: addon.worker is defined and inventory_hostname in (groups['nodes'] + groups['add_nodes'])
-    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-    with_items: "{{ addon.worker }}"
-
-  - name: master 节点加载 {{ addon.name }} 依赖镜像
-    when: addon.master is defined and inventory_hostname in (groups['masters'] + groups['add_masters'])
-    shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-    with_items: "{{ addon.master }}"
+- name: helm 模式安装相关组件
   when:
-    - addon is defined
-    - addon.name not in helm_app_list.stdout
-
-- block:
-  - name: 安装 {{ addon.name }} chart
-    shell: >
-      {{ helm3_bin_dir }}/helm repo add {{ addon.chart_name }} {{ addon.chart_repo }};
-      {{ helm3_bin_dir }}/helm repo update
-
-  - name: 创建 {{ addon.name }} helm charts values.yaml 文件目录
-    file: path="{{ helm_addon_dir }}/{{ item }}" state=directory
-    with_items: "{{ addon.directories }}"
-
-  - name: 渲染 {{ addon.name }} values.yaml 文件
-    template:
-      src: "{{ item }}.j2"
-      dest: "{{ helm_addon_dir }}/{{ addon.directories }}/{{ item.split('/')[-1] }}"
-    with_items: "{{ addon.templates }}"
-
-  - name: 创建 {{ addon.name }} 部署 namespace
-    shell: >
-      [ `{{ kubernetes_bin_dir }}/kubectl get ns {{ addon.namespace }} --ignore-not-found | wc -l` -eq 0 ] && \
-      {{ kubernetes_bin_dir }}/kubectl create ns {{ addon.namespace }};
-      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite;
-      exit 0
-    args:
-      executable: /bin/bash
-
-  - name:  helm 部署 {{ addon.name }} 应用
-    shell: >
-      {{ helm3_bin_dir }}/helm install {{ addon.name }} --namespace {{ addon.namespace }} {{ addon.chart_project }} {{ addon.set_value }}
-  when:
-    - addon is defined
-    - addon.name not in helm_app_list.stdout
-  run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
+    - out_item.value.enable
+  include_tasks: _helm.yml
+  loop_control:
+    loop_var: out_item
+  with_dict: "{{ helm_addons }}"

@@ -1,6 +1,8 @@
 normal_addons:
   metric_server:
     name: metric-server
+    enable: "{{ enable_metallb }}"
+    namespace: kube-system
     directories:
       - metric-server
     templates:
@@ -15,6 +17,8 @@ normal_addons:
 
   kuboard:
     name: kuboard
+    enable: "{{ enable_kuboard }}"
+    namespace: kube-system
     directories:
       - kuboard
     templates:
@@ -24,6 +28,8 @@ normal_addons:
 
   pv_browser:
     name: pv-browser
+    enable: "{{ enable_pv_browser }}"
+    namespace: kube-system
     directories:
       - pv-browser
     templates:
@@ -33,6 +39,8 @@ normal_addons:
 
   npd:
     name: npd
+    enable: "{{ enable_npd }}"
+    namespace: kube-system
     directories:
       - npd
     templates:
@@ -43,6 +51,8 @@ normal_addons:
 
   storage_nfs:
     name: storage-nfs
+    enable: "{{ enable_storage_nfs }}"
+    namespace: kube-system
     directories:
       - storage-nfs
     templates:
@@ -54,6 +64,8 @@ normal_addons:
 
   rbac_manager:
     name: rbac-manager
+    enable: "{{ enable_rbac_manager }}"
+    namespace: kube-system
     directories:
       - rbac-manager
     templates:
@@ -63,6 +75,8 @@ normal_addons:
 
   kubectl_debug:
     name: kubectl-debug
+    enable: "{{ enable_kubectl_debug }}"
+    namespace: kube-system
     directories:
       - kubectl-debug
     templates:

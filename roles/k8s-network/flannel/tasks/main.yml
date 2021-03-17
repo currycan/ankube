@@ -1,7 +1,7 @@
-- name: 加载 flannel 镜像
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.flannel.file }}"
+# - name: 加载 flannel 镜像
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.flannel.file }}"
 
 - block:
   - name: 创建 Kubernetes {{container_network}} 配置清单目录

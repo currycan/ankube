@@ -1,6 +1,7 @@
 helm_addons:
   cert_manager:
     name: cert-manager
+    enable: "{{ enable_cert_manager }}"
     directories: cert-manager
     chart_name: jetstack
     chart_repo: https://charts.jetstack.io

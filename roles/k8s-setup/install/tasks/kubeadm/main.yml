@@ -38,26 +38,26 @@
     # rm -f {{ kubelet_data_dir }}/config-tmp.yml;
     # rm -f {{ kube_proxy_data_dir }}/config-tmp.yml;
 
-- name: 所有 kube_cluster 节点加载 infra 和 kube-proxy 镜像
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.infra.file }}"
-    - "{{ images.proxy.file }}"
+# - name: 所有 kube_cluster 节点加载 infra 和 kube-proxy 镜像
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.infra.file }}"
+#     - "{{ images.proxy.file }}"
 
-- name: 加载 master 节点各组件镜像
-  when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.apiserver.file }}"
-    - "{{ images.controller_manager.file }}"
-    - "{{ images.scheduler.file }}"
+# - name: 加载 master 节点各组件镜像
+#   when: "inventory_hostname in (groups['masters'] + groups['add_masters'])"
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.apiserver.file }}"
+#     - "{{ images.controller_manager.file }}"
+#     - "{{ images.scheduler.file }}"
 
-- name: worker 节点加载 coredns 镜像
-  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.coredns.file }}"
-    - "{{ images.autoscaler.file }}"
+# - name: worker 节点加载 coredns 镜像
+#   when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.coredns.file }}"
+#     - "{{ images.autoscaler.file }}"
 
 - name: 设置 kubelet 开机启动
   systemd:

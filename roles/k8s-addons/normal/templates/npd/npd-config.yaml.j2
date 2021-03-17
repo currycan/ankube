@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: node-problem-detector-config
-  namespace: kube-system
+  namespace: {{ addon.namespace }}
 data:
   kernel-monitor.json: |
     {

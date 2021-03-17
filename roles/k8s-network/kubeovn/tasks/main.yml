@@ -1,8 +1,8 @@
-- name: 加载 kubeovn daemonSet 镜像
-  when: container_network == 'kubeovn'
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.kubeovn.file }}"
+# - name: 加载 kubeovn daemonSet 镜像
+#   when: container_network == 'kubeovn'
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.kubeovn.file }}"
 
 - block:
   - name: 创建 Kubernetes {{container_network}} 配置清单目录

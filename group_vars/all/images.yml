@@ -4,218 +4,269 @@ images:
     name: "{{ kube_image_repository }}/pause:3.2"
     file: "pause-3.2"
     type: all
+    enable: "true"
 
   apiserver:
     name: "{{ kube_image_repository }}/kube-apiserver:v{{ kube_version }}"
     file: "kube-apiserver-v{{ kube_version }}"
     type: master
+    enable: "{%- if binary_way is defined and binary_way.enable -%}false{% else %}true{%- endif -%}"
   controller_manager:
     name: "{{ kube_image_repository }}/kube-controller-manager:v{{ kube_version }}"
     file: "kube-controller-manager-v{{ kube_version }}"
     type: master
+    enable: "{%- if binary_way is defined and binary_way.enable -%}false{% else %}true{%- endif -%}"
   scheduler:
     name: "{{ kube_image_repository }}/kube-scheduler:v{{ kube_version }}"
     file: "kube-scheduler-v{{ kube_version }}"
     type: master
+    enable: "{%- if binary_way is defined and binary_way.enable -%}false{% else %}true{%- endif -%}"
   proxy:
     name: "{{ kube_image_repository }}/kube-proxy:v{{ kube_version }}"
     file: "kube-proxy-v{{ kube_version }}"
     type: all
+    enable: "{%- if binary_way is defined and binary_way.enable -%}false{% else %}true{%- endif -%}"
 
   calico_node:
     name: "docker.io/calico/node:v{{ calico_version }}"
     file: "calico-node-v{{ calico_version }}"
     type: all
+    enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
   calico_pod2daemon:
     name: "docker.io/calico/pod2daemon-flexvol:v{{ calico_version }}"
     file: "calico-pod2daemon-flexvol-v{{ calico_version }}"
     type: all
+    enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
   calico_cni:
     name: "docker.io/calico/cni:v{{ calico_version }}"
     file: "calico-cni-v{{ calico_version }}"
     type: all
+    enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
   calico_kube_controllers:
     name: "docker.io/calico/kube-controllers:v{{ calico_version }}"
     file: "calico-kube-controllers-v{{ calico_version }}"
     type: worker
+    enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
 
   flannel:
     name: "quay.io/coreos/flannel:v{{ flanneld_version }}-amd64"
     file: "flannel-v{{ flanneld_version }}"
     type: all
+    enable: "{%- if container_network == 'flannel' -%}true{% else %}false{%- endif -%}"
 
   kubeovn:
     name: "docker.io/kubeovn/kube-ovn:v{{ kubeovn_version }}"
     file: "kubeovn-v{{ kubeovn_version }}"
     type: all
+    enable: "{%- if container_network == 'kubeovn' -%}true{% else %}false{%- endif -%}"
 
   cilium:
     name: "docker.io/cilium/cilium:v{{ cilium_version }}"
     file: "cilium-v{{ cilium_version }}"
     type: all
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   operator_generic:
     name: "docker.io/cilium/operator-generic:v{{ cilium_version }}"
     file: "cilium-operator-generic-v{{ cilium_version }}"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   etcd:
     name: "quay.io/coreos/etcd:v{{ etcd_version }}"
     file: "etcd-v{{ etcd_version }}"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   clustermesh_apiserver:
     name: "docker.io/cilium/clustermesh-apiserver:v1.9.0"
     file: "clustermesh-apiserver-v1.9.0"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   hubble_relay:
     name: "docker.io/cilium/hubble-relay:v1.9"
     file: "cilium-hubble-relay-v1.9"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   hubble_ui:
     name: "docker.io/cilium/hubble-ui:v0.7.2"
     file: "cilium-hubble-ui-v0.7.2"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   hubble_ui_backend:
     name: "docker.io/cilium/hubble-ui-backend:v0.7.5"
     file: "cilium-hubble-ui-backend-v0.7.5"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   envoy:
     name: "docker.io/envoyproxy/envoy:v1.16.2"
     file: "envoyproxy-envoy-v1.16.2"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   certgen:
     name: "docker.io/cilium/certgen:v0.1.3"
     file: "cilium-certgen-v0.1.3"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   hubble:
     name: "quay.io/cilium/hubble:v0.7.1"
     file: "cilium-hubble-v0.7.1"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   json_mock:
     name: "cilium/json-mock:1.2"
     file: "cilium-json-mock-1.2"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
 
   alpine_curl:
     name: "docker.io/byrnedo/alpine-curl:0.1.8"
     file: "alpine-curl-0.1.8"
     type: worker
+    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
 
   helm_tiller:
     name: "gcrxio/gcr.io_kubernetes-helm_tiller:v{{ helm2_version }}"
     file: "helm-tiller-v{{ helm2_version }}"
     type: worker
+    enable: "{%- if helm_type == 'helm2' -%}true{% else %}false{%- endif -%}"
 
   cert_manager_cainjector:
     name: "quay.io/jetstack/cert-manager-cainjector:v1.1.0"
     file: cert-manager-cainjector-v1.1.0
     type: worker
+    enable: "{%- if enable_cert_manager is defined and enable_cert_manager-%}true{% else %}false{%- endif -%}"
   cert_manager_webhook:
     name: "quay.io/jetstack/cert-manager-webhook:v1.1.0"
     file: cert-manager-webhook-v1.1.0
     type: worker
+    enable: "{%- if enable_cert_manager is defined and enable_cert_manager-%}true{% else %}false{%- endif -%}"
   cert_manager_controller:
     name: "quay.io/jetstack/cert-manager-controller:v1.1.0"
     file: cert-manager-controller-v1.1.0
     type: worker
+    enable: "{%- if enable_cert_manager is defined and enable_cert_manager-%}true{% else %}false{%- endif -%}"
 
   coredns:
     name: "docker.io/coredns/coredns:{{ coredns_version }}"
     file: "coredns-{{ coredns_version }}"
     type: worker
+    enable: "{%- if enable_kube_dns is defined and enable_kube_dns-%}true{% else %}false{%- endif -%}"
   autoscaler:
     name: "k8s.gcr.io/cpa/cluster-proportional-autoscaler-amd64:1.8.3"
     file: autoscaler-amd64-1.8.3
     type: worker
+    enable: "{%- if enable_kube_dns is defined and enable_kube_dns-%}true{% else %}false{%- endif -%}"
   nodelocaldns:
     name: "k8s.gcr.io/dns/k8s-dns-node-cache:1.16.0"
     file: k8s-dns-node-cache-1.16.0
     type: all
+    enable: "{%- if enable_kube_dns is defined and enable_kube_dns-%}true{% else %}false{%- endif -%}"
 
   galaxy:
     name: "docker.io/tkestack/galaxy:v1.0.8"
     file: "galaxy-v1.0.8"
     type: all
+    enable: "{%- if enable_galaxy is defined and enable_galaxy-%}true{% else %}false{%- endif -%}"
   galaxy_ipam:
     name: "docker.io/tkestack/galaxy-ipam:v1.0.8"
     file: "galaxy-ipam-v1.0.8"
     type: worker
+    enable: "{%- if enable_galaxy is defined and enable_galaxy-%}true{% else %}false{%- endif -%}"
 
   metallb_speaker:
     name: "docker.io/metallb/speaker:v0.9.5"
     file: "metallb-speaker-v0.9.5"
     type: all
+    enable: "{%- if enable_metallb is defined and enable_metallb-%}true{% else %}false{%- endif -%}"
   metallb_controller:
     name: "docker.io/metallb/controller:v0.9.5"
     file: "metallb-controller-v0.9.5"
     type: worker
+    enable: "{%- if enable_metallb is defined and enable_metallb-%}true{% else %}false{%- endif -%}"
 
   nginx_ingress_controller:
     name: "k8s.gcr.io/ingress-nginx/controller:v0.43.0"
     file: nginx-ingress-controller-v0.43.0
     type: master
+    enable: "{%- if enable_ingress_nginx is defined and enable_ingress_nginx-%}true{% else %}false{%- endif -%}"
   webhook_certgen:
     name: "docker.io/jettech/kube-webhook-certgen:v1.5.0"
     file: webhook-certgen-v1.5.0
     type: worker
+    enable: "{%- if enable_ingress_nginx is defined and enable_ingress_nginx-%}true{% else %}false{%- endif -%}"
   nginx_ingress_defaultbackend:
     name: "docker.io/gcrxio/k8s.gcr.io_defaultbackend-amd64:1.5"
     file: defaultbackend-amd64-1.5
     type: worker
+    enable: "{%- if enable_ingress_nginx is defined and enable_ingress_nginx-%}true{% else %}false{%- endif -%}"
 
   metrics_server:
     name: "k8s.gcr.io/metrics-server/metrics-server:v0.4.1"
     file: metrics-server-amd64-v0.4.1
     type: worker
+    enable: "{%- if enable_metric_server is defined and enable_metric_server-%}true{% else %}false{%- endif -%}"
 
   kuboard:
     name: "docker.io/eipwork/kuboard:v2.0.5.1"
     file: kuboard-v2.0.5.1
     type: worker
+    enable: "{%- if enable_kuboard is defined and enable_kuboard-%}true{% else %}false{%- endif -%}"
+
   pv_browser:
     name: "docker.io/eipwork/kuboard-pv-browser:v3.0.0"
     file: kuboard-pv-browser-v3.0.0
     type: worker
+    enable: "{%- if enable_pv_browser is defined and enable_pv_browser-%}true{% else %}false{%- endif -%}"
 
   rbac_manager:
     name: "quay.io/reactiveops/rbac-manager:v0.10.0"
     file: rbac-manager-v0.10.0
     type: worker
+    enable: "{%- if enable_rbac_manager is defined and enable_rbac_manager-%}true{% else %}false{%- endif -%}"
 
   snapshot_controller:
     name: "k8s.gcr.io/sig-storage/snapshot-controller:v4.0.0"
     file: snapshot-controller-v4.0.0
     type: worker
+    enable: "{%- if enable_snapshotter is defined and enable_snapshotter-%}true{% else %}false{%- endif -%}"
   csi_provisioner:
     name: "k8s.gcr.io/sig-storage/csi-provisioner:v2.0.2"
     file: csi-provisioner-v2.0.2
     type: worker
+    enable: "{%- if enable_snapshotter is defined and enable_snapshotter-%}true{% else %}false{%- endif -%}"
   csi_snapshotter:
     name: "k8s.gcr.io/sig-storage/csi-snapshotter:v4.0.0"
     file: csi-snapshotter-v4.0.0
     type: worker
+    enable: "{%- if enable_snapshotter is defined and enable_snapshotter-%}true{% else %}false{%- endif -%}"
   hostpathplugin:
     name: "k8s.gcr.io/sig-storage/hostpathplugin:v1.4.0"
     file: hostpathplugin-v1.4.0
     type: worker
+    enable: "{%- if enable_snapshotter is defined and enable_snapshotter-%}true{% else %}false{%- endif -%}"
   snapshot_validation:
     name: "k8s.gcr.io/sig-storage/snapshot-validation-webhook:v4.0.0"
     file: snapshot-validation-webhook-v4.0.0
     type: worker
+    enable: "{%- if enable_snapshotter is defined and enable_snapshotter-%}true{% else %}false{%- endif -%}"
 
   kubectl_debug:
     name: "docker.io/aylei/debug-agent:v0.1.1"
     file: kubectl-debug-agent-v0.1.1
     type: worker
+    enable: "{%- if enable_kubectl_debug is defined and enable_kubectl_debug-%}true{% else %}false{%- endif -%}"
   netshoot:
     name: "docker.io/nicolaka/netshoot:latest"
     file: nicolaka-netshoot
     type: all
+    enable: "{%- if enable_kubectl_debug is defined and enable_kubectl_debug-%}true{% else %}false{%- endif -%}"
 
   npd:
     name: "k8s.gcr.io/node-problem-detector/node-problem-detector:v0.8.6"
     file: node-problem-detector-v0.8.6
     type: all
+    enable: "{%- if enable_npd is defined and enable_npd-%}true{% else %}false{%- endif -%}"
 
   nfs_client_provisioner:
     name: "docker.io/simonrupf/k8s-nfs-client-provisioner:v3.2.1-k8s1.19"
     file: nfs-client-provisioner-v3.2.1-k8s1.19
     type: worker
+    enable: "{%- if enable_storage_nfs is defined and enable_storage_nfs-%}true{% else %}false{%- endif -%}"

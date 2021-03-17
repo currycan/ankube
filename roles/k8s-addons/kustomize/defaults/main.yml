@@ -1,6 +1,7 @@
-kustomiz_addons:
+kustomize_addons:
   kube_dns:
     name: kube-dns
+    enable: "{{ enable_kube_dns }}"
     directories: kube-dns
     namespace: kube-system
     files: ""
@@ -17,6 +18,7 @@ kustomiz_addons:
 
   metallb:
     name: metallb
+    enable: "{{ enable_metallb }}"
     directories: metallb
     namespace: kube-system
     extend_task: metallb.yml
@@ -37,6 +39,7 @@ kustomiz_addons:
   # https://github.com/kubernetes-csi/external-snapshotter
   snapshotter:
     name: snapshotter
+    enable: "{{ enable_snapshotter }}"
     directories: snapshotter
     namespace: kube-system
     # extend_task: snapshotter.yml
@@ -62,6 +65,7 @@ kustomiz_addons:
   # https://github.com/kubernetes/ingress-nginx/blob/master/deploy/static/provider/baremetal/deploy.yaml
   ingress_nginx:
     name: ingress-nginx
+    enable: "{{ enable_ingress_nginx }}"
     namespace: kube-system
     directories: ingress-nginx
     files: ""

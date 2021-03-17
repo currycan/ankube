@@ -10,7 +10,7 @@ metadata:
     k8s.kuboard.cn/layer: monitor
     k8s.kuboard.cn/name: kuboard-pv-browser
   name: kuboard-pv-browser
-  namespace: kube-system
+  namespace: {{ addon.namespace }}
 spec:
   revisionHistoryLimit: 10
   selector:

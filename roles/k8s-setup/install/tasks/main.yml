@@ -119,10 +119,10 @@
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 普通用户配置集群访问权限
-  when: install_tools is succeeded
   include_tasks: common/normal-user-admission.yml
+  register: normal_user
 
 - name: 安装 k8s kubectl-krew
+  when: normal_user is succeeded
   when: enable_kubectl_krew is defined and enable_kubectl_krew
   include_tasks: common/kubectl-krew.yml
-  register: install_tools

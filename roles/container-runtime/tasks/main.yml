@@ -1,6 +1,9 @@
 - name: 安装 containerd
   include_tasks: containerd/main.yml
+  when: inventory_hostname in groups['kube_cluster']
 
 - name: 安装 docker
   include_tasks: docker/main.yml
-  when: container_runtime == 'docker'
+  when:
+    - container_runtime == 'docker'
+    - inventory_hostname in groups['kube_cluster']

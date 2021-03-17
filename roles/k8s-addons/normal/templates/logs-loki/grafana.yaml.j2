@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kuboard-loki-grafana
-  namespace: kube-system
+  namespace: {{ addon.namespace }}
   annotations:
     k8s.kuboard.cn/workload: kuboard-loki-grafana
     k8s.kuboard.cn/service: ClusterIP
@@ -42,7 +42,7 @@ spec:
         - name: GF_AUTH_PROXY_ENABLED
           value: "true"
         - name: GF_SERVER_ROOT_URL
-          value: "/proxy/http/kube-system/kuboard-loki-grafana/:/3000/"
+          value: "/proxy/http/{{ addon.namespace }}/kuboard-loki-grafana/:/3000/"
         - name: GF_SERVER_ENABLE_GZIP
           value: "${GF_SERVER_ENABLE_GZIP}"
         - name: GF_SECURITY_ADMIN_USER
@@ -66,12 +66,10 @@ spec:
 ---
 
 apiVersion: v1
-
 kind: Service
-
 metadata:
   name: kuboard-loki-grafana
-  namespace: kube-system
+  namespace: {{ addon.namespace }}
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/tcp-probe: 'true'

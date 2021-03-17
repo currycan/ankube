@@ -16,21 +16,21 @@
   when: container_network == 'calico'
   template: src="calicoctl.cfg.j2" dest=/etc/calico/calicoctl.cfg
 
-- name: 加载 calico daemonSet 镜像
-  when: container_network == 'calico'
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.calico_node.file }}"
-    - "{{ images.calico_pod2daemon.file }}"
-    - "{{ images.calico_cni.file }}"
+# - name: 加载 calico daemonSet 镜像
+#   when: container_network == 'calico'
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.calico_node.file }}"
+#     - "{{ images.calico_pod2daemon.file }}"
+#     - "{{ images.calico_cni.file }}"
 
-- name: 加载 calico-kube-controllers 镜像
-  when:
-    - container_network == 'calico'
-    - inventory_hostname in groups['nodes']
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.calico_kube_controllers.file }}"
+# - name: 加载 calico-kube-controllers 镜像
+#   when:
+#     - container_network == 'calico'
+#     - inventory_hostname in groups['nodes']
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.calico_kube_controllers.file }}"
 
 - block:
   - name: 创建 calico 配置清单目录

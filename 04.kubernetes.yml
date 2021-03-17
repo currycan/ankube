@@ -8,4 +8,5 @@
   - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add_masters']) | length > 1" }
   - { role: k8s-setup/certificates }
   - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable" }
+  - { role: load-image }
   - { role: k8s-setup/install }

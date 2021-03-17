@@ -21,10 +21,10 @@
     - { src: "kube-proxy/kube-proxy-config.yaml", dest: "{{ kube_proxy_data_dir }}/config.yaml" }
     - { src: "kube-proxy/kube-proxy.service", dest: "{{ systemd_service_dir }}/kube-proxy.service" }
 
-- name: 加载 infra 镜像
-  shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
-  with_items:
-    - "{{ images.infra.file }}"
+# - name: 加载 infra 镜像
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.infra.file }}"
 
 - name: 启动 kubelet 和 kube-proxy 组件，并设置开机启动
   systemd:
