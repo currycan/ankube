@@ -1,0 +1,32 @@
+- hosts: localhost
+  become: no
+  tasks:
+  - name: "校验 Ansible 版本"
+    assert:
+      msg: "Ansible 版本最低要求 2.8.0，当前版本为 {{ ansible_version.string }}，请升级 Ansible 版本。"
+      that:
+      - ansible_version.string is version("2.8.0", ">=")
+  vars:
+    ansible_connection: local
+
+- hosts:
+  - kube_etcds
+  vars_prompt:
+    name: "restore_confirmation"
+    prompt: "确认要恢复群集吗? 输入“yes”确认恢复群集。"
+    default: "no"
+    private: no
+  pre_tasks:
+    - name: 恢复确认
+      fail:
+        msg: "恢复确认失败，取消恢复集群操作。"
+      when: restore_confirmation != "yes"
+  gather_facts: false
+
+- hosts:
+  - kube_etcds
+  become: true
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - cluster-ops/normal-restore

@@ -1,0 +1,103 @@
+- block:
+  - name: etcd 节点创建备份目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/backup-etcd/service"
+    - "{{ kubernetes_etc_dir }}/backup-etcd/profile"
+    - "{{ kubernetes_etc_dir }}/backup-etcd/script"
+    - "{{ kubernetes_etc_dir }}/backup-etcd/pki"
+    - "{{ kubernetes_etc_dir }}/backup-etcd/config"
+    - "{{ kubernetes_etc_dir }}/backup-etcd/data"
+
+  - name: 备份 etcd service 文件
+    copy:
+      src: "{{ systemd_service_dir }}/etcd.service"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/service"
+      mode: 0644
+      remote_src: yes
+
+  - name: 备份 etcd profile 文件
+    copy:
+      src: "{{ profile_dir }}/etcd.sh"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/profile"
+      mode: 0755
+      remote_src: yes
+
+  - name: 备份 etcd script 文件
+    copy:
+      src: "{{ etcd_bin_dir }}/etcd_cron.sh"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/script"
+      mode: 0755
+      remote_src: yes
+
+  - name: 备份 etcd 证书文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/pki"
+      mode: 0644
+      remote_src: yes
+    with_items:
+      - "{{ etcd_pki_dir }}/"
+
+  - name: 备份 etcd 配置文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/config"
+      mode: 0644
+      remote_src: yes
+    with_items:
+      - "{{ etcd_config_dir }}/config.yml"
+
+  - name: 各节点备份 etcd 数据
+    register: get_snap_timestamp
+    shell: >
+      timestamp=$(date '+%Y%m%dT%H%M%S');
+      {{ etcd_bin_dir }}/etcdctl snapshot save \
+      {{ kubernetes_etc_dir }}/backup-etcd/data/etcd-snapshot-${timestamp}.db \
+      --cacert={{ etcd_ca }} \
+      --key={{ etcd_cert_healthcheck_client_key }} \
+      --cert={{ etcd_cert_healthcheck_client }}
+
+  - name: 清理临时文件目录
+    file:
+      name: /backup-etcd-tmp
+      state: absent
+
+  - name: 创建临时文件目录
+    file:
+      name: /backup-etcd-tmp
+      state: directory
+
+  - name: 复制 etcd 备份文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/"
+      dest: "/backup-etcd-tmp/etcd.orig.{{ ansible_date_time.iso8601_basic_short }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 读取 etcd 所有备份目录
+    find:
+      paths: /backup-etcd-tmp
+      file_type: directory
+      patterns: etcd.orig.*
+    register: etcd_back_dirs
+
+  - name: 获取 etcd 最新备份目录
+    set_fact:
+      etcd_latest_back_dir: "{{ etcd_back_dirs.files | sort(attribute='ctime',reverse=true) | first }}"
+
+  - name: 压缩 etcd 备份文件
+    archive:
+      path: "{{ etcd_latest_back_dir.path }}/*"
+      dest: "{{ etcd_latest_back_dir.path }}.tar.gz"
+      format: gz
+      force_archive: true
+
+  - name: 拉取 etcd 备份至本地
+    fetch:
+      src: "{{ etcd_latest_back_dir.path }}.tar.gz"
+      dest: "{{ (playbook_dir + '/cluster-backup/' + inventory_hostname + '-' + etcd_latest_back_dir.path|basename + '.tar.gz') | realpath }}"
+      flat: yes
+  when: inventory_hostname in groups['kube_etcds']

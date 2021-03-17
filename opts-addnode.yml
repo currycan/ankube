@@ -2,13 +2,25 @@
 - hosts: add_nodes
   become: true
   roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  # - { role: prepare/python3 }
-  - { role: prepare/chrony, when: "groups['chrony']|length > 0" }
-  - { role: prepare/initialize }
-  - { role: cert }
-  - { role: k8s-kubeconfig, node_role: 'node' }
+  # 校验基础环境是否就绪，如：内核版本
+  - { role: initialize/check-environment }
+  # 时间校准
+  - { role: initialize/chrony, when: "groups['chrony']|length > 0" }
+  # 系统初始化
+  - { role: initialize/init }
+  # 安装容器运行时
   - { role: container-runtime }
-  - { role: k8s-setup, node_role: 'node' }
-  - { role: k8s-network }
+  # kubernetes安装
+  - { role: k8s-setup/certificates }
+  - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable" }
+  - { role: k8s-setup/install }
+  # 网络插件安装
+  - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'custom'" }
+  - { role: k8s-network/calico/install, when: "container_network == 'calico'" }
+  - { role: k8s-network/cilium, when: "container_network == 'cilium'" }
+  - { role: k8s-network/flannel, when: "container_network == 'flannel'" }
+  - { role: k8s-network/kubeovn, when: "container_network == 'kubeovn'" }
+  # helm 安装
+  - { role: k8s-helm/helm3, when: "helm_type == 'helm3' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2' and inventory_hostname in groups['kube_cluster']" }

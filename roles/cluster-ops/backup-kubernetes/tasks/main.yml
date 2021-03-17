@@ -1,0 +1,60 @@
+- block:
+  - name: 备份二进制安装模式配置文件
+    when: "binary_way is defined and binary_way.enable"
+    include_tasks: binary.yml
+
+  - name: 备份 kubeadm 安装模式配置文件
+    when: "kubeadm_way is defined and kubeadm_way.enable"
+    include_tasks: kubeadm.yml
+
+  - name: 清理临时文件目录
+    file:
+      name: /backup-cluster-tmp
+      state: absent
+
+  - name: 创建临时文件目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/backup-k8s/krew"
+    - /backup-cluster-tmp
+
+  - name: 集群内节点备份 krew 工具
+    copy:
+      src: "{{ ansible_env.HOME }}/.krew/"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/krew"
+      mode: 0644
+      remote_src: yes
+
+  - name: 备份 {{ kubernetes_etc_dir }} 目录
+    copy:
+      src: "{{ kubernetes_etc_dir }}/"
+      dest: "/backup-cluster-tmp/kubernetes.orig.{{ ansible_date_time.iso8601_basic_short }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 读取 kubernetes 所有备份目录
+    find:
+      paths: /backup-cluster-tmp
+      file_type: directory
+      patterns: kubernetes.orig.*
+    register: kubernetes_back_dirs
+
+  - name: 获取 kubernetes 最新备份目录
+    set_fact:
+      kubernetes_latest_back_dir: "{{ kubernetes_back_dirs.files | sort(attribute='ctime',reverse=true) | first }}"
+
+  - name: 压缩 kubernetes 备份文件
+    archive:
+      path: "{{ kubernetes_latest_back_dir.path }}/*"
+      dest: "{{ kubernetes_latest_back_dir.path }}.tar.gz"
+      format: gz
+      force_archive: true
+
+  - name: 拉取 kubernetes 备份至本地
+    fetch:
+      src: "{{ kubernetes_latest_back_dir.path }}.tar.gz"
+      dest: "{{ (playbook_dir + '/cluster-backup/' + inventory_hostname + '-' + kubernetes_latest_back_dir.path|basename + '.tar.gz') | realpath }}"
+      flat: yes
+  when: inventory_hostname in groups['kube_cluster']

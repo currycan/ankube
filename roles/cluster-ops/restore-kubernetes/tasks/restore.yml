@@ -1,0 +1,205 @@
+- block:
+  - name: 停止 master 三大组件运行
+    service:
+      name: "{{ item }}"
+      state: stopped
+      enabled: yes
+    with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    when:
+    - binary_way is defined and binary_way.enable
+    - inventory_hostname in groups['kube_masters']
+    ignore_errors: true
+
+  - name: 停止 kube-proxy 组件运行
+    when: "binary_way is defined and binary_way.enable"
+    service:
+      name: kube-proxy
+      state: stopped
+      enabled: yes
+    ignore_errors: true
+
+  - name: 停止 kubelet 运行
+    service:
+      name: kubelet
+      state: stopped
+      enabled: yes
+    ignore_errors: true
+
+  - name: 读取 kubernetes 备份数据
+    find:
+      paths: "{{ (playbook_dir + '/cluster-backup') | realpath  }}"
+      patterns: "{{ inventory_hostname }}-kubernetes.orig.*"
+    register: kubernetes_back_dirs
+    delegate_to: localhost
+
+  - name: 校验 kubernetes 备份文件是否存在
+    assert:
+      that: kubernetes_back_dirs.files|length >= 1
+      msg: "未获取到节点：{{ inventory_hostname }} 的任何备份文件，请检查目录：{{ (playbook_dir + '/cluster-backup') | realpath  }} 中是否有该节点备份文件。"
+
+  - name: 获取 kubernetes 最新备份目录
+    set_fact:
+      kubernetes_latest_back_dir: "{{ kubernetes_back_dirs.files | sort(attribute='ctime',reverse=true) | first }}"
+
+  - name: 清理相关目录
+    file:
+      name: "{{ item }}"
+      state: absent
+    with_items:
+    - "{{ kubernetes_etc_dir }}"
+    - "{{ kubelet_data_dir }}"
+    - "{{ kube_proxy_data_dir }}"
+    - "{{ systemd_service_dir }}/kubelet.service.d"
+    - "{{ ansible_env.HOME }}/.kube"
+    - "{{ ansible_env.HOME }}/.krew"
+    ignore_errors: true
+
+  - name: 创建 kubernetes 相关目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}"
+    - "{{ kubelet_data_dir }}"
+    - "{{ kube_proxy_data_dir }}"
+    - "{{ systemd_service_dir }}/kubelet.service.d"
+    - "{{ ansible_env.HOME }}/.kube"
+    - "{{ ansible_env.HOME }}/.krew"
+    - /backup-cluster-tmp
+
+  - name: 分发备份文件到对应节点
+    copy:
+      src: "{{ kubernetes_latest_back_dir.path }}"
+      dest: /backup-cluster-tmp
+      mode: 0644
+
+  - name: 还原备份文件
+    unarchive:
+      src: "/backup-cluster-tmp/{{ kubernetes_latest_back_dir.path|basename }}"
+      dest: "{{ kubernetes_etc_dir }}"
+      remote_src: yes
+
+  - name: 恢复集群内节点各服务 service 文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-k8s/service/"
+      dest: "{{ systemd_service_dir }}"
+      remote_src: yes
+
+  - name: 恢复集群内节点 kubelet 数据文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-k8s/kubelet/"
+      dest: "{{ kubelet_data_dir }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 恢复集群内节点 kube-proxy 配置文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy/"
+      dest: "{{ kube_proxy_data_dir }}"
+      mode: 0644
+      remote_src: yes
+
+  - block:
+    - name: 恢复 master 节点 logrotate 文件
+      copy:
+        src: "{{ kubernetes_etc_dir }}/backup-k8s/logrotate/"
+        dest: "/etc/logrotate.d/"
+        mode: 0644
+        remote_src: yes
+
+    - name: 启动 kubernetes master节点 三大核心组件，并设置开机启动
+      systemd:
+        name: "{{ item }}"
+        daemon_reload: yes
+        state: restarted
+        enabled: yes
+      with_items:
+        - kube-apiserver
+        - kube-controller-manager
+        - kube-scheduler
+      register: start_service
+
+    - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/install/tasks/common/check_master_status.yml"
+    when:
+    - binary_way is defined and binary_way.enable
+    - inventory_hostname in groups['kube_masters']
+
+  - name: 启动 kubelet
+    systemd:
+      name: "{{ item }}"
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+    with_items:
+      - kubelet
+
+  - name: 等待 kubelet 件启动
+    wait_for:
+      host: "127.0.0.1"
+      port: "{{ item }}"
+      delay: 5
+      connect_timeout: 60
+      timeout: 300
+    with_items:
+      - "{{ kubelet.bind_port }}"
+      - "{{ kubelet.bind_read_port }}"
+      - "{{ kubelet.bind_healthz_port }}"
+
+  - block:
+    - name: 启动 kube-proxy
+      systemd:
+        name: "{{ item }}"
+        daemon_reload: yes
+        state: restarted
+        enabled: yes
+      with_items:
+        - kube-proxy
+
+    - name: 等待 kube-proxy 件启动
+      wait_for:
+        host: "127.0.0.1"
+        port: "{{ item }}"
+        delay: 5
+        connect_timeout: 60
+        timeout: 300
+      with_items:
+      - "{{ kube_proxy.healthz_port }}"
+      - "{{ kube_proxy.metrics_port }}"
+    when: "binary_way is defined and binary_way.enable"
+
+  - name: 获取 kubeconfig admin 文件
+    slurp:
+      src: "{{ item }}"
+    with_items:
+      - "{{ kubernetes_etc_dir }}/admin.conf"
+    register: slurp_kubeconfig
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 配置 kubeconfig admin 文件到 $HOME/.kube/config
+    copy:
+      dest: "{{ ansible_env.HOME }}/.kube/config"
+      content: "{{ item.content | b64decode }}"
+      owner: root
+      group: root
+      mode: 0600
+    no_log: true
+    with_items: "{{ slurp_kubeconfig.results }}"
+
+  - name: 恢复 kubectl-krew
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-k8s/krew"
+      dest: "{{ ansible_env.HOME }}/.krew/"
+      mode: 0644
+      remote_src: yes
+
+  - name: 配置 krew 环境变量
+    lineinfile:
+      dest: "{{ ansible_env.HOME }}/.bash_profile"
+      state: present
+      regexp: "krew"
+      line: export PATH="{{ ansible_env.HOME }}/.krew/bin:$PATH"
+  when: inventory_hostname in groups['kube_cluster']

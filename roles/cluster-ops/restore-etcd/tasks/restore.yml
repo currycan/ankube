@@ -1,0 +1,151 @@
+- block:
+  - name: 确认 etcd 已停止运行
+    service:
+      name: etcd
+      state: stopped
+      enabled: yes
+    ignore_errors: true
+
+  - name: 读取 etcd 备份压缩文件
+    find:
+      paths: "{{ (playbook_dir + '/cluster-backup') | realpath  }}"
+      patterns: "{{ inventory_hostname }}-etcd.orig.*"
+    register: etcd_back_dirs
+    delegate_to: localhost
+
+  - name: 校验 etcd 备份压缩文件是否存在
+    assert:
+      that: etcd_back_dirs.files|length >= 1
+      msg: "未获取到节点：{{ inventory_hostname }} 的任何备份文件，请检查目录：{{ (playbook_dir + '/cluster-backup') | realpath  }} 中是否有该节点备份文件。"
+
+  - name: 获取最新 etcd 备份压缩文件
+    set_fact:
+      etcd_latest_back_dir: "{{ etcd_back_dirs.files | sort(attribute='ctime',reverse=true) | first }}"
+
+  - name: 清理相关目录
+    file:
+      name: "{{ item }}"
+      state: absent
+    with_items:
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_wal_dir }}"
+    - "{{ etcd_pki_dir }}"
+
+  - name: 创建 etcd 迁移相关目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ etcd_pki_dir }}"
+    - /backup-cluster-tmp
+    - "{{ kubernetes_etc_dir }}/backup-etcd"
+
+  - name: 分发备份文件到对应节点
+    copy:
+      src: "{{ etcd_latest_back_dir.path }}"
+      dest: /backup-cluster-tmp
+      mode: 0644
+
+  - name: 还原备份文件
+    unarchive:
+      src: "/backup-cluster-tmp/{{ etcd_latest_back_dir.path|basename }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd"
+      remote_src: yes
+
+  - name: 读取 etcd 备份数据
+    find:
+      paths: "{{ kubernetes_etc_dir }}/backup-etcd/data/"
+      patterns: "etcd-snapshot*.db"
+    register: etcd_back_files
+
+  - name: 获取最新 etcd 备份数据
+    set_fact:
+      etcd_latest_back_file: "{{ etcd_back_files.files | sort(attribute='ctime',reverse=true) | first }}"
+
+  - name: 复制最新 etcd 备份数据到备份目录
+    copy:
+      src: "{{ etcd_latest_back_file.path }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-etcd/etcd-snapshot-latest.db"
+      remote_src: yes
+
+  - name: 恢复 etcd service 文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/service/"
+      dest: "{{ systemd_service_dir }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 恢复 etcd profile 文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/profile/"
+      dest: "{{ profile_dir }}"
+      mode: 0755
+      remote_src: yes
+
+  - name: 恢复 etcd script 文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/script/"
+      dest: "{{ etcd_bin_dir }}"
+      mode: 0755
+      remote_src: yes
+
+  - name: 恢复 etcd 证书文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/pki/"
+      dest: "{{ etcd_pki_dir }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 恢复 etcd 配置文件
+    copy:
+      src: "{{ kubernetes_etc_dir }}/backup-etcd/config/"
+      dest: "{{ etcd_config_dir }}"
+      mode: 0644
+      remote_src: yes
+
+  - name: 恢复 etcd 数据
+    shell: >
+      {{ etcd_bin_dir }}/etcdctl snapshot restore \
+      {{ kubernetes_etc_dir }}/backup-etcd/etcd-snapshot-latest.db \
+      --data-dir={{ etcd_data_dir }} \
+      --name={{ hostvars[inventory_hostname].ansible_hostname }} \
+      --initial-cluster={% for host in (groups['etcds'] + groups['add_etcds']) %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %} \
+      --initial-cluster-token=etcd-cluster-token \
+      --initial-advertise-peer-urls=https://{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:2380
+
+  - name: 启动 etcd
+    systemd:
+      name: etcd
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+    register: started_etcd
+    until: started_etcd is succeeded
+    retries: 3
+    delay: "{{ retry_stagger }}"
+
+  - name: 以轮询的方式等待 etcd 启动完成
+    when: started_etcd is succeeded
+    shell: "systemctl status etcd.service | grep Active"
+    register: etcd_status
+    until: '"running" in etcd_status.stdout'
+    retries: 2
+    delay: "{{ retry_stagger }}"
+
+  - name: 检查 etcd 状态
+    uri:
+      method: "GET"
+      url: "https://{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:2379/health"
+      validate_certs: no
+      client_cert: "{{ etcd_cert_healthcheck_client }}"
+      client_key: "{{ etcd_cert_healthcheck_client_key }}"
+    register: result
+    until: result.status is defined and result.status == 200
+    retries: 3
+    delay: "{{ retry_stagger }}"
+
+  - name: 移除各节点临时 etcd 备份文件
+    file:
+      name: "{{ kubernetes_etc_dir }}/backup-etcd/etcd-snapshot-latest.db"
+      state: absent
+  when: inventory_hostname in groups['kube_etcds']

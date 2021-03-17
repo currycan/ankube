@@ -1,16 +1,10 @@
 # Tear down nodes
-- hosts: "{{ groups['masters'][0] }}"
-  become: yes
+- hosts:
+  - delete_nodes
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-path }
-  - { role: cluster-default }
-  - { role: cluster-ops/delete }
-
-- hosts: delete_nodes
-  become: yes
-  roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: cluster-reset, reset_flannel: true }
-  - { role: cluster-reset , reset_k8s: true }
+  - { role: cluster-ops/delete/node }
+  - { role: cluster-reset, reset_k8s: true }
   - { role: cluster-reset, reset_kernel_module: false }

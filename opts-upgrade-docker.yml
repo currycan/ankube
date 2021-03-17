@@ -1,15 +1,24 @@
-- hosts: kube_cluster
+# download update docker binary
+- hosts:
+  - kube_cluster
   become: true
-  serial: 2
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: container-runtime, node_role: 'master' }
+  # 需要和全局变量里的 binary.yml 值保持一致
+  - { role: cluster-ops/upgrade/normal, upgrade: "containerd" }
+  - { role: cluster-ops/upgrade/normal, upgrade: "runc" }
+  - { role: cluster-ops/upgrade/normal, upgrade: "crictl" }
+  - { role: cluster-ops/upgrade/normal, upgrade: "critest" }
+  - { role: cluster-ops/upgrade/normal, upgrade: "docker" }
+  - { role: cluster-ops/upgrade/normal, upgrade: "docker_compose" }
 
-- hosts: add_nodes
+# update docker
+- hosts:
+  - kube_cluster
   become: true
   serial: 2
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: container-runtime, node_role: 'node', when: "inventory_hostname not in groups['nodes']" }
+  - { role: container-runtime }

@@ -1,0 +1,40 @@
+- block:
+  - name: 所有节点创建备份目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/backup-k8s/service"
+    - "{{ kubernetes_etc_dir }}/backup-k8s/kubelet"
+    - "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy"
+
+  - name: 集群内节点备份 kubelet service文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/service"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ systemd_service_dir }}/kubelet.service.d"
+    - "{{ systemd_service_dir }}/kubelet.service"
+
+  - name: 集群内节点备份 kubelet 数据文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/kubelet"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ kubelet_data_dir }}/pki"
+    - "{{ kubelet_data_dir }}/config.yaml"
+    - "{{ kubelet_data_dir }}/kubeadm-flags.env"
+
+  - name: 集群内节点备份 kube-proxy 数据文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ kube_proxy_data_dir }}/config.yaml"
+  when: inventory_hostname in groups['kube_cluster']

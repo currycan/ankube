@@ -1,0 +1,10 @@
+# backup etcd data
+- hosts:
+  - kube_etcds
+  - kube_cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - cluster-ops/backup-etcd
+  - cluster-ops/backup-kubernetes

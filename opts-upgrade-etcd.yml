@@ -1,10 +1,19 @@
+# download update etcd binary
+- hosts:
+  - kube_etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  # 需要和全局变量里的 binary.yml 值保持一致
+  - { role: cluster-ops/upgrade/normal, upgrade: "etcd" }
+
 # update etcd
-- hosts: etcds
+- hosts:
+  - kube_etcds
   become: true
   serial: 1
-  # vars:
-  #   etcd_api_version: 2
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-    - { role: cluster-default }
-    - { role: cluster-path }
-    - { role: etcd }
+  - { role: etcd/install }

@@ -1,0 +1,73 @@
+- block:
+  - name: master 节点创建备份目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/backup-k8s/logrotate"
+    - "{{ kubernetes_etc_dir }}/backup-k8s/service"
+
+  - name: 集群内 master 节点备份 logrotate 配置文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/logrotate"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - /etc/logrotate.d/kube-apiserver
+    - /etc/logrotate.d/kube-controller-manager
+    - /etc/logrotate.d/kube-scheduler
+
+  - name: 集群内 master 节点备份各节点组件 service 文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/service"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ systemd_service_dir }}/kube-apiserver.service"
+    - "{{ systemd_service_dir }}/kube-controller-manager.service"
+    - "{{ systemd_service_dir }}/kube-scheduler.service"
+  when: inventory_hostname in groups['kube_masters']
+
+- block:
+  - name: 所有节点创建备份目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/backup-k8s/service"
+    - "{{ kubernetes_etc_dir }}/backup-k8s/kubelet"
+    - "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy"
+
+  - name: 集群内节点备份 kubelet service文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/service"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ systemd_service_dir }}/kubelet.service.d"
+    - "{{ systemd_service_dir }}/kubelet.service"
+    - "{{ systemd_service_dir }}/kube-proxy.service"
+
+  - name: 集群内节点备份 kubelet 数据文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/kubelet"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ kubelet_data_dir }}/pki"
+    - "{{ kubelet_data_dir }}/config.yaml"
+
+  - name: 集群内节点备份 kube-proxy 数据文件
+    copy:
+      src: "{{ item }}"
+      dest: "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy"
+      mode: 0644
+      remote_src: yes
+    with_items:
+    - "{{ kube_proxy_data_dir }}/config.yaml"
+    - "{{ kube_proxy_data_dir }}/kubeconfig.conf"
+  when: inventory_hostname in groups['kube_cluster']

@@ -1,26 +1,24 @@
-- hosts: masters
+# download update kubernetes binary
+- hosts:
+  - kube_cluster
   become: true
-  serial: 1
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: k8s-setup, node_role: 'master' }
-  - { role: download, pkg: "{{ package.kubectl }}" }
+  # 需要和全局变量里的 binary.yml 值保持一致
+  - { role: cluster-ops/upgrade/normal, upgrade: "kubernetes" }
+  - { role: cluster-ops/upgrade/normal, frozen_way: false, docker_enable_proxy: true, image: "apiserver" }
+  - { role: cluster-ops/upgrade/normal, frozen_way: false, docker_enable_proxy: true, image: "controller_manager" }
+  - { role: cluster-ops/upgrade/normal, frozen_way: false, docker_enable_proxy: true, image: "scheduler" }
+  - { role: cluster-ops/upgrade/normal, frozen_way: false, docker_enable_proxy: true, image: "proxy" }
 
-- hosts: nodes
+# update kubernetes
+- hosts:
+  - kube_cluster
   become: true
   serial: 2
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: k8s-setup, node_role: 'node' }
-  - { role: download, pkg: "{{ package.kubectl }}" }
-
-- hosts: add_nodes
-  become: true
-  serial: 2
-  roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - { role: k8s-setup, node_role: 'node', when: "inventory_hostname not in groups['nodes']" }
-  - { role: download, pkg: "{{ package.kubectl }}" }
+  - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable" }
+  - { role: k8s-setup/install }
