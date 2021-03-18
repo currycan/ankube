@@ -45,9 +45,6 @@ kube_master_external_domain:
 # coredns 自动安装
 local_dns_cache: "169.254.20.10"
 
-# 是否安装 kubectl-krew
-enable_kubectl_krew: true
-
 # metallb
 # 选一段与node节点相同网段的地址
 # metallb_protocol: bgp

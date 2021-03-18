@@ -1,9 +1,0 @@
-- block:
-  - name: 预装各组件
-    include_tasks: _preinstall.yml
-    loop_control:
-      loop_var: out_item
-    with_dict: "{{ binary }}"
-    register: preinstall
-  run_once: true
-  delegate_to: "{{ groups['deploy'][0] }}"

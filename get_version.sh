@@ -24,6 +24,7 @@ declare -a binaries_url=(
     [helm_url]=https://github.com//helm/helm/tags
     [helmfile_url]=https://github.com/roboll/helmfile/tags
     [kustomize_url]=https://github.com/kubernetes-sigs/kustomize/tags
+    [kubecm_url]=https://github.com/sunny0826/kubecm/tags
     [krew_url]=https://github.com/kubernetes-sigs/krew/tags
     [kubectl_debug_url]=https://github.com/aylei/kubectl-debug/tags
     [k9s_url]=https://github.com/derailed/k9s/tags

@@ -1,6 +1,8 @@
 # 二进制文件
 binary:
   cfssl:
+    enable: "{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}true{% else %}false{%- endif -%}"
+    type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssl_{{ cfssl_version }}_linux_amd64"
     file: "cfssl_{{ cfssl_version }}_linux_amd64"
     archive_dir: ""
@@ -12,6 +14,8 @@ binary:
     image: ""
 
   cfssljson:
+    enable: "{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}true{% else %}false{%- endif -%}"
+    type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssljson_{{ cfssl_version }}_linux_amd64"
     file: "cfssljson_{{ cfssl_version }}_linux_amd64"
     archive_dir: ""
@@ -23,6 +27,8 @@ binary:
     image: ""
 
   cfssl_certinfo:
+    enable: "{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}true{% else %}false{%- endif -%}"
+    type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssl-certinfo_{{ cfssl_version }}_linux_amd64"
     file: "cfssl-certinfo_{{ cfssl_version }}_linux_amd64"
     archive_dir: ""
@@ -34,6 +40,8 @@ binary:
     image: ""
 
   kubernetes:
+    enable: "{%- if binary_way is defined and binary_way.enable -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     # https://dl.k8s.io/release/stable.txt
     # https://github.com/kubernetes/kubernetes/tags
     url: "https://dl.k8s.io/v{{ kube_version }}/kubernetes-server-linux-amd64.tar.gz"
@@ -57,6 +65,8 @@ binary:
       - server/bin/kube-proxy.tar
 
   kustomize:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv{{ kustomize_version }}/kustomize_v{{ kustomize_version }}_linux_amd64.tar.gz"
     file: "kustomize_v{{ kustomize_version }}_linux_amd64.tar.gz"
     archive_dir: "kustomize-v{{ kustomize_version }}"
@@ -68,6 +78,8 @@ binary:
     image: ""
 
   etcd:
+    enable: "true"
+    type: kube_etcds
     url: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
     file: "etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
     archive_dir: "etcd-v{{ etcd_version }}"
@@ -80,6 +92,8 @@ binary:
     image: ""
 
   containerd:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz"
     file: "containerd-{{ containerd_version }}-linux-amd64.tar.gz"
     archive_dir: "containerd-{{ containerd_version }}"
@@ -95,6 +109,8 @@ binary:
     image: ""
 
   runc:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64"
     file: "runc.amd64-v{{ runc_version }}"
     archive_dir: ""
@@ -106,6 +122,8 @@ binary:
     image: ""
 
   crictl:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tools_version }}/crictl-v{{ cri_tools_version }}-linux-amd64.tar.gz"
     file: "crictl-v{{ cri_tools_version }}-linux-amd64.tar.gz"
     archive_dir: "crictl-v{{ cri_tools_version }}"
@@ -117,6 +135,8 @@ binary:
     image: ""
 
   critest:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tools_version }}/critest-v{{ cri_tools_version }}-linux-amd64.tar.gz"
     file: "critest-v{{ cri_tools_version }}-linux-amd64.tar.gz"
     archive_dir: "critest-v{{ cri_tools_version }}"
@@ -128,6 +148,8 @@ binary:
     image: ""
 
   docker:
+    enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://download.docker.com/linux/static/stable/x86_64/docker-{{ docker_version }}.tgz"
     file: "docker-{{ docker_version }}.tgz"
     archive_dir: "docker-{{ docker_version }}"
@@ -146,6 +168,8 @@ binary:
     image: ""
 
   docker_compose:
+    enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
     file: "docker-compose-{{ docker_compose_version }}"
     archive_dir: ""
@@ -156,18 +180,9 @@ binary:
       - docker-compose
     image: ""
 
-  flannel:
-    url: "https://github.com/coreos/flannel/releases/download/v{{ flanneld_version }}/flannel-v{{ flanneld_version }}-linux-amd64.tar.gz"
-    file: "flannel-v{{ flanneld_version }}-linux-amd64.tar.gz"
-    archive_dir: "flannel-v{{ flanneld_version }}"
-    install_dir: ""
-    unarchive:
-      extra_opt: "['--strip-components=0']"
-    bin:
-      - flanneld
-    image: ""
-
   calico:
+    enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/projectcalico/calico/releases/download/v{{ calico_version }}/release-v{{ calico_version }}.tgz"
     file: "calico-v{{ calico_version }}-linux-amd64.tar.gz"
     archive_dir: "calico-v{{ calico_version }}"
@@ -183,6 +198,8 @@ binary:
       - images/calico-kube-controllers.tar
 
   cni:
+    enable: "true"
+    type: kube_cluster
     url: "https://github.com/containernetworking/plugins/releases/download/v{{ cni_version }}/cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
     file: "cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
     archive_dir: "cni-{{ cni_version }}"
@@ -209,6 +226,8 @@ binary:
     image: ""
 
   helm2:
+    enable: "{%- if helm_type == 'helm2' -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://get.helm.sh/helm-v{{ helm2_version }}-linux-amd64.tar.gz"
     file: "helm-v{{ helm2_version }}-linux-amd64.tar.gz"
     archive_dir: "helm-v{{ helm2_version }}"
@@ -220,6 +239,8 @@ binary:
     image: ""
 
   helm3:
+    enable: "{%- if helm_type == 'helm3' -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://get.helm.sh/helm-v{{ helm3_version }}-linux-amd64.tar.gz"
     file: "helm-v{{ helm3_version }}-linux-amd64.tar.gz"
     archive_dir: "helm-v{{ helm3_version }}"
@@ -231,6 +252,8 @@ binary:
     image: ""
 
   helmfile:
+    enable: "{%- if enable_helmfile is defined and enable_helmfile -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/roboll/helmfile/releases/download/v{{ helmfile_version }}/helmfile_linux_amd64"
     file: "helmfile_linux_amd64-v{{ helmfile_version }}"
     archive_dir: ""
@@ -242,6 +265,8 @@ binary:
     image: ""
 
   krew:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/kubernetes-sigs/krew/releases/download/v{{ krew_version }}/krew.tar.gz"
     file: "krew-v{{ krew_version }}.tar.gz"
     archive_dir: "krew-v{{ krew_version }}"
@@ -253,6 +278,8 @@ binary:
     image: ""
 
   kubectl_debug:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/aylei/kubectl-debug/releases/download/v{{ kubectl_debug_version }}/kubectl-debug_{{ kubectl_debug_version }}_linux_amd64.tar.gz"
     file: "kubectl-debug_{{ kubectl_debug_version }}_linux_amd64.tar.gz"
     archive_dir: "kubectl-debug-v{{ kubectl_debug_version }}"
@@ -264,6 +291,8 @@ binary:
     image: ""
 
   k9s:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/derailed/k9s/releases/download/v{{ k9s_version }}/k9s_Linux_x86_64.tar.gz"
     file: "k9s_Linux_x86_64-v{{ k9s_version }}.tar.gz"
     archive_dir: "k9s-v{{ k9s_version }}"
@@ -275,6 +304,8 @@ binary:
     image: ""
 
   kubecm:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/sunny0826/kubecm/releases/download/v{{ kubecm_version }}/kubecm_{{ kubecm_version }}_Linux_x86_64.tar.gz"
     file: "kubecm_{{ kubecm_version }}_Linux_x86_64.tar.gz"
     archive_dir: "kubecm-{{ kubecm_version }}"
@@ -286,6 +317,8 @@ binary:
     image: ""
 
   argocd:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/argoproj/argo-cd/releases/download/v{{ argocd_version }}/argocd-linux-amd64"
     file: "argocd-linux-amd64-v{{ argocd_version }}"
     archive_dir: ""
@@ -297,6 +330,8 @@ binary:
     image: ""
 
   vela:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/oam-dev/kubevela/releases/download/v{{ vela_version }}/vela-v{{ vela_version }}-linux-amd64.tar.gz"
     file: "vela-v{{ vela_version }}-linux-amd64.tar.gz"
     archive_dir: "vela-v{{ vela_version }}"
@@ -308,6 +343,8 @@ binary:
     image: ""
 
   istio:
+    enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+    type: kube_cluster
     url: "https://github.com/istio/istio/releases/download/{{ istio_version }}/istio-{{ istio_version }}-linux-amd64.tar.gz"
     file: "istio-{{ istio_version }}-linux-amd64.tar.gz"
     archive_dir: "istio-{{ istio_version }}"
@@ -318,13 +355,15 @@ binary:
       - bin/istioctl
     image: ""
 
-  istioctl:
-    url: "https://github.com/istio/istio/releases/download/{{ istio_version }}/istioctl-{{ istio_version }}-linux-amd64.tar.gz"
-    file: "istioctl-{{ istio_version }}-linux-amd64.tar.gz"
-    archive_dir: "istioctl-{{ istio_version }}"
-    install_dir: "{{ istio_bin_dir }}"
-    unarchive:
-      extra_opt: "['--strip-components=0']"
-    bin:
-      - istioctl
-    image: ""
+  # istioctl:
+  #   enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
+  #   type: kube_cluster
+  #   url: "https://github.com/istio/istio/releases/download/{{ istio_version }}/istioctl-{{ istio_version }}-linux-amd64.tar.gz"
+  #   file: "istioctl-{{ istio_version }}-linux-amd64.tar.gz"
+  #   archive_dir: "istioctl-{{ istio_version }}"
+  #   install_dir: "{{ istio_bin_dir }}"
+  #   unarchive:
+  #     extra_opt: "['--strip-components=0']"
+  #   bin:
+  #     - istioctl
+  #   image: ""

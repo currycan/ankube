@@ -1,0 +1,7 @@
+# 安装 container-runtime(docker)
+- hosts: kube_cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: load-image }
