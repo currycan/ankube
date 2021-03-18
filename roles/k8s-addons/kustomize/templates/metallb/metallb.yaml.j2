@@ -340,6 +340,8 @@ spec:
       serviceAccountName: metallb-speaker
       terminationGracePeriodSeconds: 2
       tolerations:
+      # 默认没有添加,否则 master 节点不会运行副本
+      - operator: Exists
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
 ---
