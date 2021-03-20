@@ -3,7 +3,7 @@
 #   - kube_cluster
 # - hosts: "{{ groups['masters'] }}"
 # - hosts: kube_cluster
-# - hosts: "{{(groups['nodes'] + groups['add_nodes'])}}"
+# - hosts: "{{groups['kube_nodes']}}"
 # - hosts: etcds
 # - hosts: "{{ groups['deploy'][0] }}"
   become: true
@@ -16,6 +16,19 @@
   tasks:
   # - debug: var=ansible_kernel
   # - debug: var=ansible_facts
+
+  # - name: 生成 bootstrap_token_id
+  #   set_fact:
+  #     bootstrap_token_id: "{{ lookup('password', '/dev/null length=6 chars=digits,ascii_letters,digits') | lower }}"
+  # - name: 生成 bootstrap_token_secret
+  #   set_fact:
+  #     bootstrap_token_secret: "{{ lookup('password', '/dev/null length=16 chars=digits,ascii_letters,digits') | lower }}"
+  # - name: 生成 bootstrap_token
+  #   set_fact:
+  #     bootstrap_token: "{{ bootstrap_token_id + '.' + bootstrap_token_secret }}"
+  # - debug: var=bootstrap_token_id
+  # - debug: var=bootstrap_token_secret
+  # - debug: var=bootstrap_token
 
   # - name: test
   #   include_role:
@@ -40,4 +53,3 @@
   #       --set prometheus.enabled=false \
   #       --set webhook.image.tag=v1.1.0 \
   #       --set cainjector.image.tag=v1.1.0;
-  - debug: var=token_bytes
