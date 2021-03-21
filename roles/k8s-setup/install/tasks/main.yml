@@ -159,7 +159,6 @@
   - name: 允许 worker 节点被调度，设置节点标签
     when: inventory_hostname in groups['kube_nodes']
     shell: >
-      {{ kubernetes_bin_dir }}/kubectl uncordon {{ inventory_hostname }};
       [ `{{ kubernetes_bin_dir }}/kubectl get nodes {{ inventory_hostname }} --show-labels | grep cloudprovider` ] && \
       {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node.cloudprovider.kubernetes.io/uninitialized-;
       {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/worker='' --overwrite

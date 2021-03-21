@@ -5,6 +5,11 @@ apiVersion: kubeadm.k8s.io/v1beta2
 apiVersion: kubeadm.k8s.io/v1beta1
 {% endif %}
 kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: {% if groups['kube_masters'] | length == 1 %}{{ groups['masters'][0] }}{% else %}{{ vip_address }}{% endif %}
+
+  bindPort: {% if groups['kube_masters'] | length == 1 %}{{ apiserver_secure_port|int }}{% else %}{{ lb_secure_port|int }}{% endif %}
+
 nodeRegistration:
   kubeletExtraArgs:
     hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
