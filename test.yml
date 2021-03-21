@@ -1,6 +1,6 @@
-# - hosts: "{{ groups['masters'][0] }}"
-- hosts:
-  - kube_cluster
+- hosts: "{{ groups['masters'][0] }}"
+# - hosts:
+#   - kube_cluster
 # - hosts: "{{ groups['masters'] }}"
 # - hosts: kube_cluster
 # - hosts: "{{groups['kube_nodes']}}"
@@ -53,6 +53,3 @@
   #       --set prometheus.enabled=false \
   #       --set webhook.image.tag=v1.1.0 \
   #       --set cainjector.image.tag=v1.1.0;
-  - debug: var="binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
-    when:
-      - binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert

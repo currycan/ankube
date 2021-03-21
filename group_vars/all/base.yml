@@ -31,11 +31,11 @@ binary_way:
   enable: false
   ## 设定证书生成方式：cfssl或者openssl
   cfssl_cert: false
-  openssl_cert: true
+  openssl_cert: false
 kubeadm_way:
   enable: true
   ## 设定证书是自定义签发或者kubeadm签发, 使用kubeadm方式搭建集群暂不支持cfssl生成的pem证书
-  kubeadm_cert: false
+  kubeadm_cert: true
 
 # docker 设置代理是，不需要代理的镜像仓库（默认已设置过滤阿里云等仓库不代理）
 noproxy_registries:

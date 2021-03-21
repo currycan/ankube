@@ -1,11 +1,15 @@
 - name: 创建 kubernetes 证书存放目录
-  when: "inventory_hostname in groups['kube_cluster']"
+  when:
+    - not kubeadm_way.kubeadm_cert
+    - "inventory_hostname in groups['kube_cluster']"
   file: path="{{ item }}" state=directory
   with_items:
     - "{{ k8s_pki_dir }}"
 
 - name: 创建 etcd 证书存放目录
-  when: "inventory_hostname in groups['kube_etcds']"
+  when:
+    - not kubeadm_way.kubeadm_cert
+    - "inventory_hostname in groups['kube_etcds']"
   file: path="{{ item }}" state=directory
   with_items:
     - "{{ etcd_pki_dir }}"
