@@ -29,4 +29,4 @@ subjects:
     name: system:nodes
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
-    name: system:bootstrappers:kubernetes:default-node-token
+    name: system:bootstrappers:default-node-token

@@ -1,0 +1,29 @@
+- name: 创建 kubernetes cluster 证书存放目录
+  file:
+    name: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ kube_proxy_data_dir }}"
+
+- name: master 节点
+  block:
+  - name: 判断 master 节点三大组件的 kubeconfig 文件是否存在
+    stat: path="{{ item.path }}"
+    with_items: "{{ config.contexts.master }}"
+    register: master_kubeconfig_files
+
+  - name: 创建 master 节点三大组件 kubeconfig 文件
+    when: not item.stat.exists
+    include_tasks: "create_kubeconfig.yml"
+    with_items: "{{ master_kubeconfig_files['results'] }}"
+  when: inventory_hostname in groups['kube_masters']
+
+- name: 判断 kubelet 和 kube-proxy 组件的 kubeconfig 文件是否存在
+  stat: path="{{ item.path }}"
+  with_items: "{{ config.contexts.all }}"
+  register: all_kubeconfig_files
+
+- name: 创建 kubelet 和 kube-proxy 组件的 kubeconfig 文件
+  include_tasks: "create_kubeconfig.yml"
+  with_items: "{{ all_kubeconfig_files['results'] }}"
+  when: not item.stat.exists

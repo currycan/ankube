@@ -109,7 +109,7 @@
       {{ kubernetes_etc_dir }}/backup-etcd/etcd-snapshot-latest.db \
       --data-dir={{ etcd_data_dir }} \
       --name={{ hostvars[inventory_hostname].ansible_hostname }} \
-      --initial-cluster={% for host in (groups['etcds'] + groups['add_etcds']) %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %} \
+      --initial-cluster={% for host in groups['kube_etcds'] %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %} \
       --initial-cluster-token=etcd-cluster-token \
       --initial-advertise-peer-urls=https://{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}:2380
 

@@ -122,7 +122,7 @@ runtimeRequestTimeout: 10m0s
 serializeImagePulls: false
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
-{% if kubeadm_way is not defined or not kubeadm_way.kubeadm_cert %}
+{% if kubeadm_way.kubeadm_cert is not defined or not kubeadm_way.kubeadm_cert %}
 tlsCertFile: "{{ kubelet_cert }}"
 tlsPrivateKeyFile: "{{ kubelet_cert_key }}"
 {% endif %}

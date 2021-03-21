@@ -1,0 +1,10 @@
+# 安装二进制文件
+- hosts:
+  - kube_cluster
+  - kube_etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  # normal_install 为 true 时不会拉取二进制文件，只会配置环境变量
+  - { role: install-bin, normal_install: true }

@@ -1,9 +1,0 @@
-# 安装二进制文件
-- hosts:
-  - kube_cluster
-  - etcds
-  become: true
-  gather_facts: true
-  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-  roles:
-  - { role: install-bin }

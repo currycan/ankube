@@ -3,7 +3,9 @@
   file: path="{{ out_item.value.install_dir }}" state=directory
 
 - name: 拉取 {{ out_item.key }} 二进制文件
-  when: out_item.value.archive_dir == ""
+  when:
+    - out_item.value.archive_dir == ""
+    - normal_install is undefined or not normal_install
   copy:
     src: "{{ cache_dir + out_item.value.archive_dir }}/{{ out_item.value.file }}"
     dest: "{{ out_item.value.install_dir }}/{{ item }}"
@@ -13,7 +15,9 @@
   with_items: "{{ out_item.value.bin }}"
 
 - name: 拉取 {{ out_item.key }} 二进制文件
-  when: out_item.value.archive_dir != ""
+  when:
+    - out_item.value.archive_dir != ""
+    - normal_install is undefined or not normal_install
   copy:
     src: "{{ cache_dir + out_item.value.archive_dir }}/{{ item }}"
     dest: "{{ out_item.value.install_dir }}/{{ item.split('/')[-1] }}"

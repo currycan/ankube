@@ -1,25 +1,25 @@
-- hosts: "{{ hosts | default('all') }}"
+- hosts: kube_cluster
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
   - { role: cluster-reset, reset_kernel_module: false }
 
-- hosts: masters
+- hosts: kube_masters
   become: true
   gather_facts: false
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
   - { role: cluster-reset, reset_ha: true }
 
-- hosts: "{{ hosts | default('kube_cluster') }}"
+- hosts: kube_cluster
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
   - { role: cluster-reset, reset_k8s: true }
 
-- hosts: etcds
+- hosts: kube_etcds
   become: true
   gather_facts: false
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

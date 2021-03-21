@@ -85,8 +85,10 @@ ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
 {% if controller_manager.terminated_pod_gc_threshold is defined %}
   --terminated-pod-gc-threshold={{ controller_manager.terminated_pod_gc_threshold }} \
 {% endif %}
+{% if kubeadm_way.kubeadm_cert is not defined or not kubeadm_way.kubeadm_cert %}
   --tls-cert-file={{ controller_cert_manager }} \
   --tls-private-key-file={{ controller_cert_manager_key }} \
+{% endif %}
   --use-service-account-credentials=true \
   --v=2
 

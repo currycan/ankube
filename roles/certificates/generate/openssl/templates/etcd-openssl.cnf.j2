@@ -1,0 +1,47 @@
+[ req ]
+default_bits = {{ cert_key_size }}
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+
+[req_distinguished_name]
+C = "{{ cert_info_country }}"
+ST = "{{ cert_info_state }}"
+L = "{{ cert_info_locality }}"
+OU = "{{ cert_info_org_uit }}"
+
+[ v3_ca ]
+basicConstraints = critical, CA:TRUE
+keyUsage = critical, digitalSignature, keyEncipherment, keyCertSign
+
+[ v3_req_server ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ v3_req_client ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+
+[ v3_req_peer ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names_etcd
+
+[ alt_names_etcd ]
+DNS.1 = localhost
+DNS.2 = {{ etcd_domain_name }}
+{% set dns_idx = 2 | int %}
+{% for host in (groups['kube_etcds']|unique) %}
+DNS.{{ dns_idx + loop.index }} = {{ hostvars[host].ansible_hostname }}
+
+{% endfor %}
+IP.1 = 127.0.0.1
+IP.2 = 0:0:0:0:0:0:0:1
+{% set ip_idx = 2 | int %}
+{% for host in (groups['kube_etcds']|unique) %}
+IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+
+{% endfor %}

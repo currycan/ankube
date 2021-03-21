@@ -2,10 +2,10 @@
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
 apiserver:
-  # advertise_address: "{%- if (groups['masters'] + groups['add_masters']) | length == 1 -%}{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}{%- else -%}{{ vip_address }}{%- endif %}"
+  # advertise_address: "{%- if groups['kube_masters'] | length == 1 -%}{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}{%- else -%}{{ vip_address }}{%- endif %}"
   advertise_address: "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
   secure_port: 6443
-  controlplane_endpoint: "{%- if (groups['masters'] + groups['add_masters']) | length == 1 -%}{{ groups['masters'][0] }}:{{ apiserver_secure_port }}{%- else -%}{{ vip_address }}:{{ lb_secure_port }}{%- endif %}"
+  controlplane_endpoint: "{%- if groups['kube_masters'] | length == 1 -%}{{ groups['masters'][0] }}:{{ apiserver_secure_port }}{%- else -%}{{ vip_address }}:{{ lb_secure_port }}{%- endif %}"
   service_node_port_range: 30000-32767
   service_ip_range: "{{ service_subnet }}"
   enable_admission_plugins:
@@ -169,7 +169,7 @@ kubelet:
   system_cpu_reserved: 500m
   # master节点设置memory=512Mi就会出现device or resource busy的情况,因为kubelet尝试对system.slice配置限制内存为你给定的值。而因实际使用已经超出
   # master节点最少配置 1024M
-  system_memory_reserved: "{%- if inventory_hostname in (groups['masters'] + groups['add_masters']) -%}1.2G{%- else -%}1G{%- endif -%}"
+  system_memory_reserved: "{%- if inventory_hostname in groups['kube_masters'] -%}1.2G{%- else -%}1G{%- endif -%}"
   system_ephemeral_storage_reserved: 10G
   #  以下资源默认也都是开启的
   feature_gates:

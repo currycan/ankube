@@ -1,0 +1,37 @@
+- block:
+  - name: 安装 update-kubeadm-cert.sh 工具
+    include_role:
+      name: certificates/update
+
+  - name: 创建{{ kubernetes_etc_dir }}目录
+    file:
+      name: "{{ kubernetes_etc_dir }}"
+      state: directory
+
+  - name: 配置临时文件kubeadm-config.yaml 用于生成证书
+    template:
+      src: kubeadm-config.yaml.j2
+      dest: "{{ kubernetes_etc_dir }}/kubeadm-config.yaml"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+  - block:
+    - name: 生成证书和 kubeconfig 文件
+      shell: >
+        {{ kubernetes_bin_dir }}/kubeadm init phase certs all --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml;
+        {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig all --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+
+    - name: 更新证书 10 年有效期
+      shell: >
+        {{ kubernetes_bin_dir }}/update-kubeadm-cert.sh all;exit 0
+      # ignore_errors: true
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 分发 etcd 证书到各 etcd 集群节点
+    include_tasks: _etcd.yml
+
+  - name: 分发 kubernetes 证书到各 kubernetes 集群节点
+    include_tasks: _kubernetes.yml
+  when: "kubeadm_way.kubeadm_cert is defined and kubeadm_way.kubeadm_cert"

@@ -8,10 +8,10 @@ kind: JoinConfiguration
 discovery:
   bootstrapToken:
     apiServerEndpoint: "{{ apiserver.controlplane_endpoint }}"
-    token: {{ kubeadm_token }}
+    token: {{ bootstrap_token }}
     unsafeSkipCAVerification: true
   timeout: 4m0s
-  tlsBootstrapToken: {{ kubeadm_token }}
+  tlsBootstrapToken: {{ bootstrap_token }}
 nodeRegistration:
   kubeletExtraArgs:
     network-plugin: cni

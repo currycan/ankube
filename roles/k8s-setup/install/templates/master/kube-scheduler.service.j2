@@ -21,8 +21,10 @@ ExecStart={{ kubernetes_bin_dir }}/kube-scheduler \
   --port={{ scheduler.insecure_port }} \
   --requestheader-client-ca-file={{ front_ca }} \
   --secure-port={{ scheduler.secure_port }} \
+{% if kubeadm_way is not defined or not kubeadm_way.kubeadm_cert %}
   --tls-cert-file={{ scheduler_cert }} \
   --tls-private-key-file={{ scheduler_cert_key }} \
+{% endif %}
   --client-ca-file={{ kubernetes_ca }} \
 {% endif %}
   --v=2

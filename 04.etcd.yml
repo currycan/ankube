@@ -1,0 +1,8 @@
+# 安装 etcd cluster
+- hosts:
+  - kube_etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: etcd }

@@ -12,26 +12,30 @@
   - { role: initialize/chrony, when: "groups['chrony']|length > 0" }
   # 系统初始化
   - { role: initialize/init }
+  # normal_install 为 true 时不会拉取二进制文件，只会配置环境变量
+  - { role: install-bin, normal_install: true }
   # 安装容器运行时
   - { role: container-runtime }
+  - { role: load-image }
+  # 创建证书
+  - { role: certificates/etcd }
+  - { role: certificates/kubernetes }
+  - { role: certificates/kubeadm }
   # 安装etcd
-  - { role: etcd/certificates }
-  - { role: etcd/install, when: "inventory_hostname in groups['kube_etcds']" }
+  - { role: etcd }
   # 集群高可用
-  - { role: k8s-setup/ha, when: "(groups['masters'] + groups['add_masters']) | length > 1" }
+  - { role: k8s-setup/ha, when: "groups['kube_masters'] | length > 1" }
   # kubernetes安装
-  - { role: k8s-setup/certificates, when: "inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-setup/kubeconfig, when: "binary_way is defined and binary_way.enable and inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-setup/install, when: "inventory_hostname in groups['kube_cluster']"}
+  - { role: k8s-setup/install }
   # 网络插件安装
   - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'custom'" }
-  - { role: k8s-network/calico/install, when: "container_network == 'calico' and inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-network/cilium, when: "container_network == 'cilium' and inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-network/flannel, when: "container_network == 'flannel' and inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-network/kubeovn, when: "container_network == 'kubeovn' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-network/calico/install, when: "container_network == 'calico'" }
+  - { role: k8s-network/cilium, when: "container_network == 'cilium'" }
+  - { role: k8s-network/flannel, when: "container_network == 'flannel'" }
+  - { role: k8s-network/kubeovn, when: "container_network == 'kubeovn'" }
   # helm 安装
-  - { role: k8s-helm/helm3, when: "helm_type == 'helm3' and inventory_hostname in groups['kube_cluster']" }
-  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2' and inventory_hostname in groups['kube_cluster']" }
+  - { role: k8s-helm/helm3, when: "helm_type == 'helm3'" }
+  - { role: k8s-helm/helm2/certificates, when: "helm_type == 'helm2'" }
   # ## 系统常用应用组件安装
   # kustomize build
   - { role: k8s-addons/kustomize }

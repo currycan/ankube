@@ -35,10 +35,8 @@
     state: absent
 
 - include_tasks: download.yml
-  register: download_rslt
 
 - name: 分发 pyenv-installer
-  when: download_rslt is succeeded
   copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"

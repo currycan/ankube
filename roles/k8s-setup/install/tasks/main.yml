@@ -1,128 +1,202 @@
-- name: 安装 kubernetes 各组件
-  lineinfile:
-    dest: "{{ ansible_env.HOME }}/.bash_profile"
-    state: present
-    regexp: "{{ kubernetes_bin_dir }}"
-    line: export PATH="{{ kubernetes_bin_dir }}:$PATH"
-
-- name: 添加 kubectl kubeadm 命令自动补全
-  lineinfile:
-    dest: "{{ ansible_env.HOME }}/.bashrc"
-    state: present
-    regexp: "{{ item }} completion"
-    line: "source <({{ kubernetes_bin_dir }}/{{ item }} completion bash)"
-  with_items:
-    - kubectl
-    - kubeadm
-    - kustomize
-
-- name: 当前会话加载 kubectl kubeadm 命令，并自动补全
-  shell: >
-    {{ kubernetes_bin_dir }}/{{ item }} completion bash > /etc/bash_completion.d/{{ item }};
-    source {{ ansible_env.HOME }}/.bash_profile
-  args:
-    executable: /bin/bash
-  with_items:
-    - kubectl
-    - kubeadm
-    - kustomize
-
-- name: 所有 kube_cluster 节点创建所需目录
-  file:
-    name: "{{ item }}"
-    state: directory
-  with_items:
-  - "{{ ansible_env.HOME }}/.kube/"
-  - "{{ kubernetes_etc_dir }}"
-  - "{{ manifest_dir }}"
-  - "{{ cni_etc_dir }}"
-  - "{{ systemd_service_dir }}/kubelet.service.d"
-  - "{{ kubelet_pki_dir }}"
-  - "{{ kube_proxy_pki_dir }}"
-  - "{{ kubernetes_log_dir }}/kubelet"
-  - "{{ kubernetes_log_dir }}/kube-proxy"
-
-- name: 二进制方式搭建 kubernetes 集群
-  when: "binary_way is defined and binary_way.enable"
-  include_tasks: binary/main.yml
-
-- name: kubeadm 方式搭建 kubernetes 集群
-  when: "kubeadm_way is defined and kubeadm_way.enable"
-  include_tasks: kubeadm/main.yml
-
-- name: 获取 kubeconfig admin 文件
-  slurp:
-    src: "{{ item }}"
-  with_items:
-    - "{{ kubernetes_etc_dir }}/admin.conf"
-  register: slurp_kubeconfig
-  run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
-
-- name: 配置 kubeconfig admin 文件到 $HOME/.kube/config
-  copy:
-    dest: "{{ ansible_env.HOME }}/.kube/config"
-    content: "{{ item.content | b64decode }}"
-    owner: root
-    group: root
-    mode: 0600
-  no_log: true
-  with_items: "{{ slurp_kubeconfig.results }}"
-
-- name: 禁止 master 节点被调度，设置节点标签
-  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
-  shell: >
-    {{ kubernetes_bin_dir }}/kubectl cordon {{ inventory_hostname }};
-    {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node-role.kubernetes.io/master=true:NoSchedule --overwrite;
-    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/master='' --overwrite;
-    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/ingress='' --overwrite
-  until: set_taint_master.rc == 0
-  retries: 3
-  delay: "{{ retry_stagger }}"
-  register: set_taint_master
-
-- name: 允许 worker 节点被调度，设置节点标签
-  when: inventory_hostname in (groups['nodes'] + groups['add_nodes'])
-  shell: >
-    [ `{{ kubernetes_bin_dir }}/kubectl get nodes {{ inventory_hostname }} --show-labels | grep cloudprovider` ] && \
-    {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node.cloudprovider.kubernetes.io/uninitialized-;
-    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/worker='' --overwrite
-  register: set_taint_worker
-  until: set_taint_worker.rc == 0
-  retries: 3
-  delay: "{{ retry_stagger }}"
-
 - block:
-  - name: 创建 endpoint 配置清单目录
-    file: name={{ item }} state=directory
-    with_items: "{{ kubernetes_etc_dir }}/endpoint"
+  - name: 安装 kubernetes 各组件
+    lineinfile:
+      dest: "{{ ansible_env.HOME }}/.bash_profile"
+      state: present
+      regexp: "{{ kubernetes_bin_dir }}"
+      line: export PATH="{{ kubernetes_bin_dir }}:$PATH"
 
-  - name: 配置核心组件的 endpoint 清单文件，以便用于prometheus监控
-    template: src="endpoint/{{ item }}.j2" dest="{{ kubernetes_etc_dir }}/endpoint/{{ item }}"
+  - name: 添加 kubectl kubeadm 命令自动补全
+    lineinfile:
+      dest: "{{ ansible_env.HOME }}/.bashrc"
+      state: present
+      regexp: "{{ item }} completion"
+      line: "source <({{ kubernetes_bin_dir }}/{{ item }} completion bash)"
     with_items:
-      - control-plane-ep.yml
-      - data-plane-ep.yml
+      - kubectl
+      - kubeadm
+      - kustomize
 
-  - name: 创建核心组件的 endpoint
+  - name: 当前会话加载 kubectl kubeadm 命令，并自动补全
     shell: >
-      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/endpoint/{{ item }}
+      {{ kubernetes_bin_dir }}/{{ item }} completion bash > /etc/bash_completion.d/{{ item }};
+      source {{ ansible_env.HOME }}/.bash_profile
+    args:
+      executable: /bin/bash
+    with_items:
+      - kubectl
+      - kubeadm
+      - kustomize
+
+  - name: 所有 kube_cluster 节点创建所需目录
+    file:
+      name: "{{ item }}"
+      state: directory
+    with_items:
+    - "{{ ansible_env.HOME }}/.kube/"
+    - "{{ kubernetes_etc_dir }}"
+    - "{{ manifest_dir }}"
+    - "{{ cni_etc_dir }}"
+    - "{{ systemd_service_dir }}/kubelet.service.d"
+    - "{{ kubelet_pki_dir }}"
+    - "{{ kube_proxy_pki_dir }}"
+    - "{{ kubernetes_log_dir }}/kubelet"
+    - "{{ kubernetes_log_dir }}/kube-proxy"
+
+  - name: 创建 master 节点各组件所需目录
+    when: inventory_hostname in groups['kube_masters']
+    file: path={{ item }} state=directory
+    with_items:
+    - "{{ kubernetes_etc_dir }}/audit"
+    - "{{ kubernetes_log_dir }}/audit"
+    - "{{ kubernetes_log_dir }}/kube-apiserver"
+    - "{{ kubernetes_log_dir }}/kube-controller-manager"
+    - "{{ kubernetes_log_dir }}/kube-scheduler"
+
+  - name: 生成 bootstrap token
+    include_tasks: common/gen_bootstrap_token.yml
+
+  - name: 生成 encryption config
+    include_tasks: common/encryption_config_secret.yml
+
+  - name: 获取 bootstrap_token
+    shell: >
+      cat "{{ k8s_pki_dir }}/token.csv" | grep bootstrap_token | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
+    register: get_bootstrap_token
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 设置 bootstrap_token 变量
+    set_fact:
+      bootstrap_token: "{{ get_bootstrap_token.stdout }}"
+
+  - name: 设置 bootstrap_token_id 变量
+    when: inventory_hostname in groups['kube_masters']
+    set_fact:
+      bootstrap_token_id: "{{ bootstrap_token.split('.')[0] }}"
+
+  - name: 设置 bootstrap_token_secret 变量
+    when: inventory_hostname in groups['kube_masters']
+    set_fact:
+      bootstrap_token_secret: "{{ bootstrap_token.split('.')[1] }}"
+
+  - name: 生成 kubeconfig 文件
+    when: "binary_way is defined and binary_way.enable"
+    include_tasks: kubeconfig/main.yml
+
+  - name: 获取 encryption config secret
+    shell: >
+      cat "{{kubernetes_etc_dir}}/encryption_config_secret.yml" | grep encryption_config_secret | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
+    register: get_encryption_config_secret
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 设置 encryption_config_secret 变量
+    when: inventory_hostname in groups['kube_masters']
+    set_fact:
+      encryption_config_secret: "{{ get_encryption_config_secret.stdout }}"
+
+  - name: master 节点渲染相关配置文件
+    when: inventory_hostname in groups['kube_masters']
+    template:
+      src="{{ item.src }}.j2"
+      dest="{{ item.dest }}"
+      owner="root"
+      group="root"
+      mode="0644"
+    with_items:
+      #  EncryptionConfig 密钥注意不能修改，也就是不要重复生成。https://github.com/kubernetes/kubernetes/issues/66844
+      - { src: "encryption/config.yaml", dest: "{{ k8s_pki_dir }}/secrets-encryption.yaml" }
+      - { src: "audit/policy.yaml", dest: "{{ kubernetes_etc_dir }}/audit/policy.yaml" }
+
+  - name: 二进制方式搭建 kubernetes 集群
+    when: "binary_way is defined and binary_way.enable"
+    include_tasks: binary/main.yml
+
+  - name: kubeadm 方式搭建 kubernetes 集群
+    when: "kubeadm_way is defined and kubeadm_way.enable"
+    include_tasks: kubeadm/main.yml
+
+  - name: 手动 approve csr
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve
     environment:
-      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
-    register: apply_endpoint
-    until: apply_endpoint.rc == 0
+        KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 获取 kubeconfig admin 文件
+    slurp:
+      src: "{{ item }}"
+    with_items:
+      - "{{ kubernetes_etc_dir }}/admin.conf"
+    register: slurp_kubeconfig
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 配置 kubeconfig admin 文件到 $HOME/.kube/config
+    copy:
+      dest: "{{ ansible_env.HOME }}/.kube/config"
+      content: "{{ item.content | b64decode }}"
+      owner: root
+      group: root
+      mode: 0600
+    no_log: true
+    with_items: "{{ slurp_kubeconfig.results }}"
+
+  - name: 禁止 master 节点被调度，设置节点标签
+    when: inventory_hostname in groups['kube_masters']
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl cordon {{ inventory_hostname }};
+      {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node-role.kubernetes.io/master=true:NoSchedule --overwrite;
+      {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/master='' --overwrite;
+      {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/ingress='' --overwrite
+    until: set_taint_master.rc == 0
     retries: 3
     delay: "{{ retry_stagger }}"
-    with_items:
-      - control-plane-ep.yml
-      - data-plane-ep.yml
-  run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
+    register: set_taint_master
 
-- name: 普通用户配置集群访问权限
-  include_tasks: common/normal-user-admission.yml
-  register: normal_user
+  - name: 允许 worker 节点被调度，设置节点标签
+    when: inventory_hostname in groups['kube_nodes']
+    shell: >
+      [ `{{ kubernetes_bin_dir }}/kubectl get nodes {{ inventory_hostname }} --show-labels | grep cloudprovider` ] && \
+      {{ kubernetes_bin_dir }}/kubectl taint node {{ inventory_hostname }} node.cloudprovider.kubernetes.io/uninitialized-;
+      {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/worker='' --overwrite
+    register: set_taint_worker
+    until: set_taint_worker.rc == 0
+    retries: 3
+    delay: "{{ retry_stagger }}"
 
-- name: 安装 k8s kubectl-krew
-  when: normal_user is succeeded
-  when: enable_kubectl_krew is defined and enable_kubectl_krew
-  include_tasks: common/kubectl-krew.yml
+  - block:
+    - name: 创建 endpoint 配置清单目录
+      file: name={{ item }} state=directory
+      with_items: "{{ kubernetes_etc_dir }}/endpoint"
+
+    - name: 配置核心组件的 endpoint 清单文件，以便用于prometheus监控
+      template: src="endpoint/{{ item }}.j2" dest="{{ kubernetes_etc_dir }}/endpoint/{{ item }}"
+      with_items:
+        - control-plane-ep.yml
+        - data-plane-ep.yml
+
+    - name: 创建核心组件的 endpoint
+      shell: >
+        {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/endpoint/{{ item }}
+      environment:
+        KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+      register: apply_endpoint
+      until: apply_endpoint.rc == 0
+      retries: 3
+      delay: "{{ retry_stagger }}"
+      with_items:
+        - control-plane-ep.yml
+        - data-plane-ep.yml
+    run_once: true
+    delegate_to: "{{ groups['masters'][0] }}"
+
+  - name: 普通用户配置集群访问权限
+    include_tasks: common/normal-user-admission.yml
+
+  - name: 安装 k8s kubectl-krew
+    when: enable_kubectl_krew is defined and enable_kubectl_krew
+    include_tasks: common/kubectl-krew.yml
+  when: inventory_hostname in groups['kube_cluster']

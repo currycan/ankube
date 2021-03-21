@@ -1,0 +1,6 @@
+dependencies:
+  # openssl 生成证书
+  - { role: certificates/generate/openssl, certs: "{{ openssl_etcd_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname == groups['etcds'][0]) or (kubeadm_way is defined and kubeadm_way.enable and not kubeadm_way.kubeadm_cert and inventory_hostname == groups['etcds'][0])" }
+
+  # cfssl 生成证书
+  - { role: certificates/generate/cfssl, certs: "{{ cfssl_etcd_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname == groups['etcds'][0]" }

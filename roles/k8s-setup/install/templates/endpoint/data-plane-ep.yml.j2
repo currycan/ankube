@@ -8,7 +8,7 @@ metadata:
   namespace: kube-system
 subsets:
 - addresses:
-{% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes']) %}
+{% for host in groups['kube_cluster'] %}
 {% if host not in groups['delete_nodes'] %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:
@@ -62,7 +62,7 @@ metadata:
   namespace: kube-system
 subsets:
 - addresses:
-{% for host in (groups['masters'] + groups['add_masters'] + groups['nodes'] + groups['add_nodes']) %}
+{% for host in groups['kube_cluster'] %}
 {% if host not in groups['delete_nodes'] %}
   - ip: {{ hostvars[host]['ansible_' + iface].ipv4.address }}
     targetRef:

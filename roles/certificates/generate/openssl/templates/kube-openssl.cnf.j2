@@ -1,0 +1,81 @@
+[ req ]
+default_bits = {{ cert_key_size }}
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+
+[req_distinguished_name]
+C = "{{ cert_info_country }}"
+ST = "{{ cert_info_state }}"
+L = "{{ cert_info_locality }}"
+OU = "{{ cert_info_org_uit }}"
+
+[ v3_ca ]
+basicConstraints = critical, CA:TRUE
+keyUsage = critical, digitalSignature, keyEncipherment, keyCertSign
+
+[ v3_req_server ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_kube_apiserver
+
+[ v3_req_kubelet ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_kubelet
+
+[ v3_req_client ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+
+[ alt_kube_apiserver ]
+DNS.1 = localhost
+DNS.2 = kubernetes
+DNS.3 = kubernetes.default
+DNS.4 = kubernetes.default.svc
+{% set dns_idx = 4 | int %}
+{% for sub_domain in cluster_domain_name.split('.') %}
+{% set outer_loop = loop %}
+DNS.{{ dns_idx + loop.index }} = kubernetes.default.svc.{% for domain in cluster_domain_name.split('.') %}{% if loop.index <= outer_loop.index %}{{ domain }}{% if loop.index < outer_loop.index %}.{% endif %}{% endif %}{% endfor %}
+
+{% endfor %}
+{% set dns_idx = 4 + (cluster_domain_name.split('.')|length) | int %}
+{% for domain in kube_master_external_domain %}
+DNS.{{ dns_idx + loop.index }} = {{ domain }}
+{% endfor %}
+{% set dns_idx = 4 + (cluster_domain_name.split('.')|length + kube_master_external_domain|length) | int %}
+{% for host in (groups['kube_masters'] | default([])) | unique %}
+DNS.{{ dns_idx + loop.index }} = {{ hostvars[host]['ansible_hostname'] }}
+{% endfor %}
+IP.1 = 127.0.0.1
+IP.2 = 0:0:0:0:0:0:0:1
+IP.3 = {{ api_service_ip }}
+{% set ip_idx = 3 | int %}
+{% for host in (groups['kube_masters'] | default([])) | unique %}
+IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+
+{% endfor %}
+{% set ip_idx = 3 + (groups['masters']|length + groups['add_masters']|length) | int %}
+{% for ip in kube_master_external_ip %}
+IP.{{ ip_idx + loop.index }} = {{ ip }}
+{% endfor %}
+{% if lb_apiserver_ip is defined %}
+IP.{{4 + (groups['masters']|length + groups['add_masters']|length + kube_master_external_ip|length) | int }} = {{ lb_apiserver_ip | trim }}
+{% endif %}
+
+[ alt_kubelet ]
+DNS.1 = localhost
+{% set dns_idx = 1 | int %}
+{% for host in (groups['kube_masters'] + groups['kube_nodes'] | default([])) | unique %}
+DNS.{{ dns_idx + loop.index }} = {{ hostvars[host]['ansible_hostname'] }}
+{% endfor %}
+IP.1 = 127.0.0.1
+IP.2 = 0:0:0:0:0:0:0:1
+{% set ip_idx = 2 | int %}
+{% for host in (groups['kube_masters'] + groups['kube_nodes'] | default([])) | unique %}
+IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
+
+{% endfor %}

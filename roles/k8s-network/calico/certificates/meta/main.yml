@@ -1,3 +1,3 @@
 dependencies:
-  - { role: create_certs/openssl, certs: "{{ openssl_calico_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname == groups['masters'][0]) or (kubeadm_way is defined and kubeadm_way.enable and inventory_hostname == groups['masters'][0])" }
-  - { role: create_certs/cfssl, certs: "{{ cfssl_calico_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname == groups['masters'][0]" }
+  - { role: certificates/generate/openssl, certs: "{{ openssl_calico_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname == groups['masters'][0]) or (kubeadm_way is defined and kubeadm_way.enable and inventory_hostname == groups['masters'][0])" }
+  - { role: certificates/generate/cfssl, certs: "{{ cfssl_calico_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname == groups['masters'][0]" }

@@ -1,60 +1,62 @@
-- name: 确认 worker 节点 kube-proxy 组件状态
-  shell: >
-    {{ docker_bin_dir }}/docker ps --filter name=k8s_kube-proxy.* --filter status=running | wc -l
-  register: kubeproxy_statuses_result
-
-- name: worker 节点重打 coredns 镜像tag
-  shell: >
-    {{ docker_bin_dir }}/docker tag {{ images.coredns.name }} `{{ kubernetes_bin_dir }}/kubeadm config images list | grep coredns`
-
-- name: 删除无用证书
-  when: 'kubeadm_way is not defined or not kubeadm_way.kubeadm_cert'
-  file: path="{{ item }}" state=absent
-  with_items:
-    - "{{ kube_proxy_cert }}"
-    - "{{ kube_proxy_cert_key }}"
-
 - block:
-  # - pause:
-  #     prompt: "暂停，手动确认继续执行，测试用。。。"
-
-  - debug: msg="worker 节点加入集群，可能需要一定时间。。"
-  - name: worker 节点加入集群
+  - name: 确认 worker 节点 kube-proxy 组件状态
     shell: >
-      rm -rf /etc/kubernetes/manifests/;
-      systemctl stop kubelet.service;
-      {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=FileAvailable--etc-kubernetes-pki-ca.crt
-    environment:
-      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
-    register: worker_join_rslt
-    until: worker_join_rslt.rc == 0
-    retries: 3
-    delay: "{{ retry_stagger | random + 2 }}"
-    ignore_errors: true
+      {{ docker_bin_dir }}/docker ps --filter name=k8s_kube-proxy.* --filter status=running | wc -l
+    register: kubeproxy_statuses_result
 
-  # - name: 生成 worker 节点 join token
-  #   shell: >
-  #     {{ kubernetes_bin_dir }}/kubeadm token create --print-join-command
-  #   delegate_to: "{{ groups['masters'][0] }}"
-  #   register: worker_kubeadm_join_cmd
+  - name: worker 节点重打 coredns 镜像tag
+    shell: >
+      {{ docker_bin_dir }}/docker tag {{ images.coredns.name }} `{{ kubernetes_bin_dir }}/kubeadm config images list | grep coredns`
 
-  # - set_fact:
-  #     kubeadm_join: "{{ worker_kubeadm_join_cmd.stdout }}"
+  - name: 删除无用证书
+    when: 'kubeadm_way is not defined or not kubeadm_way.kubeadm_cert'
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ kube_proxy_cert }}"
+      - "{{ kube_proxy_cert_key }}"
 
-  # - debug: msg="worker 节点加入集群，可能需要一定时间。。"
-  # - name: worker 节点加入集群
-  #   shell: >
-  #     {{ kubernetes_bin_dir }}/{{ kubeadm_join }}
-  #   environment:
-  #     PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
-  #   register: worker_join_rslt
+  - block:
+    # - pause:
+    #     prompt: "暂停，手动确认继续执行，测试用。。。"
 
-  - name: 获取 worker 节点 kubeadm join 输出结果
-    action: copy content="{{ worker_join_rslt.stdout }}" dest="{{ kubernetes_etc_dir }}/worker_kubeadm_join_rslt.stdout"
+    - debug: msg="worker 节点加入集群，可能需要一定时间。。"
+    - name: worker 节点加入集群
+      shell: >
+        systemctl stop kubelet.service;
+        rm -rf {{ manifest_dir }};
+        {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=FileAvailable--etc-kubernetes-pki-ca.crt
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+      register: worker_join_rslt
+      until: worker_join_rslt.rc == 0
+      retries: 3
+      delay: "{{ retry_stagger | random + 2 }}"
+      ignore_errors: true
 
-  - name: 校验 worker 节点加入集群是否成功
-    assert:
-      that: worker_join_rslt is succeeded
-      msg: "节点：{{ inventory_hostname }} kubeadm join 失败"
-  when:
-    - 'kubeproxy_statuses_result.stdout != "2"'
+    # - name: 生成 worker 节点 join token
+    #   shell: >
+    #     {{ kubernetes_bin_dir }}/kubeadm token create --print-join-command
+    #   delegate_to: "{{ groups['masters'][0] }}"
+    #   register: worker_kubeadm_join_cmd
+
+    # - set_fact:
+    #     kubeadm_join: "{{ worker_kubeadm_join_cmd.stdout }}"
+
+    # - debug: msg="worker 节点加入集群，可能需要一定时间。。"
+    # - name: worker 节点加入集群
+    #   shell: >
+    #     {{ kubernetes_bin_dir }}/{{ kubeadm_join }}
+    #   environment:
+    #     PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+    #   register: worker_join_rslt
+
+    - name: 获取 worker 节点 kubeadm join 输出结果
+      action: copy content="{{ worker_join_rslt.stdout }}" dest="{{ kubernetes_etc_dir }}/worker_kubeadm_join_rslt.stdout"
+
+    - name: 校验 worker 节点加入集群是否成功
+      assert:
+        that: worker_join_rslt is succeeded
+        msg: "节点：{{ inventory_hostname }} kubeadm join 失败"
+    when:
+      - 'kubeproxy_statuses_result.stdout != "2"'
+  when: inventory_hostname in groups['kube_nodes']

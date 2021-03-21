@@ -8,7 +8,6 @@
     loop_control:
       loop_var: out_item
     with_dict: "{{ binary }}"
-    register: preinstall
   delegate_to: "{{ groups['deploy'][0] }}"
   run_once: true
   when: upgrade is defined and upgrade != ''

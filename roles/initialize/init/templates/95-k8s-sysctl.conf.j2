@@ -6,7 +6,7 @@ net.ipv4.tcp_keepalive_probes=10
 {% endif %}
 net.ipv4.tcp_max_tw_buckets=5000
 net.ipv4.tcp_syncookies=1
-net.ipv4.tcp_max_syn_backlog=1024
+net.ipv4.tcp_max_syn_backlog=2621440
 net.ipv4.tcp_synack_retries=2
 {% if set_fact_kernel_version is version('4.12', '<') %}
 net.ipv4.tcp_tw_recycle=0

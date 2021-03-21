@@ -1,14 +1,8 @@
 - include_tasks: master.yml
-  when: inventory_hostname in (groups['masters'] + groups['add_masters'])
-  register: setup_master
 
 - include_tasks: rbac/rbac.yml
-  when: setup_master is succeeded
-  register: rbac_result
 
 - include_tasks: worker.yml
-  when: rbac_result is succeeded
-  register: setup_all
 
 # - name: 等待 kubectl 能操作集群
 #   shell: >

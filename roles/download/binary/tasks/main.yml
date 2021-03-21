@@ -26,6 +26,5 @@
     loop_control:
       loop_var: out_item
     with_items: "{{ check_files['results'] }}"
-    register: archive_bin_files
   run_once: true
   delegate_to: "{{ groups['deploy'][0] }}"

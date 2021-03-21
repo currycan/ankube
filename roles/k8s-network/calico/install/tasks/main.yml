@@ -87,6 +87,7 @@
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: 获取其他 cni 配置文件
+  when: "inventory_hostname in groups['kube_cluster']"
   find:
     paths: "{{ cni_etc_dir }}"
     patterns: "*.conflist,*.conf"
@@ -94,6 +95,8 @@
   register: find_files_to_delete
 
 - name: 删除其他 cni 配置文件
-  when: "container_network not in item.path"
+  when:
+    - "container_network not in item.path"
+    - "inventory_hostname in groups['kube_cluster']"
   file: path="{{ item.path }}" state=absent
   with_items: "{{ find_files_to_delete.files }}"

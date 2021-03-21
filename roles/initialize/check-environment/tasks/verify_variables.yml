@@ -70,7 +70,7 @@
     msg: "当前 {{ inventory_hostname }} 节点 8443 端口已使用，请更换端口。"
   when:
   - lb_apiserver_ip is not defined
-  - inventory_hostname in ((groups['masters'] + groups['add_masters'])|unique)
+  - inventory_hostname in (groups['kube_masters']|unique)
 
 - name: 校验 kube-proxy 模式类型
   when: inventory_hostname == groups['masters'][0]

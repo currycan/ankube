@@ -1,5 +1,5 @@
 {% macro etcd_initial_cluster() -%}
-{% for host in (groups['etcds'] + groups['add_etcds']) -%}
+{% for host in groups['kube_etcds'] -%}
   https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}
 {%- endfor -%}
 {% endmacro -%}
@@ -17,7 +17,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --alsologtostderr=true \
   --anonymous-auth=false \
   --api-audiences=api,istio-ca \
-  --apiserver-count={{ (groups['masters'] + groups['add_masters']) | length }} \
+  --apiserver-count={{ groups['kube_masters'] | length }} \
   --audit-log-maxage=30 \
   --audit-log-maxbackup=10 \
   --audit-log-maxsize=100 \

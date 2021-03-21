@@ -1,0 +1,12 @@
+dependencies:
+  # openssl 生成证书
+  # master 节点
+  - { role: certificates/generate/openssl, certs: "{{ openssl_master_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname == groups['masters'][0]) or (kubeadm_way is defined and kubeadm_way.enable and not kubeadm_way.kubeadm_cert and inventory_hostname == groups['masters'][0])" }
+  # worker 节点
+  - { role: certificates/generate/openssl, certs: "{{ openssl_worker_certs }}", when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert and inventory_hostname in groups['kube_cluster']) or (kubeadm_way is defined and kubeadm_way.enable and not kubeadm_way.kubeadm_cert and inventory_hostname in groups['kube_cluster'])" }
+
+  # cfssl 生成证书
+  # master 节点
+  - { role: certificates/generate/cfssl, certs: "{{ cfssl_master_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname == groups['masters'][0]" }
+  # worker 节点
+  - { role: certificates/generate/cfssl, certs: "{{ cfssl_worker_certs }}", when: "binary_way is defined and binary_way.enable and binary_way.cfssl_cert and inventory_hostname in groups['kube_cluster']" }

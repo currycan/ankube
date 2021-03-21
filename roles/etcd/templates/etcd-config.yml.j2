@@ -1,0 +1,194 @@
+# This is the configuration file for the etcd server.
+
+# 成员的可读性的名字.
+# 默认: "default"
+# 环境变量: ETCD_NAME
+# 这个值被作为这个节点自己的入口中被引用， 在 --initial-cluster 标记(例如, default=http://localhost:2380)中列出。如果使用 static bootstrapping,这需要匹配在标记中使用的key。当使用发现时，每个成员必须有唯一名字。Hostname 或 machine-id 可以是一个好选择。
+name: '{{ hostvars[inventory_hostname].ansible_hostname }}'
+# 数据目录的路径.
+# 默认: "${name}.etcd"
+# 环境变量: ETCD_DATA_DIR
+data-dir: '{{ etcd_data_dir }}'
+# 专用的 wal 目录的路径。如果这个标记被设置，etcd将写 WAL 文件到 walDIR 而不是 dataDIR。这容许使用专门的硬盘，并帮助避免日志和其他IO操作之间的IO竞争。
+# 默认: ""
+# 环境变量: ETCD_WAL_DIR
+wal-dir: '{{ etcd_wal_dir }}'
+auto-compaction-mode: periodic
+# 自动压缩用于 mvcc 键值存储的保持力(注：应该指多版本保存)，单位小时。 0 表示关闭自动压缩。
+# 默认: 0
+# 环境变量: ETCD_AUTO_COMPACTION_RETENTION
+auto-compaction-retention: "1"
+# 触发快照到硬盘的已提交事务的数量.
+# 默认: "10000"
+# 环境变量: ETCD_SNAPSHOT_COUNT
+snapshot-count: 10000
+# 心跳间隔时间 (单位 毫秒).
+# 默认: "100"
+# 环境变量: ETCD_HEARTBEAT_INTERVAL
+heartbeat-interval: 300
+# 选举的超时时间(单位 毫秒). 阅读 Documentation/tuning.md 得到更多详情.
+# 默认: "1000"
+# 环境变量: ETCD_ELECTION_TIMEOUT
+election-timeout: 2000
+# Raise alarms when backend size exceeds the given quota. 0 means use the default quota.
+quota-backend-bytes: 8589934592
+# 用于监听伙伴通讯的URL列表。这个标记告诉 etcd 在特定的 scheme://IP:port 组合上从它的伙伴接收进来的请求。scheme 可是 http 或者 https。如果IP被指定为0.0.0.0,etcd 在所有接口上监听给定端口。如果给定IP地址和端口，etcd 将监听在给定端口和接口上。多个URL可以用来指定多个地址和端口来监听。etcd将从任何列出来的地址和端口上应答请求。
+# 默认: "http://localhost:2380"
+# 环境变量: ETCD_LISTEN_PEER_URLS
+# 例子: "http://10.0.0.1:2380"
+# 无效例子: "http://example.com:2380" (对于绑定域名无效)
+listen-peer-urls: '{{ etcd_listen_peer_urls }}'
+# 用于监听客户端通讯的URL列表。这个标记告诉 etcd 在特定的 scheme://IP:port 组合上从客户端接收进来的请求。scheme 可是 http 或者 https。如果IP被指定为 0.0.0.0,etcd 在所有接口上监听给定端口。如果给定IP地址和端口，etcd 将监听在给定端口和接口上。多个 URL 可以用来指定多个地址和端口来监听。etcd 将从任何列出来的地址和端口上应答请求。
+# 默认: "http://localhost:2379"
+# 环境变量: ETCD_LISTEN_CLIENT_URLS
+# 例子: "http://10.0.0.1:2379"
+# 无效例子: "http://example.com:2379" (对于绑定域名无效)
+listen-client-urls: '{{ etcd_listen_client_urls }}'
+# 保持的快照文件的最大数量 (0 表示不限制)
+# 默认: 5
+# 环境变量: ETCD_MAX_SNAPSHOTS
+# 对于 windows 用户默认不限制，而且推荐手工降低到5（或者某些安全偏好)。
+max-snapshots: 5
+# 保持的 wal 文件的最大数量 (0 表示不限制)
+# 默认: 5
+# 环境变量: ETCD_MAX_WALS
+# 对于windows用户默认不限制，而且推荐手工降低到5（或者某些安全偏好)。
+max-wals: 5
+# 逗号分割的 origin 白名单，用于 CORS (cross-origin resource sharing/跨 origin 资源共享).
+# 默认: none
+# 环境变量: ETCD_CORS
+cors:
+# 列出这个成员的伙伴 URL 以便通告给集群的其他成员。这些地方用于在集群中通讯 etcd 数据。至少有一个必须对所有集群成员可以路由的。这些 URL 可以包含域名。
+# 默认: "http://localhost:2380"
+# 环境变量: ETCD_INITIAL_ADVERTISE_PEER_URLS
+# 例子: "http://example.com:2380, http://10.0.0.1:2380"
+initial-advertise-peer-urls: '{{ etcd_initial_advertise_peer_urls }}'
+# 为启动初始化集群配置。
+# 默认: "default=http://localhost:2380"
+# 环境变量: ETCD_INITIAL_CLUSTER
+# key是每个提供的节点的 --name 标记的值. 默认为这个 key 使用 default 因为这是 --name 标记的默认值.
+initial-cluster: '{% for host in groups['kube_etcds'] %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %} '
+# 初始化集群状态("new" or "existing")。在初始化静态(initial static)或者 DNS 启动 (DNS bootstrapping) 期间为所有成员设置为 new 。如果这个选项被设置为 existing , etcd 将试图加入已有的集群。如果设置为错误的值，etcd 将尝试启动但安全失败。
+# 默认: "new"
+# 环境变量: ETCD_INITIAL_CLUSTER_STATE
+initial-cluster-state: '{{ etcd_initial_cluster_state }}'
+# 在启动期间用于 etcd 集群的初始化集群记号(cluster token)。
+# 默认: "etcd-cluster"
+# 环境变量: ETCD_INITIAL_CLUSTER_TOKEN
+initial-cluster-token: '{{ etcd_initial_token }}'
+# 列出这个成员的客户端URL，通告给集群中的其他成员。这些 URL 可以包含域名。
+# 默认: "http://localhost:2379"
+# 环境变量: ETCD_ADVERTISE_CLIENT_URLS
+# 例子: "http://example.com:2379, http://10.0.0.1:2379"
+# 小心，如果来自集群成员的通告 URL 比如 http://localhost:2379 正在使用 etcd 的 proxy 特性。这将导致循环，因为代理将转发请求给它自己直到它的资源(内存，文件描述符)最终耗尽。
+advertise-client-urls: '{{ etcd_advertise_client_urls }}'
+# 用于启动集群的发现URL。
+# 默认: none
+# 环境变量: ETCD_DISCOVERY
+discovery:
+# 用于启动集群的 DNS srv 域名。
+# 默认: none
+# 环境变量: ETCD_DISCOVERY_SRV
+discovery-srv:
+# 当发现服务失败时的期待行为("exit" 或 "proxy"). "proxy" 仅支持 v2 API.
+# 默认: "proxy"
+# 环境变量: ETCD_DISCOVERY_FALLBACK
+discovery-fallback: 'proxy'
+# 用于请求到发现服务的 HTTP 代理。
+# 默认: none
+# 环境变量: ETCD_DISCOVERY_PROXY
+discovery-proxy:
+# 拒绝将导致法定人数丢失的重配置请求。
+# 默认: false
+# 环境变量: ETCD_STRICT_RECONFIG_CHECK
+strict-reconfig-check: false
+# Accept etcd V2 client requests
+enable-v2: false
+# 通过 HTTP 服务器开启运行时分析数据。地址是 client URL + "/debug/pprof/"
+# 默认: false
+enable-pprof: true
+# 代理模式设置("off", "readonly" or "on").
+# 默认: "off"
+# 环境变量: ETCD_PROXY
+proxy: 'off'
+# 在被重新考虑之前，终端将被视为失败状态的时间(单位 毫秒)，用于被代理的请求。
+# 默认: 5000
+# 环境变量: ETCD_PROXY_FAILURE_WAIT
+proxy-failure-wait: 5000
+# 终端刷新间隔时间(单位 毫秒)
+# 默认: 30000
+# 环境变量: ETCD_PROXY_REFRESH_INTERVAL
+proxy-refresh-interval: 30000
+# 请求的拨号(dial)超时时间(单位 毫秒)，或者 0 禁用超时。
+# 默认: 1000
+# 环境变量 ETCD_PROXY_DIAL_TIMEOUT
+proxy-dial-timeout: 1000
+# 写操作的超时时间(单位 毫秒)，或者 0 禁用超时。
+# 默认: 5000
+# 环境变量: ETCD_PROXY_WRITE_TIMEOUT
+proxy-write-timeout: 5000
+# 读操作的超时时间(单位 毫秒)，或者 0 禁用超时。
+# 不要修改这个值，如果在使用 watch，因为 watch 将使用 long polling 请求。
+# 默认: 0
+# 环境变量: ETCD_PROXY_READ_TIMEOUT
+proxy-read-timeout: 0
+client-transport-security:
+  # 默认: none
+  # 环境变量: ETCD_CA_FILE
+  # --ca-file [弃用],客户端服务器 TLS 证书文件的路径。--ca-file ca.crt 可以被 --trusted-ca-file ca.crt --client-cert-auth 替代，而 etcd 同样工作。
+  ca-file: {{ etcd_ca }}
+  # 客户端服务器 TLS 证书文件的路径。
+  # 默认: none
+  # 环境变量: ETCD_CERT_FILE
+  cert-file: {{ etcd_cert_server }}
+  # 客户端服务器 TLS key 文件的路径。
+  # 默认: none
+  # 环境变量: ETCD_KEY_FILE
+  key-file: {{ etcd_cert_server_key }}
+  # 开启客户端证书认证。
+  # 默认: false
+  # 环境变量: ETCD_CLIENT_CERT_AUTH
+  client-cert-auth: true
+  # 客户端服务器 TLS 信任证书文件的路径。
+  # 默认: none
+  # 环境变量: ETCD_TRUSTED_CA_FILE
+  trusted-ca-file: {{ etcd_ca }}
+  # 使用生成证书的客户端 TLS。
+  # 默认: false
+  # 环境变量: ETCD_AUTO_TLS
+  auto-tls: true
+peer-transport-security:
+  # --peer-ca-file [弃用],peer server TLS 证书文件的路径. --peer-ca-file ca.crt 可以被 --peer-trusted-ca-file ca.crt --peer-client-cert-auth 替代，而 etcd 同样工作.
+  # 默认: none
+  # 环境变量: ETCD_PEER_CA_FILE
+  ca-file: {{ etcd_ca }}
+  # peer server TLS 证书文件的路径.
+  # 默认: none
+  # 环境变量: ETCD_PEER_CERT_FILE
+  cert-file: {{ etcd_cert_peer }}
+  # peer server TLS key 文件的路径.
+  # 默认: none
+  # 环境变量: ETCD_PEER_KEY_FILE
+  key-file: {{ etcd_cert_peer_key }}
+  # 开启 peer client 证书验证.
+  # 默认: false
+  # 环境变量: ETCD_PEER_CLIENT_CERT_AUTH
+  client-cert-auth: true
+  # peer server TLS 信任证书文件路径.
+  # 默认: none
+  # 环境变量: ETCD_PEER_TRUSTED_CA_FILE
+  trusted-ca-file: {{ etcd_ca }}
+  # 使用生成证书的peer TLS。
+  # 默认: false
+  # 环境变量: ETCD_PEER_AUTO_TLS
+  auto-tls: true
+log-level: info
+# 设置个人 etcd 子包为指定日志级别。例如 etcdserver=WARNING,security=DEBUG
+# 默认: none (所有包为 INFO)
+# 环境变量: ETCD_LOG_PACKAGE_LEVELS
+logger: zap
+# Specify 'stdout' or 'stderr' to skip journald logging even when running under systemd.
+log-outputs: [stderr]
+# Force to create a new one member cluster.
+force-new-cluster: false
+max-request-bytes: 33554432

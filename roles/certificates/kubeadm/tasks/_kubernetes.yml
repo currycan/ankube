@@ -1,0 +1,135 @@
+- name: 获取 kubernetes 所有节点 ca 证书
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_ca }}"
+    - "{{ kubernetes_ca_key }}"
+  register: slurp_kubernetes_ca_certs
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 kubernetes ca 证书到所有节点
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_kubernetes_ca_certs.results }}"
+  when: inventory_hostname in groups['kube_cluster']
+
+- name: 生成 kubelet kubeconfig 文件
+  when:
+    - inventory_hostname in groups['kube_cluster']
+    - "binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
+  shell: >
+    {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig kubelet --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+
+- name: 获取 kubernetes master 节点相关证书和 kubeconfig
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_ca }}"
+    - "{{ kubernetes_ca_key }}"
+    - "{{ apiserver_cert }}"
+    - "{{ apiserver_cert_key }}"
+    - "{{ apiserver_kubelet_cert }}"
+    - "{{ apiserver_kubelet_cert_key }}"
+    - "{{ etcd_cert_apiserver_server }}"
+    - "{{ etcd_cert_apiserver_server_key }}"
+    # - "{{ controller_cert_manager }}"
+    # - "{{ controller_cert_manager_key }}"
+    # - "{{ scheduler_cert }}"
+    # - "{{ scheduler_cert_key }}"
+    - "{{ front_ca }}"
+    - "{{ front_ca_key }}"
+    - "{{ front_client }}"
+    - "{{ front_client_key }}"
+    # - "{{ admin }}"
+    # - "{{ admin_key }}"
+    - "{{ sa_public_key }}"
+    - "{{ sa_private_key }}"
+    - "{{kubernetes_etc_dir}}/admin.conf"
+    - "{{kubernetes_etc_dir}}/controller-manager.conf"
+    - "{{kubernetes_etc_dir}}/scheduler.conf"
+  register: slurp_kubernetes_master_certs
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 kubernetes master 相关证书到 master 节点
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_kubernetes_master_certs.results }}"
+  when:
+    - inventory_hostname in groups['kube_masters']
+    - inventory_hostname != groups['kube_masters'][0]
+
+- name: 判断 kube-proxy 应用证书是否存在
+  when:
+    - "binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
+    - inventory_hostname in groups['kube_cluster']
+  stat: path="{{ kube_proxy_cert }}"
+  register: check_cert_crt_file
+
+- block:
+  - name: 创建 kube-proxy 证书配置文件
+    template: src=openssl.cnf.j2 dest="{{ k8s_pki_dir }}/openssl.cnf" mode=644
+
+  - name: 判断 kube-proxy 应用证书私钥是否存在
+    stat: path="{{ kube_proxy_cert_key }}"
+    register: check_cert_key_file
+
+  - name: 创建 kube-proxy 应用证书私钥
+    when: not check_cert_key_file.stat.exists
+    shell: openssl genrsa -out {{ kube_proxy_cert_key }} {{ cert_key_size }}
+
+  - name: 创建 kube-proxy 证书请求文件
+    shell: >
+      openssl req -new \
+      -subj "/CN=system:kube-proxy/O=system:kube-proxy" \
+      -key {{ kube_proxy_cert_key }} \
+      -out {{ k8s_pki_dir }}/kube-proxy.csr
+
+  - name: 签发 kube-proxy 应用证书
+    shell: >
+      openssl x509 -req -CAcreateserial -extensions v3_req_client -extfile {{ k8s_pki_dir }}/openssl.cnf \
+      -CA {{ kubernetes_ca }} \
+      -CAkey {{ kubernetes_ca_key }} \
+      -in {{ k8s_pki_dir }}/kube-proxy.csr \
+      -out {{ kube_proxy_cert }} \
+      -days {{ certs_expired }}; \
+      rm -f {{ k8s_pki_dir }}/kube-proxy.csr
+  when:
+    - check_cert_crt_file.stat is defined and not check_cert_crt_file.stat.exists
+    - binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert
+    - inventory_hostname in groups['kube_cluster']
+
+- name: 获取 kube-proxy 证书文件
+  when: "binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ kube_proxy_cert }}"
+    - "{{ kube_proxy_cert_key }}"
+  register: slurp_proxy_certs
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: 分发 kube-proxy 证书到集群所有节点
+  when:
+    - "binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
+    - inventory_hostname in groups['kube_cluster']
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_proxy_certs.results }}"

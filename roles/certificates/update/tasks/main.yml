@@ -1,0 +1,8 @@
+- name: 安装证书更新脚本(要求 kubernetes 版本>1.17)
+  when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert) or (kubeadm_way is defined and kubeadm_way.enable)"
+  copy:
+    src: "update-kubeadm-cert.sh"
+    dest: "{{ kubernetes_bin_dir }}"
+    owner: root
+    group: root
+    mode: 0755

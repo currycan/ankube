@@ -8,8 +8,8 @@
 # 公共系统参数设置
 - include_tasks: common.yml
 
-- name: 确认基础包已经安装完成
-  async_status: jid={{ package_result.ansible_job_id }}
-  register: install_result
-  until: install_result.finished
-  retries: 30
+# - name: 确认基础包已经安装完成
+#   async_status: jid={{ package_result.ansible_job_id }}
+#   register: install_result
+#   until: install_result.finished
+#   retries: 30

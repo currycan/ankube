@@ -1,0 +1,16 @@
+[ req ]
+default_bits = {{ cert_key_size }}
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+
+[req_distinguished_name]
+C = "{{ cert_info_country }}"
+ST = "{{ cert_info_state }}"
+L = "{{ cert_info_locality }}"
+OU = "{{ cert_info_org_uit }}"
+
+[ v3_req_client ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
