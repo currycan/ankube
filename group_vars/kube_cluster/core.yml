@@ -2,7 +2,6 @@
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
 apiserver:
-  # advertise_address: "{%- if groups['kube_masters'] | length == 1 -%}{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}{%- else -%}{{ vip_address }}{%- endif %}"
   advertise_address: "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
   secure_port: 6443
   controlplane_endpoint: "{%- if groups['kube_masters'] | length == 1 -%}{{ groups['masters'][0] }}:{{ apiserver_secure_port }}{%- else -%}{{ vip_address }}:{{ lb_secure_port }}{%- endif %}"
@@ -156,12 +155,12 @@ kubelet:
   bind_healthz_port: 10248
   # 资源驱逐相关配置
   eviction_hard_imagefs_available: 15%
-  eviction_hard_memory_available: 100Mi
+  eviction_hard_memory_available: 1024Mi
   eviction_hard_nodefs_available: 10%
   eviction_hard_nodefs_inodes_free: 5%
   # kubernetes组件预留资源
   kube_reserved_enabled: true
-  kube_cpu_reserved: 100m
+  kube_cpu_reserved: 500m
   kube_memory_reserved: 256M
   kube_ephemeral_storage_reserved: 1G
   # 操作系统守护进程预留资源，需要根据实际经验开启，预留资源过大，资源浪费，过小kubelet无法启动

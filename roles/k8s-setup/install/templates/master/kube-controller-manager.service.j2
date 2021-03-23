@@ -12,7 +12,6 @@ ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
   --authentication-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
   --authorization-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
   --client-ca-file={{ kubernetes_ca }} \
-  --cloud-provider=external \
   --cluster-cidr={{ pod_network_cidr }} \
   --cluster-name={{ cluster_name }} \
   --cluster-signing-cert-file={{ kubernetes_ca }} \

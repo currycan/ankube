@@ -26,7 +26,6 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --audit-policy-file={{ kubernetes_etc_dir }}/audit/policy.yaml \
   --authorization-mode=Node,RBAC \
   --client-ca-file={{ kubernetes_ca }} \
-  --cloud-provider=external \
   --enable-admission-plugins={% if apiserver.enable_admission_plugins|length > 0 %}{{ apiserver.enable_admission_plugins | join(',') }}{% endif %} \
   --enable-aggregator-routing=true \
   --enable-bootstrap-token-auth=true \

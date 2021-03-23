@@ -5,6 +5,8 @@ set -o errexit
 set -o pipefail
 # set -o xtrace
 
+export enable_init="${ENABLE_INIT:-true}"
+
 log::err() {
   printf "[$(date +'%Y-%m-%dT%H:%M:%S.%N%z')]: \033[31mERROR: \033[0m$@\n"
 }
@@ -144,6 +146,12 @@ cert::update_kubeconf() {
   fi
 }
 
+cert::restart_etcd() {
+  # restart etcd
+  docker ps | awk '/k8s_etcd/{print$1}' | xargs -r -I '{}' docker restart {} || true
+  log::info "restarted etcd"
+}
+
 cert::update_etcd_cert() {
   PKI_PATH=${KUBE_PATH}/pki/etcd
   CA_CERT=${PKI_PATH}/ca.crt
@@ -177,10 +185,18 @@ cert::update_etcd_cert() {
   CART_NAME=${PKI_PATH}/apiserver-etcd-client
   cert::gen_cert "${CART_NAME}" "client" "/O=system:masters/CN=kube-apiserver-etcd-client" "${CAER_DAYS}"
   rm -f ${PKI_PATH}/*.srl
+}
 
-  # restart etcd
-  docker ps | awk '/k8s_etcd/{print$1}' | xargs -r -I '{}' docker restart {} || true
-  log::info "restarted etcd"
+cert::restart_master() {
+  # restart apiserve, controller-manager, scheduler and kubelet
+  docker ps | awk '/k8s_kube-apiserver/{print$1}' | xargs -r -I '{}' docker restart {} || true
+  log::info "restarted kube-apiserver"
+  docker ps | awk '/k8s_kube-controller-manager/{print$1}' | xargs -r -I '{}' docker restart {} || true
+  log::info "restarted kube-controller-manager"
+  docker ps | awk '/k8s_kube-scheduler/{print$1}' | xargs -r -I '{}' docker restart {} || true
+  log::info "restarted kube-scheduler"
+  systemctl restart kubelet
+  log::info "restarted kubelet"
 }
 
 cert::update_master_cert() {
@@ -228,16 +244,6 @@ cert::update_master_cert() {
   CART_NAME=${PKI_PATH}/front-proxy-client
   cert::gen_cert "${CART_NAME}" "client" "/CN=front-proxy-client" "${CAER_DAYS}"
   rm -f ${PKI_PATH}/*.srl
-
-  # restart apiserve, controller-manager, scheduler and kubelet
-  docker ps | awk '/k8s_kube-apiserver/{print$1}' | xargs -r -I '{}' docker restart {} || true
-  log::info "restarted kube-apiserver"
-  docker ps | awk '/k8s_kube-controller-manager/{print$1}' | xargs -r -I '{}' docker restart {} || true
-  log::info "restarted kube-controller-manager"
-  docker ps | awk '/k8s_kube-scheduler/{print$1}' | xargs -r -I '{}' docker restart {} || true
-  log::info "restarted kube-scheduler"
-  systemctl restart kubelet
-  log::info "restarted kubelet"
 }
 
 main() {
@@ -247,22 +253,30 @@ main() {
   CAER_DAYS=3650
 
   # backup $KUBE_PATH to $KUBE_PATH.old-$(date +%Y%m%d)
-  cert::backup_file "${KUBE_PATH}"
+  if [ ! enable_init ]; then
+    cert::backup_file "${KUBE_PATH}"
+  fi
 
   case ${node_tpye} in
   etcd)
     # update etcd certificates
     cert::update_etcd_cert
+    # cert::restart_etcd
     ;;
   master)
     # update master certificates and kubeconf
     cert::update_master_cert
+    cert::restart_master
     ;;
   all)
     # update etcd certificates
     cert::update_etcd_cert
     # update master certificates and kubeconf
     cert::update_master_cert
+    if [ ! enable_init ]; then
+      cert::restart_etcd
+      cert::restart_master
+    fi
     ;;
   *)
     log::err "unknow, unsupported certs type: ${cert_type}, supported type: all, etcd, master"

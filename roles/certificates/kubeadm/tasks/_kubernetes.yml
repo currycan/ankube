@@ -24,7 +24,7 @@
     - inventory_hostname in groups['kube_cluster']
     - "binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
   shell: >
-    {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig kubelet --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+    {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig kubelet --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml
 
 - name: 获取 kubernetes master 节点相关证书和 kubeconfig
   slurp:

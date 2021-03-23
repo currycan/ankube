@@ -1,9 +1,4 @@
 - block:
-  - name: 初始化依赖
-    when: "inventory_hostname in groups['kube_etcds']"
-    include_role:
-      name: certificates/generate/init
-
   - name: 获取 etcd 相关证书
     slurp:
       src: "{{ item }}"

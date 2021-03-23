@@ -1,12 +1,7 @@
 - block:
-  - name: 初始化依赖
-    when: "inventory_hostname in groups['kube_cluster']"
-    include_role:
-      name: certificates/generate/init
-
   - name: 安装 update-kubeadm-cert.sh 工具
     include_role:
-      name: certificates/update
+      name: certificates/generate/update
 
   - block:
     - name: 检查 service account 私钥是否存在
