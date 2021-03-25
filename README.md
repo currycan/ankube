@@ -19,6 +19,13 @@ yum install -y ansible
 apt-get update && apt-get install -y ansible
 ```
 
+安装 ansible 统计任务处理时间插件
+
+```bash
+mkdir /etc/ansible/callback_plugins
+wget -P /etc/ansible/callback_plugins https://raw.githubusercontent.com/jlafon/ansible-profile/master/callback_plugins/profile_tasks.py
+```
+
 ### 1.2 配置免密
 
 ```bash
