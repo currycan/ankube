@@ -70,7 +70,6 @@ kubeadm_apiserver_extra_args:
   alsologtostderr: "true"
   # 默认是 true，设置成false,kubeadm join 认证不过
   # anonymous-auth: "false"
-  cloud-provider: "external"
   enable-aggregator-routing: "true"
   enable-bootstrap-token-auth: "true"
   log-dir: "{{ kubernetes_log_dir }}/kube-apiserver"
@@ -93,7 +92,6 @@ kubeadm_controller_extra_args:
   alsologtostderr: "true"
   allocate-node-cidrs: "true"
   attach-detach-reconcile-sync-period: "{{ controller_manager.attach_detach_reconcile_sync_period }}"
-  cloud-provider: "external"
   cluster-cidr: "{{ pod_network_cidr }}"
   cluster-name: "{{ cluster_name }}"
   concurrent-deployment-syncs: "10"
