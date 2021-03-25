@@ -1,0 +1,101 @@
+---
+# 角色设定，权限：更新和扩容 有状态和无状态资源
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  # LDAP 中默认创建的 group：developer/tester/viewer
+  # group 的操作权限： update/view
+  # 命名规则：<GROUP>-<ACTION>
+  name: developer-update
+  # 需要授权的 namespace
+  # 命名规则： 二级项目名
+  namespace: <NAMESPACE>
+rules:
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - deployments
+  - deployments/scale
+  - statefulsets
+  - statefulsets/scale
+  verbs:
+  - update
+---
+# 角色绑定： 绑定特定 group
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-update
+  namespace: <NAMESPACE>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: developer-update
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: developer
+---
+# 授权 namespace 只读权限
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developer-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: developer
+
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer-update
+  namespace: default
+rules:
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - deployments
+  - deployments/scale
+  - statefulsets
+  - statefulsets/scale
+  verbs:
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-update
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: developer-update
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: developer
+---
+# 授权 namespace 只读权限
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developer-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: developer
