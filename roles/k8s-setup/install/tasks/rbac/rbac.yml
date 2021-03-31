@@ -23,24 +23,6 @@
   run_once: true
   delegate_to: "{{ groups['masters'][0] }}"
 
-- block:
-  - name: 创建 Pod 安全策略配置文件
-    template:
-      src: psp/pod-security-policy.yaml.j2
-      dest: "{{ kubernetes_etc_dir }}/pod-security-policy.yaml"
-      owner: root
-      group: root
-      mode: 0644
-
-  - name: 配置 Pod 安全策略
-    shell: >
-      {{ kubernetes_bin_dir }}/kubectl apply -f {{ kubernetes_etc_dir }}/pod-security-policy.yaml
-    environment:
-      KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
-  run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
-  when: '"PodSecurityPolicy" in apiserver.enable_admission_plugins'
-
 # - block:
 #   - name: 生成 kubelet-rubber-stamp 部署清单文件
 #     copy: src="{{ item }}/" dest="{{ kubernetes_etc_dir }}/{{ item }}"

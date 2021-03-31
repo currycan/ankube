@@ -8,7 +8,6 @@ apiserver:
   service_node_port_range: 30000-32767
   service_ip_range: "{{ service_subnet }}"
   enable_admission_plugins:
-    # - PodSecurityPolicy
     # - SecurityContextDeny
     # https://kubernetes.io/zh/docs/reference/access-authn-authz/admission-controllers/
     # - AlwaysPullImages
