@@ -6,6 +6,32 @@ images:
     type: all
     enable: "true"
 
+  keepalived:
+    name: "docker.io/osixia/keepalived:2.0.20"
+    file: "keepalived-2.0.20"
+    type: master
+    enable: "{%- if groups['kube_masters'] | length > 1 -%}true{% else %}false{%- endif -%}"
+  haproxy:
+    name: "docker.io/haproxy:2.3-alpine"
+    file: "haproxy-2.3-alpine"
+    type: master
+    enable: "{%- if (groups['kube_masters'] | length > 1) and lb_mode == 'haproxy' -%}true{% else %}false{%- endif -%}"
+  envoy:
+    name: "docker.io/envoyproxy/envoy-alpine:v1.17.1"
+    file: "envoy-alpine-v1.17.1"
+    type: master
+    enable: "{%- if ((groups['kube_masters'] | length > 1) and lb_mode == 'envoy') or container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
+  nginx:
+    name: "docker.io/nginx:1.19-alpine"
+    file: "nginx-1.19-alpine"
+    type: master
+    enable: "{%- if (groups['kube_masters'] | length > 1) and lb_mode == 'nginx' -%}true{% else %}false{%- endif -%}"
+  openresty:
+    name: "docker.io/openresty/openresty:1.19.3.1-alpine"
+    file: "keepalived-2.0.20"
+    type: master
+    enable: "{%- if (groups['kube_masters'] | length > 1) and lb_mode == 'openresty' -%}true{% else %}false{%- endif -%}"
+
   apiserver:
     name: "{{ kube_image_repository }}/kube-apiserver:v{{ kube_version }}"
     file: "kube-apiserver-v{{ kube_version }}"
@@ -93,11 +119,6 @@ images:
   hubble_ui_backend:
     name: "docker.io/cilium/hubble-ui-backend:v0.7.5"
     file: "cilium-hubble-ui-backend-v0.7.5"
-    type: worker
-    enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
-  envoy:
-    name: "docker.io/envoyproxy/envoy:v1.16.2"
-    file: "envoyproxy-envoy-v1.16.2"
     type: worker
     enable: "{%- if container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   certgen:

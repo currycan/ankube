@@ -1,0 +1,45 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: lb-haproxy
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    k8s-app: lb-haproxy
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  priorityClassName: system-cluster-critical
+  containers:
+  - name: lb-nginx
+    image: {{ images.haproxy.name }}
+{% if lb_healthcheck_port is defined %}
+    livenessProbe:
+      periodSeconds: 3
+      timeoutSeconds: 5
+      failureThreshold: 5
+      initialDelaySeconds: 10
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: {{ lb_healthcheck_port }}
+{% endif %}
+    resources:
+      requests:
+        cpu: 100m
+    volumeMounts:
+    - name: haproxy-cfg
+      readOnly: true
+      mountPath: /usr/local/etc/haproxy/haproxy.cfg
+    - mountPath: /etc/localtime
+      name: localtime
+      readOnly: true
+  volumes:
+  - name: haproxy-cfg
+    hostPath:
+      path: "{{ lb_config_dir }}/haproxy.cfg"
+      type: File
+  - hostPath:
+      path: /etc/localtime
+      type: File
+    name: localtime

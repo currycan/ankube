@@ -16,8 +16,8 @@
     - name: 初始化第一个 master 节点
       shell: >
         systemctl stop kubelet.service;
-        rm -rf {{ manifest_dir }};
-        {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+        rm -rf {{ kubelet_data_dir }}/cpu_manager_state;
+        {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
       environment:
         PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
       register: init_rslt
@@ -53,8 +53,8 @@
     - name: 其他 master 节点加入集群
       shell: >
         systemctl stop kubelet.service;
-        rm -rf {{ manifest_dir }};
-        {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml
+        rm -rf {{ kubelet_data_dir }}/cpu_manager_state;
+        {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
       environment:
         PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
       register: master_join_rslt

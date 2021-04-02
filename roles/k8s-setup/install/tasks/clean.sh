@@ -1,6 +1,8 @@
 rm -rf /etc/kubernetes/manifests/
 systemctl stop kubelet.service
 docker ps -aq | xargs docker rm -f
+rm -rf /var/lib/kubelet/
+rm -rf /var/lib/kubelet/cpu_manager_state
 kubeadm init --config /etc/kubernetes/kubeadm-config.yaml
 
 # 升级

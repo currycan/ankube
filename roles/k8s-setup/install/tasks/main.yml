@@ -109,6 +109,9 @@
       - { src: "encryption/config.yaml", dest: "{{ k8s_pki_dir }}/secrets-encryption.yaml" }
       - { src: "audit/policy.yaml", dest: "{{ kubernetes_etc_dir }}/audit/policy.yaml" }
 
+  - name: 安装集群 lb 服务
+    include_tasks: lb/main.yml
+
   - name: 二进制方式搭建 kubernetes 集群
     when: "binary_way is defined and binary_way.enable"
     include_tasks: binary/main.yml
