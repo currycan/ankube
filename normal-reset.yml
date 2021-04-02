@@ -25,11 +25,18 @@
       {{ docker_bin_dir }}/docker ps -aq | xargs {{ docker_bin_dir }}/docker rm -f
     ignore_errors: true
 
+  - name: 删除 kubernetes kubeconfig 文件
+    when: "kubeadm_way is defined and kubeadm_way.enable"
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ kubernetes_etc_dir }}/kubelet.conf"
+
   - name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
     file: path="{{ item }}" state=absent
     with_items:
       - "{{ kubernetes_etc_dir }}/manifests/"
       - "{{ cni_etc_dir }}"
+      - "{{ kubelet_data_dir }}/cpu_manager_state"
 
   - name: 删除 IP-in-IP tunnel
     command: "modprobe -r ipip"

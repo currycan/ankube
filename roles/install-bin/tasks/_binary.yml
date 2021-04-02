@@ -4,10 +4,10 @@
 
 - name: 拉取 {{ out_item.key }} 二进制文件
   when:
-    - out_item.value.archive_dir == ""
+    - out_item.value.archive_dir is undefined
     - normal_install is undefined or not normal_install
   copy:
-    src: "{{ cache_dir + out_item.value.archive_dir }}/{{ out_item.value.file }}"
+    src: "{{ cache_dir }}/{{ out_item.value.file }}"
     dest: "{{ out_item.value.install_dir }}/{{ item }}"
     owner: root
     group: root
@@ -16,7 +16,7 @@
 
 - name: 拉取 {{ out_item.key }} 二进制文件
   when:
-    - out_item.value.archive_dir != ""
+    - out_item.value.archive_dir is defined
     - normal_install is undefined or not normal_install
   copy:
     src: "{{ cache_dir + out_item.value.archive_dir }}/{{ item }}"

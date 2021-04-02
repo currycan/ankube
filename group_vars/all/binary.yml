@@ -5,39 +5,27 @@ binary:
     type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssl_{{ cfssl_version }}_linux_amd64"
     file: "cfssl_{{ cfssl_version }}_linux_amd64"
-    archive_dir: ""
     install_dir: "{{ cfssl_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - cfssl
-    image: ""
 
   cfssljson:
     enable: "{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}true{% else %}false{%- endif -%}"
     type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssljson_{{ cfssl_version }}_linux_amd64"
     file: "cfssljson_{{ cfssl_version }}_linux_amd64"
-    archive_dir: ""
     install_dir: "{{ cfssl_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - cfssljson
-    image: ""
 
   cfssl_certinfo:
     enable: "{%- if binary_way is defined and binary_way.enable and binary_way.cfssl_cert -%}true{% else %}false{%- endif -%}"
     type: all
     url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssl-certinfo_{{ cfssl_version }}_linux_amd64"
     file: "cfssl-certinfo_{{ cfssl_version }}_linux_amd64"
-    archive_dir: ""
     install_dir: "{{ cfssl_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - cfssl-certinfo
-    image: ""
 
   kubernetes:
     enable: "{%- if binary_way is defined and binary_way.enable -%}true{% else %}false{%- endif -%}"
@@ -75,7 +63,6 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - kustomize
-    image: ""
 
   etcd:
     enable: "true"
@@ -89,7 +76,6 @@ binary:
     bin:
       - etcd
       - etcdctl
-    image: ""
 
   containerd:
     enable: "true"
@@ -106,20 +92,15 @@ binary:
       - containerd-shim-runc-v1
       - containerd-shim-runc-v2
       - ctr
-    image: ""
 
   runc:
     enable: "true"
     type: kube_cluster
     url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64"
     file: "runc.amd64-v{{ runc_version }}"
-    archive_dir: ""
     install_dir: "{{ containerd_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - runc
-    image: ""
 
   crictl:
     enable: "true"
@@ -132,7 +113,6 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - crictl
-    image: ""
 
   critest:
     enable: "true"
@@ -145,7 +125,6 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - critest
-    image: ""
 
   docker:
     enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
@@ -165,20 +144,15 @@ binary:
       - containerd-shim
       - runc
       - ctr
-    image: ""
 
   docker_compose:
     enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
     file: "docker-compose-{{ docker_compose_version }}"
-    archive_dir: ""
     install_dir: "{{ docker_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - docker-compose
-    image: ""
 
   calico:
     enable: "{%- if container_network == 'calico' -%}true{% else %}false{%- endif -%}"
@@ -223,7 +197,6 @@ binary:
       - static
       - tuning
       - vlan
-    image: ""
 
   helm2:
     enable: "{%- if helm_type == 'helm2' -%}true{% else %}false{%- endif -%}"
@@ -236,7 +209,6 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - helm
-    image: ""
 
   helm3:
     enable: "{%- if helm_type == 'helm3' -%}true{% else %}false{%- endif -%}"
@@ -249,20 +221,15 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - helm
-    image: ""
 
   helmfile:
     enable: "{%- if enable_helmfile is defined and enable_helmfile -%}true{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/roboll/helmfile/releases/download/v{{ helmfile_version }}/helmfile_linux_amd64"
     file: "helmfile_linux_amd64-v{{ helmfile_version }}"
-    archive_dir: ""
     install_dir: "{{ helmfile_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - helmfile
-    image: ""
 
   krew:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -275,7 +242,6 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - krew-linux_amd64
-    image: ""
 
   kubectl_debug:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -288,7 +254,6 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - kubectl-debug
-    image: ""
 
   k9s:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -301,7 +266,6 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - k9s
-    image: ""
 
   kubecm:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -314,20 +278,15 @@ binary:
       extra_opt: "['--strip-components=0']"
     bin:
       - kubecm
-    image: ""
 
   argocd:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/argoproj/argo-cd/releases/download/v{{ argocd_version }}/argocd-linux-amd64"
     file: "argocd-linux-amd64-v{{ argocd_version }}"
-    archive_dir: ""
     install_dir: "{{ argocd_bin_dir }}"
-    unarchive:
-      extra_opt: ""
     bin:
       - argocd
-    image: ""
 
   vela:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -340,7 +299,6 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - vela
-    image: ""
 
   istio:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
@@ -353,7 +311,6 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - bin/istioctl
-    image: ""
 
   # istioctl:
   #   enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"

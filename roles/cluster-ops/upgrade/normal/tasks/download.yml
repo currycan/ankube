@@ -27,7 +27,7 @@
     when:
       - out_item.item.key == upgrade
       - download_files is succeeded
-      - out_item.item.value.archive_dir != ""
+      - out_item.item.value.archive_dir is defined
     include_tasks: "{{ inventory_dir }}/roles/download/binary/tasks/_binary.yml"
     loop_control:
       loop_var: out_item

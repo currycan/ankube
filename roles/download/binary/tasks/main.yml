@@ -21,7 +21,7 @@
     register: download_files
 
   - name: 归档二进制文件
-    when: 'download_files is succeeded and out_item.item.value.archive_dir != ""'
+    when: 'download_files is succeeded and out_item.item.value.archive_dir is defined'
     include_tasks: _binary.yml
     loop_control:
       loop_var: out_item

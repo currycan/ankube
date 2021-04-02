@@ -158,7 +158,7 @@ kubelet:
   # kubernetes组件预留资源
   kube_reserved_enabled: true
   kube_cpu_reserved: 500m
-  kube_memory_reserved: 256M
+  kube_memory_reserved: 512M
   kube_ephemeral_storage_reserved: 1G
   # 操作系统守护进程预留资源，需要根据实际经验开启，预留资源过大，资源浪费，过小kubelet无法启动
   system_reserved_enabled: true
