@@ -1,5 +1,0 @@
-- hosts: masters
-  roles:
-  - { role: cluster-default }
-  - { role: cluster-path }
-  - ha

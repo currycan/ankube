@@ -5,5 +5,4 @@
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: k8s-setup/ha, when: "groups['kube_masters'] | length > 1" }
-  - { role: k8s-setup/install }
+  - { role: k8s-setup }

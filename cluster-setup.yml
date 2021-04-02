@@ -23,10 +23,8 @@
   - { role: certificates/kubeadm }
   # 安装etcd
   - { role: etcd }
-  # 集群高可用
-  - { role: k8s-setup/ha, when: "groups['kube_masters'] | length > 1" }
   # kubernetes安装
-  - { role: k8s-setup/install }
+  - { role: k8s-setup }
   # 网络插件安装
   - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'custom'" }
   - { role: k8s-network/calico/install, when: "container_network == 'calico'" }
