@@ -46,4 +46,4 @@
   include_tasks: restore.yml
 
 - name: 普通用户配置集群访问权限
-  include_tasks: "{{ inventory_dir }}/roles/k8s-setup/install/tasks/common/normal-user-admission.yml"
+  include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/normal-user-admission.yml"

@@ -28,13 +28,4 @@
     - "{{ kubelet_data_dir }}/pki"
     - "{{ kubelet_data_dir }}/config.yaml"
     - "{{ kubelet_data_dir }}/kubeadm-flags.env"
-
-  - name: 集群内节点备份 kube-proxy 数据文件
-    copy:
-      src: "{{ item }}"
-      dest: "{{ kubernetes_etc_dir }}/backup-k8s/kube-proxy"
-      mode: 0644
-      remote_src: yes
-    with_items:
-    - "{{ kube_proxy_data_dir }}/config.yaml"
   when: inventory_hostname in groups['kube_cluster']

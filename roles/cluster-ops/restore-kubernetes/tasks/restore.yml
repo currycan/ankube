@@ -122,7 +122,7 @@
         - kube-scheduler
       register: start_service
 
-    - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/install/tasks/common/check_master_status.yml"
+    - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
     when:
     - binary_way is defined and binary_way.enable
     - inventory_hostname in groups['kube_masters']
