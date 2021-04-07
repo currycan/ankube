@@ -4,6 +4,8 @@
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    etcd_version: "3.4.14"
   roles:
   # 需要和全局变量里的 binary.yml 值保持一致
   - { role: cluster-ops/upgrade/normal, upgrade_cs: "etcd" }
@@ -16,4 +18,4 @@
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: etcd/install }
+  - { role: etcd }

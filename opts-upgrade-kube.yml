@@ -25,28 +25,28 @@
         msg: "请设置正确的升级版本号，次版本号只能升一个版本，不能跨版本升级（比如：1.13版本只能升级到1.14，不能直接升级1.15）。"
     when: inventory_hostname in groups['kube_masters']
 
-# # backup etcd data
-# - hosts:
-#   - kube_etcds
-#   - kube_cluster
-#   become: true
-#   gather_facts: true
-#   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-#   roles:
-#   - cluster-ops/backup-etcd
-#   - cluster-ops/backup-kubernetes
+# backup etcd data
+- hosts:
+  - kube_etcds
+  - kube_cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - cluster-ops/backup-etcd
+  - cluster-ops/backup-kubernetes
 
-# # download update kubernetes binary
-# - hosts:
-#   - kube_cluster
-#   become: true
-#   gather_facts: true
-#   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-#   vars:
-#     kube_version: "1.19.9"
-#   roles:
-#   # 需要和全局变量里的 binary.yml 值保持一致
-#   - { role: cluster-ops/upgrade/normal, docker_enable_proxy: true, upgrade_cs: "kubernetes" }
+# download update kubernetes binary
+- hosts:
+  - kube_cluster
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    kube_version: "1.19.9"
+  roles:
+  # 需要和全局变量里的 binary.yml 值保持一致
+  - { role: cluster-ops/upgrade/normal, docker_enable_proxy: true, upgrade_cs: "kubernetes" }
 
 # update kubernetes
 - hosts:
