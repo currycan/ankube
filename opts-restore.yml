@@ -33,5 +33,5 @@
   roles:
   - container-runtime
   - load-image
-  - cluster-ops/restore-etcd
-  - cluster-ops/restore-kubernetes
+  - cluster-ops/restore/etcd
+  - cluster-ops/restore/cluster
