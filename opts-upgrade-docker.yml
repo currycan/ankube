@@ -4,14 +4,20 @@
   become: true
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    docker_version: "20.10.5"
+    containerd_version: "1.4.4"
+    runc_version: "1.0.0-rc93"
+    cri_tools_version: "1.20.0"
+    docker_compose_version: "1.28.5"
   roles:
   # 需要和全局变量里的 binary.yml 值保持一致
-  - { role: cluster-ops/upgrade/normal, upgrade: "containerd" }
-  - { role: cluster-ops/upgrade/normal, upgrade: "runc" }
-  - { role: cluster-ops/upgrade/normal, upgrade: "crictl" }
-  - { role: cluster-ops/upgrade/normal, upgrade: "critest" }
-  - { role: cluster-ops/upgrade/normal, upgrade: "docker" }
-  - { role: cluster-ops/upgrade/normal, upgrade: "docker_compose" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "containerd" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "runc" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "crictl" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "critest" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "docker" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "docker_compose" }
 
 # update docker
 - hosts:

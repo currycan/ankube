@@ -1,7 +1,6 @@
 - include_tasks: download.yml
-  when: "upgrade is defined and upgrade != ''"
+  when: "upgrade_cs is defined and upgrade_cs != ''"
 
 - include_tasks: images.yml
-  when: "image is defined and image != ''"
 
-- include_tasks: sync.yml
+- include_tasks: prepare.yml

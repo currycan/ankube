@@ -40,8 +40,8 @@
       src: "{{ item.src }}"
       dest: "{{ item.dest }}"
     with_items:
-      - { src: "daemon.json", dest: "/etc/docker/daemon.json" }
-      - { src: "docker.conf", dest: "/etc/sysctl.d/docker.conf" }
+      - { src: "{{ inventory_dir }}/roles/download/image/files/daemon.json", dest: "/etc/docker/daemon.json" }
+      - { src: "{{ inventory_dir }}/roles/download/image/files/docker.conf", dest: "/etc/sysctl.d/docker.conf" }
 
   - name: 生效 docker 系统参数
     shell: "sysctl -p /etc/sysctl.d/{{ item }}"
@@ -50,7 +50,7 @@
 
   - name: 配置 docker proxy
     template:
-      src: "http-proxy.conf.j2"
+      src: "{{ inventory_dir }}/roles/download/image/templates/http-proxy.conf.j2"
       dest: "/usr/lib/systemd/system/docker.service.d/http-proxy.conf"
   when:
     - check_docker.rc != 0

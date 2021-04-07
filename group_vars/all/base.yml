@@ -1,5 +1,9 @@
 # 配置各个二进制文件版本，可以手动指定版本，也可以通过 get_version.sh 脚本获取最新版本
+# https://kubernetes.io/zh/docs/setup/release/version-skew-policy/
 kube_version: "1.20.1"
+# coreDNS 版本一定要与 kubernetes 版本兼容
+# https://github.com/coredns/deployment/blob/master/kubernetes/CoreDNS-k8s_version.md
+coredns_version: "1.7.0"
 docker_version: "20.10.1"
 containerd_version: "1.4.3"
 runc_version: "1.0.0-rc92"
@@ -12,7 +16,6 @@ flanneld_version: "0.13.0"
 cilium_version: "1.9.1"
 kubeovn_version: "1.4.0"
 calico_version: "3.17.1"
-coredns_version: "1.8.0"
 helm2_version: "2.17.0"
 helm3_version: "3.5.3"
 helmfile_version: "0.138.7"

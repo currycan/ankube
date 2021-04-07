@@ -3,20 +3,10 @@
     file: path="{{ cache_dir + 'images' }}" state=directory
 
   - name: 判断 docker save images tar 包是否存在
-    when: "item.key == image"
+    when: 'kube_image_repository in item.value.name and "kube-" in item.value.name'
     stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
     with_dict: "{{ images }}"
     register: check_images
-
-  - name: 从下载二进制文件时归档文件中获取 calico 镜像
-    when:
-      - item.item.key == image
-      - not item.stat.exists
-      - item.item.key.split('_')[0] == "calico"
-    copy:
-      src: "{{ cache_dir + item.item.key.split('_')[0] + '-' + item.item.value.name.split(':')[1] +  '/images/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }}"
-      dest: "{{ cache_dir + 'images/' + item.item.value.file }}.tar"
-    with_items: "{{ check_images['results'] }}"
 
   - block:
     - name: 安装 docker
@@ -24,9 +14,9 @@
 
     - name: master 节点各组件镜像重打tag
       when:
-        - item.item.key == image
+        - item.stat.exists is defined
         - not item.stat.exists
-        - item.item.value.file.split('-')[0] == "kube"
+        - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: >
         docker load -i {{ cache_dir + 'kubernetes-v' + kube_version + '/server/bin/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
         docker images | grep kube | grep amd64 | awk '{print "docker tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
@@ -37,9 +27,9 @@
     - debug: msg="docker pull基础镜像，根据网速不同，可能需要一定时间。。"
     - name: docker pull images
       when:
-        - item.item.key == image
+        - item.stat.exists is defined
         - not item.stat.exists
-        - item.item.key.split('_')[0] != "calico"
+        - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: "docker pull {{ item.item.value.name }}"
       environment:
         http_proxy: "{{ proxy_env.http_proxy }}"
@@ -48,9 +38,9 @@
 
     - name: save docker images 至 {{ cache_dir + 'images' }}
       when:
-        - item.item.key == image
+        - item.stat.exists is defined
         - not item.stat.exists
-        - item.item.key.split('_')[0] != "calico"
+        - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: "docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}"
       with_items: "{{ check_images['results'] }}"
     when: 'not (frozen_way is defined and frozen_way)'
@@ -61,9 +51,9 @@
 
     - name: download-frozen-image-v2.sh 下载 images
       when:
-        - item.item.key == image
+        - item.stat.exists is defined
         - not item.stat.exists
-        - item.item.key.split('_')[0] != "calico"
+        - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: >
         mkdir -p /tmp/images/manifests_dir;
         cd /tmp/images/;

@@ -3,7 +3,7 @@
     file: path="{{ cache_dir }}" state=directory
 
   - name: 判断各组件二进制文件是否存在
-    when: "item.key == upgrade"
+    when: "item.key == upgrade_cs"
     stat: path="{{ cache_dir + item.value.file }}"
     with_dict: "{{ binary }}"
     register: check_files
@@ -11,7 +11,7 @@
   - debug: msg="下载二进制文件包，根据网速不同，可能需要一定时间。。"
   - name: 下载安装文件
     when:
-      - item.item.key == upgrade
+      - item.item.key == upgrade_cs
       - not item.stat.exists
     get_url:
       url: "{{ item.item.value.url }}"
@@ -25,7 +25,7 @@
 
   - name: 归档二进制文件
     when:
-      - out_item.item.key == upgrade
+      - out_item.item.key == upgrade_cs
       - download_files is succeeded
       - out_item.item.value.archive_dir is defined
     include_tasks: "{{ inventory_dir }}/roles/download/binary/tasks/_binary.yml"

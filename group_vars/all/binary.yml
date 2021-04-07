@@ -28,7 +28,8 @@ binary:
       - cfssl-certinfo
 
   kubernetes:
-    enable: "{%- if binary_way is defined and binary_way.enable -%}true{% else %}false{%- endif -%}"
+    # enable: "{%- if binary_way is defined and binary_way.enable -%}true{% else %}false{%- endif -%}"
+    enable: "true"
     type: kube_cluster
     # https://dl.k8s.io/release/stable.txt
     # https://github.com/kubernetes/kubernetes/tags

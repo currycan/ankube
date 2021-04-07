@@ -6,7 +6,7 @@
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
   # 需要和全局变量里的 binary.yml 值保持一致
-  - { role: cluster-ops/upgrade/normal, upgrade: "etcd" }
+  - { role: cluster-ops/upgrade/normal, upgrade_cs: "etcd" }
 
 # update etcd
 - hosts:

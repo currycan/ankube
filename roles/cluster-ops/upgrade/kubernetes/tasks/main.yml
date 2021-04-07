@@ -1,15 +1,176 @@
-- name: 校验 kube_upgrade_version 是否设置
-  assert:
-    that: kube_upgrade_version is defined
-    msg: "请设置变量 kube_upgrade_version。"
+- name: 更新 kubeadm config 版本
+  lineinfile:
+    path: "{{ kubernetes_etc_dir }}/kubeadm-config.yaml"
+    regexp: '^kubernetesVersion'
+    line: "kubernetesVersion: v{{ kube_version }}"
+  when:
+    - kubeadm_way is defined and kubeadm_way.enable
+    - inventory_hostname in groups['kube_cluster']
 
-- name: 获取当前 kubernetes 实际版本
-  shell: "kubeadm version -o short"
-  register: kubeadm_version_output
+- name: 获取集群 daemonsets pod 数量
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl get ds -A | grep -v NAMESPACE | wc -l
+  register: ds_pods_num
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
 
-- name: 校验 kube_upgrade_version 与当前 kubernetes 版本差异
-  assert:
-    that:
-    - kubeadm_version_output.stdout is version('v{{ kube_upgrade_version }}', '<=')
-    - "{{ kube_upgrade_version.split('.')[1]|int - kubeadm_version_output.stdout.split('.')[1]|int }} <= 1"
-    msg: "请设置正确的升级版本号，次版本号只能升一个版本，不能跨版本升级（比如：1.13版本只能升级到1.14，不能直接升级1.15）。"
+- set_fact: master_static_pods={{ ds_pods_num.stdout | int + 5 }}
+
+- name: 升级第一个 master 节点
+  block:
+  - name: 将节点设置为维护者模式并排空节点
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl cordon {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %};
+      {{ kubernetes_bin_dir }}/kubectl drain {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      --ignore-daemonsets --force --delete-local-data
+    register: set_drain
+    until: set_drain.rc == 0
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 等待节点排空完成
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl describe nodes {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      | grep 'Non-terminated Pods' | tr -cd "[0-9]"
+    register: drain_nodes_rslt
+    until: drain_nodes_rslt.stdout == master_static_pods
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: "升级第一个 master 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade apply --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration --force
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - name: 重新启动 kubelet
+    service:
+      name: kubelet
+      state: restarted
+      enabled: yes
+
+  - name: 等待 kubelet 件启动
+    wait_for:
+      host: "127.0.0.1"
+      port: "{{ item }}"
+      delay: 5
+      connect_timeout: 60
+      timeout: 300
+    with_items:
+      - "{{ kubelet.bind_port }}"
+      - "{{ kubelet.bind_read_port }}"
+      - "{{ kubelet.bind_healthz_port }}"
+
+  - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
+  when:
+    - kubeadm_way is defined and kubeadm_way.enable
+    - inventory_hostname == groups['kube_masters'][0]
+
+- name: 升级其他 master 节点
+  block:
+  - name: 将节点设置为维护者模式并排空节点
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl cordon {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %};
+      {{ kubernetes_bin_dir }}/kubectl drain {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      --ignore-daemonsets --force --delete-local-data
+    register: set_drain
+    until: set_drain.rc == 0
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 等待节点排空完成
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl describe nodes {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      | grep 'Non-terminated Pods' | tr -cd "[0-9]"
+    register: drain_nodes_rslt
+    until: drain_nodes_rslt.stdout == master_static_pods
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: "升级剩余 master 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade node {% if kube_version.split('.')[1]|int == 14 %}experimental-control-plane{% endif %} --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - name: 重新启动 kubelet
+    service:
+      name: kubelet
+      state: restarted
+      enabled: yes
+
+  - name: 等待 kubelet 件启动
+    wait_for:
+      host: "127.0.0.1"
+      port: "{{ item }}"
+      delay: 5
+      connect_timeout: 60
+      timeout: 300
+    with_items:
+      - "{{ kubelet.bind_port }}"
+      - "{{ kubelet.bind_read_port }}"
+      - "{{ kubelet.bind_healthz_port }}"
+
+  - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
+  when:
+    - kubeadm_way is defined and kubeadm_way.enable
+    - inventory_hostname in groups['kube_masters']
+    - inventory_hostname != groups['kube_masters'][0]
+
+- name: 升级 worker 节点
+  block:
+  - name: 将节点设置为维护者模式并排空节点
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl cordon {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %};
+      {{ kubernetes_bin_dir }}/kubectl drain {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      --ignore-daemonsets --force --delete-local-data
+    register: set_drain
+    until: set_drain.rc == 0
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 等待节点排空完成
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl describe nodes {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+      | grep 'Non-terminated Pods' | tr -cd "[0-9]"
+    register: drain_nodes_rslt
+    until: drain_nodes_rslt.stdout == ds_pods_num.stdout
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: "升级 worker 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade node {% if kube_version.split('.')[1]|int == 14 %}config --kubelet-version v{{ kube_version }}{% endif %} --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - name: 将 worker 节点恢复调度
+    shell: >
+      {{ kubernetes_bin_dir }}/kubectl uncordon {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %};
+    register: set_undrain
+    delegate_to: "{{ groups['masters'][0] }}"
+    until: set_undrain.rc == 0
+    retries: 10
+    delay: "{{ retry_stagger }}"
+
+  - name: 重新启动 kubelet
+    service:
+      name: kubelet
+      state: restarted
+      enabled: yes
+
+  - name: 等待 kubelet 件启动
+    wait_for:
+      host: "127.0.0.1"
+      port: "{{ item }}"
+      delay: 5
+      connect_timeout: 60
+      timeout: 300
+    with_items:
+      - "{{ kubelet.bind_port }}"
+      - "{{ kubelet.bind_read_port }}"
+      - "{{ kubelet.bind_healthz_port }}"
+  when:
+    - kubeadm_way is defined and kubeadm_way.enable
+    - inventory_hostname in groups['kube_nodes']
+    - inventory_hostname not in groups['kube_masters']
