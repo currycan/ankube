@@ -5,47 +5,49 @@
     loop_var: out_item
   with_dict: "{{ binary }}"
 
-- name: 创建 docker 离线 images 存放目录
-  file: path="{{ cache_dir + 'images' }}" state=directory
+- block:
+  - name: 创建 docker 离线 images 存放目录
+    file: path="{{ cache_dir + 'images' }}" state=directory
 
-- name: 判断 kube-proxy 离线镜像是否存在
-  when:
-    - inventory_hostname in groups['kube_cluster']
-    - item.value.type == 'all'
-    - item.value.enable == 'true'
-    - kube_image_repository in item.value.name and "kube-" in item.value.name
-  stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
-  with_dict: "{{ images }}"
-  register: check_all_images
+  - name: 判断 kube-proxy 离线镜像是否存在
+    when:
+      - inventory_hostname in groups['kube_cluster']
+      - item.value.type == 'all'
+      - item.value.enable == 'true'
+      - kube_image_repository in item.value.name and "kube-" in item.value.name
+    stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
+    with_dict: "{{ images }}"
+    register: check_all_images
 
-- name: 各节点加载 kube-proxy 离线镜像
-  when:
-    - inventory_hostname in groups['kube_cluster']
-    - out_item.item.value.type == 'all'
-    - out_item.item.value.enable == 'true'
-    - kube_image_repository in out_item.item.value.name and "kube-" in out_item.item.value.name
-  include_tasks: "{{ inventory_dir }}/roles/load-image/tasks/_image.yml"
-  loop_control:
-    loop_var: out_item
-  with_items: "{{ check_all_images['results'] }}"
+  - name: 各节点加载 kube-proxy 离线镜像
+    when:
+      - inventory_hostname in groups['kube_cluster']
+      - out_item.item.value.type == 'all'
+      - out_item.item.value.enable == 'true'
+      - kube_image_repository in out_item.item.value.name and "kube-" in out_item.item.value.name
+    include_tasks: "{{ inventory_dir }}/roles/load-image/tasks/_image.yml"
+    loop_control:
+      loop_var: out_item
+    with_items: "{{ check_all_images['results'] }}"
 
-- name: 判断 master 节点依赖离线镜像是否存在
-  when:
-    - inventory_hostname in groups['kube_masters']
-    - item.value.type == 'master'
-    - item.value.enable == 'true'
-    - kube_image_repository in item.value.name and "kube-" in item.value.name
-  stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
-  with_dict: "{{ images }}"
-  register: check_master_images
+  - name: 判断 master 节点依赖离线镜像是否存在
+    when:
+      - inventory_hostname in groups['kube_masters']
+      - item.value.type == 'master'
+      - item.value.enable == 'true'
+      - kube_image_repository in item.value.name and "kube-" in item.value.name
+    stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
+    with_dict: "{{ images }}"
+    register: check_master_images
 
-- name: master 节点加载离线镜像
-  when:
-    - inventory_hostname in groups['kube_masters']
-    - out_item.item.value.type == 'master'
-    - out_item.item.value.enable == 'true'
-    - kube_image_repository in out_item.item.value.name and "kube-" in out_item.item.value.name
-  include_tasks: "{{ inventory_dir }}/roles/load-image/tasks/_image.yml"
-  loop_control:
-    loop_var: out_item
-  with_items: "{{ check_master_images['results'] }}"
+  - name: master 节点加载离线镜像
+    when:
+      - inventory_hostname in groups['kube_masters']
+      - out_item.item.value.type == 'master'
+      - out_item.item.value.enable == 'true'
+      - kube_image_repository in out_item.item.value.name and "kube-" in out_item.item.value.name
+    include_tasks: "{{ inventory_dir }}/roles/load-image/tasks/_image.yml"
+    loop_control:
+      loop_var: out_item
+    with_items: "{{ check_master_images['results'] }}"
+  when: "upgrade_cs is defined and upgrade_cs == 'kubernetes'"

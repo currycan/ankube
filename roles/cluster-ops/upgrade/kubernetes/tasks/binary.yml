@@ -1,0 +1,69 @@
+- block:
+  - name: master 节点渲染相关配置文件
+    template:
+      src: "{{ item.src }}.j2"
+      dest: "{{ item.dest }}"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+    with_items:
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/master/kube-apiserver.service", dest: "{{ systemd_service_dir }}/kube-apiserver.service" }
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/master/kube-controller-manager.service", dest: "{{ systemd_service_dir }}/kube-controller-manager.service" }
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/master/kube-scheduler.service", dest: "{{ systemd_service_dir }}/kube-scheduler.service" }
+
+  - name: 启动 kubernetes master节点 三大核心组件，并设置开机启动
+    systemd:
+      name: "{{ item }}"
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+    with_items:
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-scheduler
+
+  - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
+  when: "inventory_hostname in groups['kube_masters']"
+
+- name: 配置 kubelet、kube-proxy 和 cni config 文件
+  template:
+    src: "{{ item.src }}.j2"
+    dest: "{{ item.dest }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  with_items:
+    - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/kubelet/kubelet-config.yml", dest: "{{ kubelet_data_dir }}/config.yaml" }
+    - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/kubelet/10-kubelet.conf", dest: "{{ systemd_service_dir }}/kubelet.service.d/10-kubelet.conf" }
+    - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/kubelet/kubelet.service", dest: "{{ systemd_service_dir }}/kubelet.service" }
+    - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/kube-proxy/kube-proxy-config.yaml", dest: "{{ kube_proxy_data_dir }}/config.yaml" }
+    - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/kube-proxy/kube-proxy.service", dest: "{{ systemd_service_dir }}/kube-proxy.service" }
+
+# - name: 加载 infra 镜像
+#   shell: "{{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + item }}.tar"
+#   with_items:
+#     - "{{ images.infra.file }}"
+
+- name: 启动 kubelet 和 kube-proxy 组件，并设置开机启动
+  systemd:
+    name: {{ item }}
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  with_items:
+    - kubelet
+    - kube-proxy
+
+- name: 等待 kubelet kube-proxy 件启动
+  wait_for:
+    host: "127.0.0.1"
+    port: "{{ item }}"
+    delay: 5
+    connect_timeout: 60
+    timeout: 300
+  with_items:
+    - "{{ kubelet.bind_port }}"
+    - "{{ kubelet.bind_read_port }}"
+    - "{{ kubelet.bind_healthz_port }}"
+    - "{{ kube_proxy.healthz_port }}"
+    - "{{ kube_proxy.metrics_port }}"

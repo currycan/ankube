@@ -2,5 +2,6 @@
   when: "upgrade_cs is defined and upgrade_cs != ''"
 
 - include_tasks: images.yml
+  when: "upgrade_cs is defined and upgrade_cs == 'kubernetes'"
 
 - include_tasks: prepare.yml

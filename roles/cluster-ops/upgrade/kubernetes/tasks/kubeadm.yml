@@ -1,0 +1,53 @@
+- block:
+  - name: 更新 kubeadm config 版本
+    lineinfile:
+      path: "{{ kubernetes_etc_dir }}/kubeadm-config.yaml"
+      regexp: '^kubernetesVersion'
+      line: "kubernetesVersion: v{{ kube_version }}"
+
+  - name: "升级第一个 master 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    when: inventory_hostname == groups['kube_masters'][0]
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade apply --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration --force
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - name: "升级剩余 master 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    when:
+      - inventory_hostname in groups['kube_masters']
+      - inventory_hostname != groups['kube_masters'][0]
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade node {% if kube_version.split('.')[1]|int == 14 %}experimental-control-plane{% endif %} --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
+    when: inventory_hostname in groups['kube_masters']
+
+  - name: "升级 worker 节点： {{ inventory_hostname }} 至 v{{ kube_version }}"
+    when: inventory_hostname in groups['kube_nodes']
+    shell: >
+      {{ kubernetes_bin_dir }}/kubeadm upgrade node {% if kube_version.split('.')[1]|int == 14 %}config --kubelet-version v{{ kube_version }}{% endif %} --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
+    environment:
+      PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+  - name: 重新启动 kubelet
+    service:
+      name: kubelet
+      state: restarted
+      enabled: yes
+
+  - name: 等待 kubelet 件启动
+    wait_for:
+      host: "127.0.0.1"
+      port: "{{ item }}"
+      delay: 5
+      connect_timeout: 60
+      timeout: 300
+    with_items:
+      - "{{ kubelet.bind_port }}"
+      - "{{ kubelet.bind_read_port }}"
+      - "{{ kubelet.bind_healthz_port }}"
+  when:
+    - kubeadm_way is defined and kubeadm_way.enable
+    - inventory_hostname in groups['kube_cluster']
