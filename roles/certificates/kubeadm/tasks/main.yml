@@ -16,11 +16,39 @@
       group: "root"
       mode: "0644"
 
+  - name: 删除 etcd 证书，添加新节点重新生成
+    when: "groups['add_etcds']|length > 0"
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ etcd_cert_server_key }}"
+      - "{{ etcd_cert_server }}"
+      - "{{ etcd_cert_peer_key }}"
+      - "{{ etcd_cert_peer }}"
+    tags:
+      - add_etcds
+
+  - name: 删除 kubernetest 证书和kubeconfig 认证文件，添加新节点重新生成
+    when: "groups['add_masters']|length > 0"
+    file: path="{{ item }}" state=absent
+    with_items:
+      - "{{ apiserver_cert_key }}"
+      - "{{ apiserver_cert }}"
+      - "{{kubernetes_etc_dir}}/admin.conf"
+      - "{{kubernetes_etc_dir}}/controller-manager.conf"
+      - "{{kubernetes_etc_dir}}/scheduler.conf"
+    tags:
+      - add_masters
+
   - block:
     - name: 生成证书和 kubeconfig 文件
       shell: >
-        {{ kubernetes_bin_dir }}/kubeadm init phase certs all --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml;
-        {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig all --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml
+        if [ {{ groups['add_etcds']|length }} -gt > 0 ];then
+          {{ kubernetes_bin_dir }}/kubeadm init phase certs etcd-peer --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml;
+          {{ kubernetes_bin_dir }}/kubeadm init phase certs etcd-server --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml;
+        else
+          {{ kubernetes_bin_dir }}/kubeadm init phase certs all --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml;
+          {{ kubernetes_bin_dir }}/kubeadm init phase kubeconfig all --config={{ kubernetes_etc_dir }}/kubeadm-config-certs.yaml
+        fi
 
     - name: 更新证书 10 年有效期
       shell: >
@@ -28,11 +56,12 @@
       environment:
         ENABLE_INIT: true
     run_once: true
-    delegate_to: "{{ groups['masters'][0] }}"
+    delegate_to: "{{ groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first }}"
 
   - name: 分发 etcd 证书到各 etcd 集群节点
     include_tasks: _etcd.yml
 
   - name: 分发 kubernetes 证书到各 kubernetes 集群节点
+    when: "enbale_sync_k8s_cert | default(true)"
     include_tasks: _kubernetes.yml
   when: "kubeadm_way.kubeadm_cert is defined and kubeadm_way.kubeadm_cert"

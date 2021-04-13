@@ -2,9 +2,15 @@
 - hosts:
   - delete_nodes
   become: true
-  gather_facts: true
+  serial: 1
+  gather_facts: false
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
-  - { role: cluster-ops/delete/node }
-  - { role: cluster-reset, reset_k8s: true }
-  - { role: cluster-reset, reset_kernel_module: false }
+  - { role: cluster-ops/delete/node, when: "groups['delete_masters']|length > 0" }
+  - { role: cluster-reset, reset_k8s: true, when: "groups['delete_masters']|length > 0" }
+  - { role: cluster-reset, reset_kernel_module: false, when: "groups['delete_masters']|length > 0" }
+  tasks:
+  - name: 节点运行 etcd 服务，恢复 etcd 服务相关证书
+    include_role:
+      name: cluster-ops/delete/node
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/delete/node/tasks/update-nodes.yml"

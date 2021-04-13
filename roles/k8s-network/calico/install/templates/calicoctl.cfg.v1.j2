@@ -3,7 +3,7 @@ kind: CalicoAPIConfig
 metadata:
 spec:
   datastoreType: "etcdv3"
-  etcdEndpoints: {% for host in groups['kube_etcds'] -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}
+  etcdEndpoints: {{ etcd_servers }}
   etcdKeyFile: {{ k8s_pki_dir }}/calico-key.pem
   etcdCertFile: {{ k8s_pki_dir }}/calico.pem
   etcdCACertFile: {{ k8s_pki_dir }}/ca.pem

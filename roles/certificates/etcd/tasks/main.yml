@@ -31,6 +31,6 @@
       no_log: true
       with_items: "{{ slurp_etcd_certs.results }}"
     when:
-    - inventory_hostname in groups['kube_etcds']
+    - inventory_hostname in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)
     - inventory_hostname != groups['etcds'][0]
   when: "(binary_way is defined and binary_way.enable and binary_way.openssl_cert) or (kubeadm_way is defined and kubeadm_way.enable and not kubeadm_way.kubeadm_cert)"

@@ -9,7 +9,7 @@ metadata:
 data:
 {% if datastore_type is defined and datastore_type == 'custom' %}
   # Configure this with the location of your etcd cluster.
-  etcd_endpoints: "{% for host in groups['kube_etcds'] -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}"
+  etcd_endpoints: "{{ etcd_servers }}"
   # If you're using TLS enabled etcd uncomment the following.
   # You must also populate the Secret below with these files.
   etcd_ca: "/calico-secrets/etcd-ca"

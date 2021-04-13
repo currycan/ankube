@@ -34,14 +34,14 @@ subjectAltName = @alt_names_etcd
 DNS.1 = localhost
 DNS.2 = {{ etcd_domain_name }}
 {% set dns_idx = 2 | int %}
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique) %}
 DNS.{{ dns_idx + loop.index }} = {{ hostvars[host].ansible_hostname }}
 
 {% endfor %}
 IP.1 = 127.0.0.1
 IP.2 = 0:0:0:0:0:0:0:1
 {% set ip_idx = 2 | int %}
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique) %}
 IP.{{ ip_idx + loop.index }} = {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 
 {% endfor %}

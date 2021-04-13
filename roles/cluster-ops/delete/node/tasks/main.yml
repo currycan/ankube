@@ -1,16 +1,38 @@
-- name: 将节点设置为维护者模式
-  command: >
-    {{ kubernetes_bin_dir }}/kubectl drain {{ hostvars['' + item].inventory_hostname }} --ignore-daemonsets --force --delete-local-data
+- name: 获取集群 daemonsets pod 数量
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl get ds -A | grep -v NAMESPACE | wc -l
+  register: ds_pods_num
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: true
+
+- set_fact: master_static_pods={{ ds_pods_num.stdout | int + 5 }}
+
+- name: 将节点设置为维护者模式并排空节点
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl cordon {% if hostvars['' + item]['ansible_host'] is defined %}{{ hostvars['' + item]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %};
+    {{ kubernetes_bin_dir }}/kubectl drain {% if hostvars['' + item]['ansible_host'] is defined %}{{ hostvars['' + item]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+    --ignore-daemonsets --force --delete-local-data
   with_items: "{{ groups['delete_nodes'] }}"
   register: set_drain
   delegate_to: "{{ groups['masters'][0] }}"
   until: set_drain.rc == 0
   retries: 10
   delay: "{{ retry_stagger }}"
+  ignore_errors: true
 
-- name: 将节点资源从kube-apiserver中删除
-  command: >
-    {{ kubernetes_bin_dir }}/kubectl delete node {{ hostvars['' + item].inventory_hostname }}
+- name: 等待节点排空完成
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl describe nodes {% if hostvars[inventory_hostname]['ansible_host'] is defined %}{{ hostvars[inventory_hostname]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %} \
+    | grep 'Non-terminated Pods' | tr -cd "[0-9]"
+  register: drain_nodes_rslt
+  until: drain_nodes_rslt.stdout == master_static_pods
+  retries: 10
+  delay: "{{ retry_stagger }}"
+  ignore_errors: true
+
+- name: 将节点资源从集群中删除
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl delete nodes {% if hostvars['' + item]['ansible_host'] is defined %}{{ hostvars['' + item]['ansible_host'] }}{% else %}{{ inventory_hostname }}{% endif %}
   with_items: "{{ groups['delete_nodes'] }}"
   register: delete_node
   delegate_to: "{{ groups['masters'][0] }}"

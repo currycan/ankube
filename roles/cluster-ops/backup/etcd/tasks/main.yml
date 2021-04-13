@@ -100,4 +100,4 @@
       src: "{{ etcd_latest_back_dir.path }}.tar.gz"
       dest: "{{ (playbook_dir + '/cluster-backup/' + inventory_hostname + '-' + etcd_latest_back_dir.path|basename + '.tar.gz') | realpath }}"
       flat: yes
-  when: inventory_hostname in groups['kube_etcds']
+  when: inventory_hostname in groups['kube_etcds'] | difference(groups['delete_etcds']) | unique

@@ -1,0 +1,30 @@
+- block:
+  - name: 获取 etcd ca证书
+    slurp:
+      src: "{{ item }}"
+    with_items:
+      - "{{ etcd_ca }}"
+      - "{{ etcd_ca_key }}"
+      - "{{ etcd_cert_server }}"
+      - "{{ etcd_cert_server_key }}"
+      - "{{ etcd_cert_peer }}"
+      - "{{ etcd_cert_peer_key }}"
+      - "{{ etcd_cert_healthcheck_client }}"
+      - "{{ etcd_cert_healthcheck_client_key }}"
+    register: slurp_etcd_certs
+    run_once: true
+    delegate_to: "{{ (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique | first) }}"
+
+  - name: 创建 etcd 证书存放目录
+    file: path={{ etcd_pki_dir }} state=directory
+
+  - name: 该节点运行 etcd服务，恢复 etcd 证书到改节点
+    copy:
+      dest: "{{ item.source }}"
+      content: "{{ item.content | b64decode }}"
+      owner: root
+      group: root
+      mode: 0644
+    no_log: true
+    with_items: "{{ slurp_etcd_certs.results }}"
+  when: inventory_hostname in groups['kube_etcds']

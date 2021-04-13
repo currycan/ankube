@@ -3,10 +3,9 @@
     src: "{{ item }}"
   with_items:
     - "{{ kubernetes_ca }}"
-    - "{{ kubernetes_ca_key }}"
   register: slurp_kubernetes_ca_certs
   run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
+  delegate_to: "{{ groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first }}"
 
 - name: 创建 kubernetes 证书存放目录
   file:
@@ -60,7 +59,7 @@
     - "{{kubernetes_etc_dir}}/scheduler.conf"
   register: slurp_kubernetes_master_certs
   run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
+  delegate_to: "{{ groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first }}"
 
 - name: 分发 kubernetes master 相关证书到 master 节点
   copy:
@@ -73,7 +72,7 @@
   with_items: "{{ slurp_kubernetes_master_certs.results }}"
   when:
     - inventory_hostname in groups['kube_masters']
-    - inventory_hostname != groups['kube_masters'][0]
+    - inventory_hostname != (groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first)
 
 - name: 判断 kube-proxy 应用证书是否存在
   when:
@@ -124,7 +123,7 @@
     - "{{ kube_proxy_cert_key }}"
   register: slurp_proxy_certs
   run_once: true
-  delegate_to: "{{ groups['masters'][0] }}"
+  delegate_to: "{{ groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first }}"
 
 - name: 分发 kube-proxy 证书到集群所有节点
   when:

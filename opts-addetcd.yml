@@ -1,0 +1,48 @@
+- hosts:
+  - add_etcds
+  become: true
+  serial: 1
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  # 校验基础环境是否就绪，如：内核版本
+  - { role: initialize/check-environment }
+  # 时间校准
+  - { role: initialize/chrony, when: "groups['chrony']|length > 0" }
+  # 系统初始化
+  - { role: initialize/init }
+
+- hosts:
+  - kube_etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    # 是否添加 etcd 节点重新生成证书
+    add_etcd_node: true
+    enbale_sync_k8s_cert: false
+  roles:
+  # 创建证书
+  - { role: certificates/etcd }
+  - { role: certificates/kubernetes }
+  - { role: certificates/kubeadm }
+  # 二进制文件加载
+  - { role: cluster-ops/add/etcd }
+  tasks:
+  - name: 其他 etcd 节点重新配置参数
+    when: "groups['add_etcds']|length > 0"
+    include_role:
+      name: cluster-ops/add/etcd
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/add/etcd/tasks/update-etcd.yml"
+
+- hosts:
+  - kube_masters
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: master 节点重新配置参数
+    when: "groups['add_etcds']|length > 0"
+    include_role:
+      name: cluster-ops/add/etcd
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/add/etcd/tasks/update-k8s.yml"

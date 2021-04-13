@@ -1,9 +1,3 @@
-{% macro etcd_initial_cluster() -%}
-{% for host in groups['kube_etcds'] -%}
-  https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}
-{%- endfor -%}
-{% endmacro -%}
-
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
@@ -36,7 +30,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --etcd-cafile={{ etcd_ca }} \
   --etcd-certfile={{ etcd_cert_apiserver_server }} \
   --etcd-keyfile={{ etcd_cert_apiserver_server_key }} \
-  --etcd-servers={{ etcd_initial_cluster() }} \
+  --etcd-servers={{ etcd_servers }} \
   --insecure-port=0 \
   --kubelet-certificate-authority={{ kubernetes_ca }} \
   --kubelet-client-certificate={{ apiserver_kubelet_cert }} \

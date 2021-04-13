@@ -1,0 +1,32 @@
+- name: 更新 kubeadm config 版本
+  lineinfile:
+    path: "{{ kubernetes_etc_dir }}/kubeadm-config.yaml"
+    regexp: "{{ item }}"
+    state: absent
+  with_items: >-
+    {% for host in groups['delete_etcds'] %}
+    {%- if hostvars[host]['ansible_host'] is defined -%}
+    - https://{{ hostvars[host]['ansible_host'] }}:2379
+    {%- else -%}
+    - https://{{ host }}:2379
+    {%- endif -%}
+    {% endfor %}
+
+- name: "更新第一个 master 节点：{{ inventory_hostname }}"
+  when: inventory_hostname == (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first)
+  shell: >
+    {{ kubernetes_bin_dir }}/kubeadm upgrade apply --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration --force
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+- name: "更新剩余 master 节点：{{ inventory_hostname }}"
+  when:
+    - inventory_hostname in groups['kube_masters']
+    - inventory_hostname != (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first)
+  shell: >
+    {{ kubernetes_bin_dir }}/kubeadm upgrade node {% if kube_version.split('.')[1]|int == 14 %}experimental-control-plane{% endif %} --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+
+- include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/common/check_master_status.yml"
+  when: inventory_hostname in groups['kube_masters']

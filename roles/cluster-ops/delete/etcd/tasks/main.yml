@@ -1,0 +1,100 @@
+- name: 校验 etcd 节点数量
+  run_once: true
+  assert:
+    that: (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)|length > 1
+    msg: "Etcd 节点数量大于 1 才可进行 etcd 节点移除操作。"
+
+- name: 校验将被移除的 etcd 节点是否在原 etcd 组中
+  run_once: true
+  assert:
+    that: "{{ item in groups['kube_etcds'] }}"
+    msg: "当前节点: {{ item }}，并未在 etcd 组中，不需要进行移除操作。"
+  with_items: "{{ groups['delete_etcds'] }}"
+
+- name: 校验 etcd 节点数量
+  run_once: true
+  assert:
+    that: groups['kube_etcds']|length > 1
+    msg: "Etcd 节点数量大于 1 才可进行 etcd 节点移除操作。"
+
+- name: 校验移除 etcd 节点后剩余 etcd 节点数量
+  run_once: true
+  assert:
+    that: "{{ (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)|length >= 1 }}"
+    msg: "移除 etcd 节点后，剩余 etcd 节点数量应大于等于 1。"
+
+- name: 获取将要移除的 etcd 节点 member id
+  shell: >
+    source {{ profile_dir }}/etcd.sh;
+    etcd3 member list | grep {{ inventory_hostname }} | cut -d',' -f1
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique | first) }}"
+  register: etcd_member_id
+
+- name: 从 etcd 集群中移除 {{ inventory_hostname }} 节点
+  when: etcd_member_id.stdout != ''
+  shell: >
+    source {{ profile_dir }}/etcd.sh;
+    etcd3 member remove {{ etcd_member_id.stdout }}
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique | first) }}"
+
+- name: 停止运行 etcd
+  systemd: name=etcd state=stopped enabled=no
+  ignore_errors: True
+
+- name: 删除所有 etcd 证书及相关配置
+  file: path="{{ item }}" state=absent
+  with_items:
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_wal_dir }}"
+    - "{{ etcd_config_dir }}"
+    - "{{ etcd_data_bak_dir }}"
+    - "{{ etcd_ca_key }}"
+    - "{{ etcd_cert_server }}"
+    - "{{ etcd_cert_server_key }}"
+    - "{{ etcd_cert_peer }}"
+    - "{{ etcd_cert_peer_key }}"
+    - "{{ etcd_cert_healthcheck_client }}"
+    - "{{ etcd_cert_healthcheck_client_key }}"
+    - "{{ etcd_bin_dir }}/etcd_cron.sh"
+    - "{{ systemd_service_dir }}/etcd.service"
+    - "{{ etc_systemd_service_dir }}/etcd.service"
+    - "{{ profile_dir }}/etcd.sh"
+
+- name: 删除所有 etcd ca 证书
+  when: inventory_hostname not in groups['kube_masters']
+  file: path="{{ item }}" state=absent
+  with_items:
+  - "{{ etcd_ca }}"
+
+- name: 删除 etcd 数据备份 crontab 任务
+  cron:
+    name: "create etcd data backup"
+    state: absent
+
+# - block:
+#   - name: 获取 etcd ca证书
+#     slurp:
+#       src: "{{ item }}"
+#     with_items:
+#       - "{{ etcd_ca }}"
+#     register: slurp_etcd_ca_cert
+#     run_once: true
+#     delegate_to: "{{ (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique | first) }}"
+
+#   - name: 创建 etcd 证书存放目录
+#     file: path={{ etcd_pki_dir }} state=directory
+
+#   - name: 恢复 etcd ca 证书到 master 节点
+#     copy:
+#       dest: "{{ item.source }}"
+#       content: "{{ item.content | b64decode }}"
+#       owner: root
+#       group: root
+#       mode: 0644
+#     no_log: true
+#     with_items: "{{ slurp_etcd_ca_cert.results }}"
+#   when: inventory_hostname in groups['kube_masters']

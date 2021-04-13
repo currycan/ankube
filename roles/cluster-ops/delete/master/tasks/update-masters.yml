@@ -1,0 +1,30 @@
+- block:
+  - name: 更新 {{ lb_mode }} lb 配置文件
+    when: 'item.lb is defined and item.lb == lb_mode'
+    template:
+      src: "{{ item.src }}.j2"
+      dest: "{{ item.dest }}"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+    with_items:
+      # envoy
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/envoy/envoy.conf.yaml", dest: "{{ lb_config_dir }}/envoy.yaml", lb: "envoy" }
+      # haproxy
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/haproxy/haproxy.cfg", dest: "{{ lb_config_dir }}/haproxy.cfg", lb: "haproxy" }
+      # nginx
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/nginx/nginx.conf", dest: "{{ lb_config_dir }}/nginx.conf", lb: "nginx" }
+      # openresty
+      - { src: "{{ inventory_dir }}/roles/k8s-setup/templates/nginx/nginx.conf", dest: "{{ lb_config_dir }}/nginx.conf", lb: "openresty" }
+
+  - name: 重启 kubelet 服务
+    systemd:
+      name: kubelet
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
+    register: started_kubelet
+    until: started_kubelet is succeeded
+    retries: 3
+    delay: "{{ retry_stagger }}"
+  when: inventory_hostname in (groups['kube_masters'] | difference(groups['delete_masters']) | unique)

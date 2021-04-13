@@ -10,4 +10,9 @@ kubeadm upgrade apply --config kubeadm-config.yaml --ignore-preflight-errors=all
 kubeadm upgrade apply --config kubeadm-config.yaml --ignore-preflight-errors=CoreDNSUnsupportedPlugins --ignore-preflight-errors=CoreDNSMigration
 
 # join
+systemctl stop kubelet.service
+rm -rf /etc/kubernetes/manifests/
+docker ps -aq | xargs docker rm -f
+rm -rf /var/lib/kubelet/
+rm -rf /var/lib/kubelet/cpu_manager_state
 rm -f /etc/kubernetes/kubelet.conf

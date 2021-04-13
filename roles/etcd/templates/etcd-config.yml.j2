@@ -67,7 +67,7 @@ initial-advertise-peer-urls: '{{ etcd_initial_advertise_peer_urls }}'
 # 默认: "default=http://localhost:2380"
 # 环境变量: ETCD_INITIAL_CLUSTER
 # key是每个提供的节点的 --name 标记的值. 默认为这个 key 使用 default 因为这是 --name 标记的默认值.
-initial-cluster: '{% for host in groups['kube_etcds'] %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %} '
+initial-cluster: '{% for host in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique) %}{{ hostvars[host].ansible_hostname }}=https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2380{% if not loop.last %},{% endif %}{% endfor %}'
 # 初始化集群状态("new" or "existing")。在初始化静态(initial static)或者 DNS 启动 (DNS bootstrapping) 期间为所有成员设置为 new 。如果这个选项被设置为 existing , etcd 将试图加入已有的集群。如果设置为错误的值，etcd 将尝试启动但安全失败。
 # 默认: "new"
 # 环境变量: ETCD_INITIAL_CLUSTER_STATE

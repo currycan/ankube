@@ -1,7 +1,7 @@
-# add_nodes
-- hosts: add_nodes
+# add_masters
+- hosts:
+  - add_masters
   become: true
-  serial: 2
   gather_facts: true
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -15,12 +15,23 @@
   - { role: container-runtime }
   - { role: load-image }
   # 二进制文件加载
-  - { role: cluster-ops/add/node }
+  - { role: cluster-ops/add/master }
+
+- hosts:
+  - kube_cluster
+  become: true
+  gather_facts: true
+  # strategy: free
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  vars:
+    enable_add_node: true
+    enable_run_once: false
+  roles:
   # 创建证书
   - { role: certificates/kubernetes }
   - { role: certificates/kubeadm }
   # kubernetes安装
-  - { role: k8s-setup, when: "inventory_hostname in (groups['add_nodes'] | difference(groups['delete_nodes']) | unique)" }
+  - { role: k8s-setup, when: "inventory_hostname in (groups['add_masters'] | difference(groups['delete_masters']) | unique)" }
   # 网络插件安装
   - { role: k8s-network/calico/certificates, when: "container_network == 'calico' and datastore_type is defined and datastore_type == 'custom'" }
   - { role: k8s-network/calico/install, when: "container_network == 'calico'" }

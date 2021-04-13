@@ -31,23 +31,23 @@ etcd:
     serverCertSANs:
     - localhost
     - {{ etcd_domain_name }}
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}
     - {{ hostvars[host].ansible_hostname }}
 {% endfor %}
     - 127.0.0.1
     - 0:0:0:0:0:0:0:1
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}
     - {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 {% endfor %}
     peerCertSANs:
     - localhost
     - {{ etcd_domain_name }}
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}
     - {{ hostvars[host].ansible_hostname }}
 {% endfor %}
     - 127.0.0.1
     - 0:0:0:0:0:0:0:1
-{% for host in (groups['kube_etcds']|unique) %}
+{% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}
     - {{ hostvars[host]['ansible_' + iface].ipv4.address }}
 {% endfor %}
 apiServer:

@@ -34,12 +34,10 @@
 [kube_masters:children]
 masters
 add_masters
-delete_masters
 
 [kube_nodes:children]
 nodes
 add_nodes
-delete_nodes
 
 [kube_cluster:children]
 kube_masters
@@ -48,4 +46,3 @@ kube_nodes
 [kube_etcds:children]
 etcds
 add_etcds
-delete_etcds

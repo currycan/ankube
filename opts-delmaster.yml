@@ -1,0 +1,38 @@
+- hosts:
+  - delete_masters
+  become: true
+  serial: 1
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: 删除 master 节点
+    when: "groups['delete_masters']|length > 0"
+    include_role:
+      name: cluster-ops/delete/master
+
+- hosts:
+  - kube_masters
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: 其他 master 节点重新配置参数
+    include_role:
+      name: cluster-ops/delete/master
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/delete/master/tasks/update-masters.yml"
+
+# 彻底删除该节点，需要同时把节点添加至 delete_nodes 组
+- hosts:
+  - delete_nodes
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+  - { role: cluster-ops/delete/node, when: "inventory_hostname in groups['delete_masters']" }
+  - { role: cluster-reset, reset_k8s: true, when: "inventory_hostname in groups['delete_masters']" }
+  - { role: cluster-reset, reset_kernel_module: false, when: "inventory_hostname in groups['delete_masters']" }
+  tasks:
+  - name: 节点运行 etcd 服务，恢复 etcd 服务相关证书
+    include_role:
+      name: cluster-ops/delete/node
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/delete/node/tasks/update-nodes.yml"

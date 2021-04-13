@@ -1,0 +1,112 @@
+- name: 校验 master 节点数量
+  run_once: true
+  assert:
+    that: groups['kube_masters']|length > 1
+    msg: "Master 节点数量大于 1 才可进行 master 节点移除操作。"
+
+- name: 校验将被移除的 master 节点是否在原 master 组中
+  run_once: true
+  assert:
+    that: "{{ item in groups['kube_masters'] }}"
+    msg: "当前节点: {{ item }}，并未在 kube_masters 组中，不需要进行移除操作。"
+  with_items: "{{ groups['delete_masters'] }}"
+
+- name: 校验 master 节点数量
+  run_once: true
+  assert:
+    that: groups['kube_masters']|length > 1
+    msg: "Master 节点数量大于 1 才可进行 master 节点移除操作。"
+
+- name: 校验将被移除的 master 节点是否在原 master 组中
+  run_once: true
+  assert:
+    that: "{{ item in groups['kube_masters'] }}"
+    msg: "当前节点: {{ item }}，并未在 kube_masters 组中，不需要进行移除操作。"
+  with_items: "{{ groups['delete_masters'] }}"
+
+- name: 校验移除 master 节点后剩余 master 节点数量
+  run_once: true
+  assert:
+    that: "{{ (groups['kube_masters'] | difference(groups['delete_masters'])| unique)|length >= 1 }}"
+    msg: "移除 master 节点后，剩余 master 节点数量应大于等于 1。"
+
+- name: 刷新集群 master 节点状态
+  shell: >
+    {{ kubernetes_bin_dir }}/kubeadm reset phase update-cluster-status
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+  ignore_errors: true
+
+- name: 删除 master 节点组件相关文件
+  file:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+  - "{{ manifest_dir }}"
+  - "{{ lb_config_dir }}"
+  - "{{ k8s_pki_dir }}"
+  - "{{kubernetes_etc_dir}}/admin.conf"
+  - "{{kubernetes_etc_dir}}/controller-manager.conf"
+  - "{{kubernetes_etc_dir}}/scheduler.conf"
+  - "{{ kubernetes_etc_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/audit"
+  - "{{ kubernetes_log_dir }}/kube-apiserver"
+  - "{{ kubernetes_log_dir }}/kube-controller-manager"
+  - "{{ kubernetes_log_dir }}/kube-scheduler"
+
+- name: 取消节点原有 master 角色标签
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/control-plane='' --overwrite;
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/master='' --overwrite;
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/control-plane-;
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/master-;
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/ingress-
+  ignore_errors: true
+  delegate_to: "{{ (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first) }}"
+
+- name: 取消 master 节点 taint，使 master 节点可以调度
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl taint nodes {{inventory_hostname}} node-role.kubernetes.io/master='':NoSchedule --overwrite;
+    {{ kubernetes_bin_dir }}/kubectl taint nodes {{inventory_hostname}} node-role.kubernetes.io/master-;
+    {{ kubernetes_bin_dir }}/kubectl uncordon {{inventory_hostname}}
+  ignore_errors: yes
+  delegate_to: "{{ (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first) }}"
+
+- name: 添加 worker 角色标签
+  shell: >
+    {{ kubernetes_bin_dir }}/kubectl label nodes {{ inventory_hostname }} node-role.kubernetes.io/worker='' --overwrite
+  ignore_errors: true
+  delegate_to: "{{ (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first) }}"
+
+- name: 获取 kubernetes ca 证书
+  slurp:
+    src: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_ca }}"
+  register: slurp_kubernetes_ca_cert
+  run_once: true
+  delegate_to: "{{ (groups['kube_masters'] | difference(groups['delete_masters']) | unique | first) }}"
+
+- name: 创建 kubernetes 证书存放目录
+  file: path={{ k8s_pki_dir }} state=directory
+
+- name: 恢复 kubernetes ca 证书
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0644
+  no_log: true
+  with_items: "{{ slurp_kubernetes_ca_cert.results }}"
+
+- name: 重启 kubelet 服务
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: started_kubelet
+  until: started_kubelet is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"

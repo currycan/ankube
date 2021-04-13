@@ -13,13 +13,13 @@ events {
 stream {
     upstream kube_apiserver {
         least_conn;
-{% for host in groups['kube_masters'] %}
+{% for host in (groups['kube_masters'] | difference(groups['delete_masters']) | unique) %}
         server {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}:6443;
 {% endfor %}
     }
 
     server {
-        listen {% if inventory_hostname in groups['kube_masters'] %}0.0.0.0{% else %}127.0.0.1{% endif %}:{{ lb_secure_port }};
+        listen {% if inventory_hostname in (groups['kube_masters'] | difference(groups['delete_masters']) | unique) %}0.0.0.0{% else %}127.0.0.1{% endif %}:{{ lb_secure_port }};
         proxy_pass    kube_apiserver;
         proxy_timeout 10m;
         proxy_connect_timeout 1s;

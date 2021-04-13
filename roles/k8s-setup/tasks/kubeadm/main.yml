@@ -1,3 +1,21 @@
+- block:
+  - name: 生成 kubeadm token
+    register: get_kubeadm_token
+    shell: >
+      if [ `{{ kubernetes_bin_dir }}/kubeadm token list | wc -l` -eq 0 ];then
+        token=$({{ kubernetes_bin_dir }}/kubeadm token generate);
+        {{ kubernetes_bin_dir }}/kubeadm token create ${token};
+      else
+        token=$({{ kubernetes_bin_dir }}/kubeadm token list | grep -v DESCRIPTION | awk -F' ' '{print $1}' | head -1)
+        echo ${token}
+      fi
+
+  - set_fact:
+      bootstrap_token: "{{ get_kubeadm_token.stdout }}"
+  when: "enable_add_node | default(false)"
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
 - name: 所有 kube_cluster 节点渲染 kubeadm 的配置文件
   template:
     src: >-

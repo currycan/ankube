@@ -13,7 +13,7 @@
   # 系统初始化
   - { role: initialize/init }
   # normal_install 为 true 时不会拉取二进制文件，只会配置环境变量
-  - { role: install-bin, normal_install: true }
+  - { role: install-bin }
   # 安装容器运行时
   - { role: container-runtime }
   - { role: load-image }

@@ -11,7 +11,7 @@ static_resources:
   - name: lb_kube_apiserver
     address:
       socket_address:
-        address: {% if inventory_hostname in groups['kube_masters'] %}0.0.0.0{% else %}127.0.0.1{% endif %}
+        address: {% if inventory_hostname in (groups['kube_masters'] | difference(groups['delete_masters']) | unique) %}0.0.0.0{% else %}127.0.0.1{% endif %}
 
         port_value: {{ lb_secure_port }}
     filter_chains:
@@ -103,7 +103,7 @@ static_resources:
     type: strict_dns
     lb_policy: LEAST_REQUEST
     hosts:
-{% for host in groups['kube_masters'] %}
+{% for host in (groups['kube_masters'] | difference(groups['delete_masters']) | unique) %}
     - socket_address:
         address: {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
 

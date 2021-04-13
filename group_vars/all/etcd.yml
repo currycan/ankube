@@ -9,6 +9,7 @@ etcd_listen_peer_urls: "https://{{ etcd_listen_addr }}:2380"
 etcd_listen_client_urls: "https://127.0.0.1:2379,https://{{ etcd_listen_addr }}:2379"
 etcd_initial_advertise_peer_urls: "https://{{ etcd_listen_addr }}:2380"
 etcd_advertise_client_urls: "https://{{ etcd_listen_addr }}:2379"
+etcd_servers: "{% for host in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique) -%}https://{{ hostvars[host]['ansible_' + iface].ipv4.address }}:2379{%- if not loop.last -%},{%- endif -%}{%- endfor -%}"
 
 # etcd 集群初始状态 new/existing
 etcd_initial_token: k8s-etcd-cluster

@@ -1,0 +1,35 @@
+- hosts:
+  - delete_etcds
+  become: true
+  serial: 1
+  gather_facts: false
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: 删除 etcd 节点
+    when: "groups['delete_etcds']|length > 0"
+    include_role:
+      name: cluster-ops/delete/etcd
+
+- hosts:
+  - kube_etcds
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: 其他 etcd 重新配置参数
+    when: "groups['delete_etcds']|length > 0"
+    include_role:
+      name: cluster-ops/delete/etcd
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/delete/etcd/tasks/update-etcd.yml"
+
+- hosts:
+  - kube_masters
+  become: true
+  gather_facts: true
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  tasks:
+  - name: master 节点重新配置参数
+    when: "groups['delete_etcds']|length > 0"
+    include_role:
+      name: cluster-ops/delete/etcd
+      tasks_from: "{{ inventory_dir }}/roles/cluster-ops/delete/etcd/tasks/update-k8s.yml"

@@ -53,42 +53,44 @@
     - "{{ kubernetes_log_dir }}/kube-controller-manager"
     - "{{ kubernetes_log_dir }}/kube-scheduler"
 
-  - name: 生成 bootstrap token
-    include_tasks: common/gen_bootstrap_token.yml
+  - block:
+    - name: 生成 bootstrap token
+      include_tasks: common/gen_bootstrap_token.yml
+
+    - name: 获取 bootstrap_token
+      shell: >
+        cat "{{ k8s_pki_dir }}/token.csv" | grep bootstrap_token | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
+      register: get_bootstrap_token
+      run_once: "{{ enable_run_once | default(true) }}"
+      delegate_to: "{{ groups['masters'][0] }}"
+
+    - name: 设置 bootstrap_token 变量
+      set_fact:
+        bootstrap_token: "{{ get_bootstrap_token.stdout }}"
+
+    - name: 设置 bootstrap_token_id 变量
+      when: inventory_hostname in groups['kube_masters']
+      set_fact:
+        bootstrap_token_id: "{{ bootstrap_token.split('.')[0] }}"
+
+    - name: 设置 bootstrap_token_secret 变量
+      when: inventory_hostname in groups['kube_masters']
+      set_fact:
+        bootstrap_token_secret: "{{ bootstrap_token.split('.')[1] }}"
+
+    - name: 生成 kubeconfig 文件
+      when: "binary_way is defined and binary_way.enable"
+      include_tasks: kubeconfig/main.yml
+    when: "not enable_add_node | default(false)"
 
   - name: 生成 encryption config
     include_tasks: common/encryption_config_secret.yml
-
-  - name: 获取 bootstrap_token
-    shell: >
-      cat "{{ k8s_pki_dir }}/token.csv" | grep bootstrap_token | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
-    register: get_bootstrap_token
-    run_once: true
-    delegate_to: "{{ groups['masters'][0] }}"
-
-  - name: 设置 bootstrap_token 变量
-    set_fact:
-      bootstrap_token: "{{ get_bootstrap_token.stdout }}"
-
-  - name: 设置 bootstrap_token_id 变量
-    when: inventory_hostname in groups['kube_masters']
-    set_fact:
-      bootstrap_token_id: "{{ bootstrap_token.split('.')[0] }}"
-
-  - name: 设置 bootstrap_token_secret 变量
-    when: inventory_hostname in groups['kube_masters']
-    set_fact:
-      bootstrap_token_secret: "{{ bootstrap_token.split('.')[1] }}"
-
-  - name: 生成 kubeconfig 文件
-    when: "binary_way is defined and binary_way.enable"
-    include_tasks: kubeconfig/main.yml
 
   - name: 获取 encryption config secret
     shell: >
       cat "{{kubernetes_etc_dir}}/encryption_config_secret.yml" | grep encryption_config_secret | cut -d ":" -f 2 | sed 's/^[ \t]*//g'
     register: get_encryption_config_secret
-    run_once: true
+    when: inventory_hostname in groups['kube_masters']
     delegate_to: "{{ groups['masters'][0] }}"
 
   - name: 设置 encryption_config_secret 变量
@@ -125,16 +127,17 @@
       {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve; exit 0
     environment:
         KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
-    run_once: true
+    run_once: "{{ enable_run_once | default(true) }}"
     delegate_to: "{{ groups['masters'][0] }}"
 
   - name: 获取 kubeconfig admin 文件
+    when: inventory_hostname in groups['kube_masters']
     slurp:
       src: "{{ item }}"
     with_items:
       - "{{ kubernetes_etc_dir }}/admin.conf"
     register: slurp_kubeconfig
-    run_once: true
+    run_once: "{{ enable_run_once | default(true) }}"
     delegate_to: "{{ groups['masters'][0] }}"
 
   - name: 配置 kubeconfig admin 文件到 $HOME/.kube/config
@@ -193,7 +196,7 @@
       with_items:
         - control-plane-ep.yml
         - data-plane-ep.yml
-    run_once: true
+    run_once: "{{ enable_run_once | default(true) }}"
     delegate_to: "{{ groups['masters'][0] }}"
 
   - name: 普通用户配置集群访问权限

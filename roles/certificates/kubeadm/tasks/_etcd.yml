@@ -28,4 +28,4 @@
     no_log: true
     with_items: "{{ slurp_etcd_certs.results }}"
   when:
-  - inventory_hostname in groups['kube_etcds']
+  - inventory_hostname in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)

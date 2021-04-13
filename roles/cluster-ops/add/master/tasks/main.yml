@@ -1,0 +1,9 @@
+- name: 新增 master 节点安装二进制文件
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_binary.yml"
+  loop_control:
+    loop_var: out_item
+  with_dict: "{{ binary }}"
+  when:
+    - inventory_hostname in groups['add_masters']
+    - out_item.value.type == 'add_masters'
+    - out_item.value.enable == 'true'
