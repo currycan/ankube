@@ -73,8 +73,12 @@ kubeadm_apiserver_extra_args:
   enable-bootstrap-token-auth: "true"
   log-dir: "{{ kubernetes_log_dir }}/kube-apiserver"
   logtostderr: "false"
+  # 在给定时间内的最大 non-mutating 请求数，默认 400，可以调整至 1000
   max-requests-inflight: "1500"
+  # 在给定时间内的最大 mutating 请求数，调整 apiserver 的流控 qos，可以调整至 3000，默认为 200
   max-mutating-requests-inflight: "500"
+  # 调大 resources 的 watch size，默认为 100，当集群中 node 以及 pod 数量非常多时可以稍微调大
+  watch-cache-sizes: "node#100,pod#1000"
   tls-cipher-suites: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256"
   # requestheader-allowed-names: "front-proxy-client"
   # 使用 --requestheader-username-headers 指定的，允许在头部提供用户名的客户端证书通用名称列表。
@@ -102,8 +106,10 @@ kubeadm_controller_extra_args:
   horizontal-pod-autoscaler-initial-readiness-delay: "{{ controller_manager.horizontal_pod_autoscaler.readiness_delay }}"
   horizontal-pod-autoscaler-sync-period: "{{ controller_manager.horizontal_pod_autoscaler.sync_period }}"
   horizontal-pod-autoscaler-tolerance: "{{ controller_manager.horizontal_pod_autoscaler.tolerance }}"
-  kube-api-qps: "500"
-  kube-api-burst: "200"
+  # 可以调整至 100，默认值为 20
+  kube-api-qps: "100"
+  # 可以调整至 100，默认值为 30
+  kube-api-burst: "100"
   log-dir: "{{ kubernetes_log_dir }}/kube-controller-manager"
   logtostderr: "false"
   port: "{{ controller_manager.insecure_port }}"
@@ -118,8 +124,10 @@ kubeadm_controller_extra_args:
   v: "2"
 kubeadm_scheduler_extra_args:
   alsologtostderr: "true"
-  kube-api-qps: "500"
-  kube-api-burst: "200"
+  # 可以调整至 100，默认值为 20
+  kube-api-qps: "100"
+  # 可以调整至 100，默认值为 30
+  kube-api-burst: "100"
   log-dir: "{{ kubernetes_log_dir }}/kube-scheduler"
   logtostderr: "false"
   port: "{{ scheduler.insecure_port }}"
@@ -129,6 +137,12 @@ kubeadm_scheduler_extra_args:
   #- requestheader-allowed-names: ""
   # 在信任请求头中以 --requestheader-username-headers 指示的用户名之前，用于验证接入请求中客户端证书的根证书捆绑。
   #- requestheader-client-ca-file: "{{ front_ca }}"
+  # 在给定时间内的最大 non-mutating 请求数，默认 400，可以调整至 1000
+  max-requests-inflight: "1500"
+  # 在给定时间内的最大 mutating 请求数，调整 apiserver 的流控 qos，可以调整至 3000，默认为 200
+  max-mutating-requests-inflight: "500"
+  # 调大 resources 的 watch size，默认为 100，当集群中 node 以及 pod 数量非常多时可以稍微调大
+  watch-cache-sizes: "node#100,pod#1000"
   v: "2"
 
 ## Extra control plane host volume mounts

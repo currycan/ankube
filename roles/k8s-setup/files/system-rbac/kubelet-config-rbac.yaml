@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: kubernetes:kubelet-config
+  name: system:kubelet-config
   namespace: kube-system
 rules:
   - apiGroups:
@@ -17,16 +17,16 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubernetes:kubelet-config
+  name: system:kubelet-config
   namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: kubernetes:kubelet-config
+  name: system:kubelet-config
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: system:nodes
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
-    name: system:bootstrappers:default-node-token
+    name: system:bootstrappers

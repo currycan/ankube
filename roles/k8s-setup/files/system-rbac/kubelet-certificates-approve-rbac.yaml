@@ -1,67 +1,4 @@
 ---
-# A ClusterRole which instructs the CSR approver to approve a user requesting
-# node client credentials.
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/nodeclient"]
-    verbs: ["create"]
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: approve-node-client-csr
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/nodeclient"]
-    verbs: ["create"]
-
----
-# A ClusterRole which instructs the CSR approver to approve a node renewing its
-# own client credentials.
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/selfnodeclient"]
-    verbs: ["create"]
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: approve-node-client-renewal-csr
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/selfnodeclient"]
-    verbs: ["create"]
-
----
-# A ClusterRole which instructs the CSR approver to approve a node requesting a
-# serving cert matching its client cert.
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeserver
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/selfnodeserver"]
-    verbs: ["create"]
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: approve-node-server-renewal-csr
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/selfnodeserver"]
-    verbs: ["create"]
-
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -76,7 +13,32 @@ rules:
       - get
       - list
       - watch
+---
+# enable bootstrapping nodes to create CSR
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: create-csrs-for-bootstrapping
+subjects:
+  - kind: Group
+    name: system:bootstrappers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: system:node-bootstrapper
+  apiGroup: rbac.authorization.k8s.io
 
+---
+# 具有自动批准 nodeclient 类型 CSR 请求的能力
+# node client credentials.
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests/nodeclient"]
+    verbs: ["create"]
 ---
 # Approve all CSRs for the group "system:bootstrappers"
 # 自动 approve node 的第一次 CSR； 注意第一次 CSR 时，请求的 Group 为 system:bootstrappers；
@@ -92,6 +54,18 @@ roleRef:
   kind: ClusterRole
   name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
   apiGroup: rbac.authorization.k8s.io
+
+---
+#  具有自动批准 selfnodeclient 类型 CSR 请求的能力
+# own client credentials.
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests/selfnodeclient"]
+    verbs: ["create"]
 ---
 # To let a node of the group "system:nodes" renew its own credentials
 # 自动 approve node 后续过期的 client 证书，自动生成的证书 Group 为 system:nodes;
@@ -107,35 +81,18 @@ roleRef:
   kind: ClusterRole
   name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
   apiGroup: rbac.authorization.k8s.io
+
 ---
-# To let a node of the group "system:nodes" renew its own server credentials
-# 自动 approve node 后续过期的 server 证书，自动生成的证书 Group 为 system:nodes
-kind: ClusterRoleBinding
+# 具有自动批准 selfnodeserver 类型 CSR 请求的能力
+# serving cert matching its client cert.
+kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: node-server-cert-renewal
-subjects:
-  - kind: Group
-    name: system:nodes
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: approve-node-server-renewal-csr
-  apiGroup: rbac.authorization.k8s.io
----
-# enable bootstrapping nodes to create CSR
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: create-csrs-for-bootstrapping
-subjects:
-  - kind: Group
-    name: system:bootstrappers
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: system:node-bootstrapper
-  apiGroup: rbac.authorization.k8s.io
+  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeserver
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["certificatesigningrequests/selfnodeserver"]
+    verbs: ["create"]
 ---
 # To let a node of the group "system:nodes" renew its own server credentials
 # 自动 approve node 后续过期的 server 证书，自动生成的证书 Group 为 system:nodes

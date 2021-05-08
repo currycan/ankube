@@ -23,7 +23,8 @@
     - name: worker 节点加入集群
       shell: >
         systemctl stop kubelet.service;
-        rm -rf {{ kubelet_data_dir }}/cpu_manager_state;
+        rm -f {{ kubelet_data_dir }}/cpu_manager_state;
+        rm -f {{ kubelet_data_dir }}/memory_manager_state;
         {{ kubernetes_bin_dir }}/kubeadm join --config {{ kubernetes_etc_dir }}/kubeadm-config.yaml \
           --ignore-preflight-errors=FileAvailable--etc-kubernetes-pki-ca.crt \
           --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
