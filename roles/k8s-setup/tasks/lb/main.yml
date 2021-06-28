@@ -4,7 +4,11 @@
       lb_running_num=0;
       for lb in {"{{ lb_mode }}","keepalived"};
       do
+        {% if container_runtime == 'docker' -%}
         [ `{{ docker_bin_dir }}/docker ps --filter name=k8s_lb-${lb}.* --filter status=running | wc -l` -eq 2 ] && lb_running_num=`expr $lb_running_num + 1`;
+        {% elif container_runtime == 'containerd' -%}
+        [ `{{ containerd_bin_dir }}/crictl ps --name=lb-${lb}.* --state running | wc -l` -eq 2 ] && lb_running_num=`expr $lb_running_num + 1`;
+        {%- endif -%}
       done;
       echo $lb_running_num
     register: lb_statuses_result
@@ -60,6 +64,12 @@
         - { src: "kubelet/20-kubelet-override.conf", dest: "{{ systemd_service_dir }}/kubelet.service.d/20-kubelet-override.conf" }
         - { src: "kubelet/kubelet.service", dest: "{{ systemd_service_dir }}/kubelet.service" }
 
+    # https://github.com/kubernetes/kubernetes/issues/43856
+    - name: 停止 slice
+      shell: >
+        for i in $(/usr/bin/systemctl list-unit-files --no-legend --no-pager -l | grep --color=never -o .*.slice | grep kubepod);do systemctl stop $i;done; exit 0
+      register: lb_status
+
     - name: bootstrap lb 服务
       systemd:
         name: kubelet
@@ -72,14 +82,16 @@
       delay: "{{ retry_stagger }}"
 
     - name: 以轮询的方式等待 {{ lb_mode }} 运行完成
-      shell: nc -z -w 3 127.0.0.1 {{ lb_secure_port }}
+      shell: >
+        nc -z -w 3 127.0.0.1 {{ lb_secure_port }};
       register: lb_status
       until: lb_status.rc == 0
       retries: 5
       delay: 15
 
     - name: 以轮询的方式等待 keepalived 运行完成
-      shell: nc -z -w 3 {{ lb_apiserver_ip | trim }} {{ lb_secure_port }}
+      shell: >
+        nc -z -w 3 {{ lb_apiserver_ip | trim }} {{ lb_secure_port }};
       register: keepalived_status
       until: keepalived_status.rc == 0
       retries: 5

@@ -1,12 +1,8 @@
 [Service]
-
-Environment="KUBELET_ARGS_BASE=--address=127.0.0.1 --pod-manifest-path={{ manifest_dir }} --cgroup-driver={{ cgroup_driver }}"
+Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix://{{ cri_socket }}"
+Environment="KUBELET_ARGS_BASE=--pod-manifest-path={{ manifest_dir }} --cgroup-driver={{ cgroup_driver }}"
 Environment="KUBELET_SYSTEM_PODS_ARGS=--pod-infra-container-image={{ kubelet.pod_infra_container_image }} --hostname-override={{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
-{% if container_runtime == "containerd" %}
-Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
-{% elif container_runtime != 'docker' %}
-Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix://{{ runtime_sockets['' + container_runtime] }}"
-{% endif %}
+
 ExecStart=
-ExecStart={{ kubernetes_bin_dir }}/kubelet $KUBELET_ARGS_BASE $KUBELET_SYSTEM_PODS_ARGS $CRI_RUNTIME_ARGS
+ExecStart={{ kubernetes_bin_dir }}/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $CRI_RUNTIME_ARGS $KUBELET_ARGS_BASE $KUBELET_SYSTEM_PODS_ARGS
 Restart=always

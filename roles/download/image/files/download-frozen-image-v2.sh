@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+export PATH=/root/.go/bin/go:$PATH
+
 set -eo pipefail
 
 # hello-world                      latest              ef872312fe1b        3 months ago        910 B

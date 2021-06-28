@@ -41,6 +41,7 @@
   with_items:
     - { src: "kubelet/10-kubelet.conf", dest: "{{ systemd_service_dir }}/kubelet.service.d/10-kubeadm.conf" }
     - { src: "kubelet/kubelet.service", dest: "{{ systemd_service_dir }}/kubelet.service" }
+    - { src: "kubelet/kube.slice", dest: "{{ systemd_service_dir }}/kube.slice" }
     - { src: "kubelet/kubelet-config.yml", dest: "{{ kubelet_data_dir }}/config-tmp.yaml" }
     - { src: "kube-proxy/kube-proxy-config.yaml", dest: "{{ kube_proxy_data_dir }}/config-tmp.yaml" }
     # - { src: "cni-plugin/cni-default.conf", dest: "{{ cni_etc_dir }}/cni-default.conf" }
@@ -72,6 +73,20 @@
 #   with_items:
 #     - "{{ images.coredns.file }}"
 #     - "{{ images.autoscaler.file }}"
+
+# https://github.com/kubernetes/kubernetes/issues/92175
+# https://github.com/kubernetes/kops/issues/3223
+# https://github.com/kubernetes/kubernetes/issues/43856
+- name: 启动 kube.slice
+  systemd:
+    name: kube.slice
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+  register: kube_slice_etcd
+  until: kube_slice_etcd is succeeded
+  retries: 3
+  delay: "{{ retry_stagger }}"
 
 - name: 设置 kubelet 开机启动
   systemd:

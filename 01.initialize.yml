@@ -10,3 +10,5 @@
   - { role: initialize/check-environment }
   - { role: initialize/chrony, when: "groups['chrony']|length > 0" }
   - { role: initialize/init }
+  # normal_install 为 true 时不会拉取二进制文件，只会配置环境变量
+  - { role: install-bin, normal_install: false }

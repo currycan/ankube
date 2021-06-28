@@ -1,11 +1,29 @@
 - block:
+  - name: 重打 coredns 镜像tag
+    shell: >
+      img=`{{ kubernetes_bin_dir }}/kubeadm config images list --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml | grep coredns`;
+      {% if container_runtime == 'docker' -%}
+      {{ docker_bin_dir }}/docker tag {{ images.coredns.name }} ${img};
+      {% elif container_runtime == 'containerd' -%}
+      [ `{{ containerd_bin_dir }}/ctr -n k8s.io images ls | grep ${img} | wc -l` -eq 0 ] && \
+      {{ containerd_bin_dir }}/ctr -n k8s.io images tag {{ images.coredns.name }} ${img};
+      {%- endif -%}
+      exit 0
+    args:
+      executable: /bin/bash
+
   - name: 获取第一个 master 节点各组件状态
-    when: inventory_hostname == groups['masters'][0]
+    when:
+      - inventory_hostname == groups['masters'][0]
     shell: >
       cs_running_num=0;
       for cs in {kube-apiserver,kube-controller-manager,kube-scheduler};
       do
+        {% if container_runtime == 'docker' -%}
         [ `{{ docker_bin_dir }}/docker ps --filter name=k8s_${cs}.* --filter status=running | wc -l` -eq 2 ] && cs_running_num=`expr $cs_running_num + 1`;
+        {% elif container_runtime == 'containerd' -%}
+        [ `{{ containerd_bin_dir }}/crictl ps --name=${cs}.* --state running | wc -l` -eq 2 ] && cs_running_num=`expr $cs_running_num + 1`;
+        {%- endif -%}
       done;
       echo $cs_running_num
     register: cs_statuses_result
@@ -18,6 +36,7 @@
         systemctl stop kubelet.service;
         rm -f {{ kubelet_data_dir }}/cpu_manager_state;
         rm -f {{ kubelet_data_dir }}/memory_manager_state;
+        rm -f {{ manifest_dir }}/kube-*;
         {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
       environment:
         PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"

@@ -107,5 +107,5 @@ static_resources:
     - socket_address:
         address: {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}
 
-        port_value: 6443
+        port_value: {{ apiserver_secure_port }}
 {% endfor %}

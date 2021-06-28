@@ -44,7 +44,7 @@
     kube_version: "1.19.9"
   roles:
   # 需要和全局变量里的 binary.yml 值保持一致
-  - { role: cluster-ops/upgrade/normal, docker_enable_proxy: true, upgrade_cs: "kubernetes" }
+  - { role: cluster-ops/upgrade/normal, enable_proxy: true, upgrade_cs: "kubernetes" }
 
 # update kubernetes
 - hosts:

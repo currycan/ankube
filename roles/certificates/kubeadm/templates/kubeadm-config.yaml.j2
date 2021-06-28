@@ -6,7 +6,7 @@ apiVersion: kubeadm.k8s.io/v1beta1
 {% endif %}
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: {% if groups['kube_masters'] | length == 1 %}{{ groups['masters'][0] }}{% else %}{{ vip_address }}{% endif %}
+  advertiseAddress: {% if groups['kube_masters'] | length == 1 %}{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}{% else %}{{ vip_address }}{% endif %}
 
   bindPort: {% if groups['kube_masters'] | length == 1 %}{{ apiserver_secure_port|int }}{% else %}{{ lb_secure_port|int }}{% endif %}
 
@@ -25,15 +25,13 @@ kubernetesVersion: v{{ kube_version }}
 certificatesDir: {{ k8s_pki_dir }}
 etcd:
   local:
+{% if (kube_version is version('1.21.0', '<')) %}
     caFile: {{ etcd_ca }}
     certFile: {{ etcd_cert_apiserver_server }}
     keyFile: {{ etcd_cert_apiserver_server_key }}
+{% endif %}
     serverCertSANs:
     - localhost
-    - {{ etcd_domain_name }}
-{% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}
-    - {{ hostvars[host].ansible_hostname }}
-{% endfor %}
     - 127.0.0.1
     - 0:0:0:0:0:0:0:1
 {% for host in ((groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)) %}

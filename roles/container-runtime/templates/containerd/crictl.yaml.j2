@@ -1,8 +1,4 @@
-{% if container_runtime == "containerd" %}
-runtime-endpoint: unix:///run/containerd/containerd.sock
-{% else %}
-runtime-endpoint: unix:///var/run/dockershim.sock
-image-endpoint: unix:///var/run/dockershim.sock
-{% endif %}
-timeout: 10
+runtime-endpoint: unix://{{ cri_socket }}
+image-endpoint: unix://{{ cri_socket }}
+timeout: 30
 debug: false

@@ -14,7 +14,7 @@ stream {
     upstream kube_apiserver {
         least_conn;
 {% for host in (groups['kube_masters'] | difference(groups['delete_masters']) | unique) %}
-        server {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}:6443;
+        server {% if hostvars[host]['ansible_host'] is defined %}{{ hostvars[host]['ansible_host'] }}{% else %}{{ host }}{% endif %}:{{ apiserver_secure_port }};
 {% endfor %}
     }
 

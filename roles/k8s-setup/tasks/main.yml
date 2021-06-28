@@ -127,6 +127,8 @@
       {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve; exit 0
     environment:
         KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
+    args:
+      executable: /bin/bash
     run_once: "{{ enable_run_once | default(true) }}"
     delegate_to: "{{ groups['masters'][0] }}"
 

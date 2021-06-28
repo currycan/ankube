@@ -31,7 +31,9 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --etcd-certfile={{ etcd_cert_apiserver_server }} \
   --etcd-keyfile={{ etcd_cert_apiserver_server_key }} \
   --etcd-servers={{ etcd_servers }} \
+{% if (kube_version is version('1.17.0', '<')) %}
   --insecure-port=0 \
+{% endif %}
   --kubelet-certificate-authority={{ kubernetes_ca }} \
   --kubelet-client-certificate={{ apiserver_kubelet_cert }} \
   --kubelet-client-key={{ apiserver_kubelet_cert_key }} \
@@ -57,9 +59,8 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --service-cluster-ip-range={{ apiserver.service_ip_range }} \
   --service-node-port-range={{ apiserver.service_node_port_range }} \
   --tls-cert-file={{ apiserver_cert }} \
-  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256 \
-  --tls-private-key-file=/etc/kubernetes/pki/apiserver.key \
   --tls-private-key-file={{ apiserver_cert_key }} \
+  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256 \
   --v=2
 
 Type=notify

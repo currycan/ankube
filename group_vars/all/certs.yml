@@ -1,3 +1,19 @@
+## 设定安装方式：二进制安装或者kubeadm安装
+binary_way:
+  enable: false
+  ## 设定证书生成方式：cfssl或者openssl
+  cfssl_cert: false
+  openssl_cert: true
+kubeadm_way:
+  enable: true
+  ## 设定证书是自定义签发或者kubeadm签发, 使用kubeadm方式搭建集群暂不支持cfssl生成的pem证书
+  kubeadm_cert: true
+
+# kubernetes证书过期时间（天）
+certs_expired: 3650
+# kubernetes根证书过期时间（天）
+ca_certs_expired: 36500
+
 # certs hosts
 master_cert_hosts: "{%- if groups['kube_masters'] | length > 1 -%}{{ vip_address }},{%- endif %}{% for host in groups['kube_masters'] %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in groups['kube_masters']%}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %}"
 

@@ -81,6 +81,11 @@
     path: /etc/sysconfig/ipvsadm
   register: ipvs_file_exist
 
+- name: 安装 ipvsadm
+  package:
+    name:
+    - ipvsadm
+
 - name: 配置 ipvsadm
   shell: ipvsadm --save > /etc/sysconfig/ipvsadm
   when: 'not ipvs_file_exist.stat.exists'

@@ -26,17 +26,6 @@ normal_addons:
     worker:
       - "{{ images.kuboard.file }}"
 
-  pv_browser:
-    name: pv-browser
-    enable: "{{ enable_pv_browser }}"
-    namespace: kube-system
-    directories:
-      - pv-browser
-    templates:
-      - pv-browser/deploy.yaml
-    worker:
-      - "{{ images.pv_browser.file }}"
-
   npd:
     name: npd
     enable: "{{ enable_npd }}"

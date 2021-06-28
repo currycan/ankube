@@ -12,7 +12,7 @@ Type=notify
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
 Environment="PATH={{ docker_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-{% if docker_enable_proxy is defined and docker_enable_proxy == true -%}
+{% if enable_proxy is defined and enable_proxy == true -%}
 Environment="HTTP_PROXY={{ proxy_env.http_proxy }}"
 Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
 Environment="NO_PROXY=localhost,127.0.0.1,127.0.0.0/8, {% for reg in local_image_repo -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% for reg in proxy_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% for reg in insecure_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% if noproxy_registries is defined and noproxy_registries | length > 0 %}{% for reg in noproxy_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}{%- endif -%}"

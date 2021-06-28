@@ -24,11 +24,14 @@
       when:
         - not item.stat.exists
         - item.item.value.file.split('-')[0] == "kube"
+        - item.item.value.enable == "true"
       shell: >
         docker load -i {{ cache_dir + 'kubernetes-v' + kube_version + '/server/bin/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
         docker images | grep kube | grep amd64 | awk '{print "docker tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
         docker images | grep kube | grep amd64 | awk '{print "docker rmi ",$1":"$2}' | sh -x;
         docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+      environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
 
     - debug: msg="docker pull基础镜像，根据网速不同，可能需要一定时间。。"
@@ -36,8 +39,10 @@
       when:
         - not item.stat.exists
         - item.item.key.split('_')[0] != "calico"
+        - item.item.value.enable == "true"
       shell: "docker pull {{ item.item.value.name }}"
       environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
         http_proxy: "{{ proxy_env.http_proxy }}"
         https_proxy: "{{ proxy_env.https_proxy }}"
       with_items: "{{ check_images['results'] }}"
@@ -46,7 +51,10 @@
       when:
         - not item.stat.exists
         - item.item.key.split('_')[0] != "calico"
+        - item.item.value.enable == "true"
       shell: "docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}"
+      environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
     when: 'not (frozen_way is defined and frozen_way)'
 

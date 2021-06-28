@@ -76,6 +76,7 @@
     msg: "Worker节点：{{ inventory_hostname }} 内存期望不小于4G，实际获取：{{ ansible_memtotal_mb }}MB，安装需求校验不通过。"
   when:
     - inventory_hostname in groups['kube_nodes']
+    - groups['kube_cluster']|length != 1
 
 - name: 校验 master 节点CPU核数
   assert:
@@ -83,6 +84,7 @@
     msg: "Master节点：{{ inventory_hostname }} CPU核数期望不小于2C，实际获取：{{ ansible_memtotal_mb }}C，安装需求校验不通过。"
   when:
     - inventory_hostname in groups['kube_masters']
+    - groups['kube_cluster']|length != 1
 
 - name: 校验 worker 节点CPU核数
   assert:
@@ -90,3 +92,4 @@
     msg: "Worker节点：{{ inventory_hostname }} CPU核数期望不小于2C,实际获取：{{ ansible_memtotal_mb }}C，安装需求校验不通过。"
   when:
     - inventory_hostname in groups['kube_nodes']
+    - groups['kube_cluster']|length != 1

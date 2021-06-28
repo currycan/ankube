@@ -5,3 +5,5 @@
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
   - { role: container-runtime }
+  # normal_install 为 true 时不会加载离线镜像
+  - { role: load-image, normal_install: false }

@@ -1,8 +1,10 @@
 # 基础镜像
 images:
   infra:
-    name: "{{ kube_image_repository }}/pause:3.2"
-    file: "pause-3.2"
+    # name: "{{ kube_image_repository }}/pause:3.2"
+    # file: "pause-3.2"
+    name: "{{ kube_image_repository }}/pause:3.4.1"
+    file: "pause-3.4.1"
     type: all
     enable: "true"
 
@@ -168,7 +170,7 @@ images:
   coredns:
     name: "docker.io/coredns/coredns:{{ coredns_version }}"
     file: "coredns-{{ coredns_version }}"
-    type: worker
+    type: all
     enable: "{%- if enable_kube_dns is defined and enable_kube_dns-%}true{% else %}false{%- endif -%}"
   autoscaler:
     name: "k8s.gcr.io/cpa/cluster-proportional-autoscaler-amd64:1.8.3"
@@ -230,12 +232,6 @@ images:
     file: kuboard-v2.0.5.1
     type: worker
     enable: "{%- if enable_kuboard is defined and enable_kuboard-%}true{% else %}false{%- endif -%}"
-
-  pv_browser:
-    name: "docker.io/eipwork/kuboard-pv-browser:v3.0.0"
-    file: kuboard-pv-browser-v3.0.0
-    type: worker
-    enable: "{%- if enable_pv_browser is defined and enable_pv_browser-%}true{% else %}false{%- endif -%}"
 
   rbac_manager:
     name: "quay.io/reactiveops/rbac-manager:v0.10.0"

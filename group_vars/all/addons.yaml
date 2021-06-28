@@ -1,0 +1,48 @@
+# 是否相应安装 addons
+enable_kube_dns: true
+enable_metallb: true
+enable_galaxy: true
+enable_ingress_nginx: true
+enable_metric_server: true
+enable_npd: true
+enable_kuboard: true
+enable_storage_nfs: true
+
+enable_cert_manager: false
+enable_pv_browser: false
+enable_snapshotter: false
+enable_rbac_manager: false
+enable_kubectl_debug: false
+
+# 是否安装相应 tools
+enable_k9s: true
+enable_kubectl_krew: true
+enable_helmfile: false
+enable_kubecm: false
+enable_argocd: false
+enable_vela: false
+enable_istio: false
+
+# coredns 自动安装
+local_dns_cache: "169.254.20.10"
+
+# 选择安装 helm 的版本, helm2 或者 helm3, 默认安装 helm3
+helm_type: helm3
+
+# metallb
+# 选一段与node节点相同网段的地址
+# metallb_protocol: bgp
+metallb_protocol: layer2
+# metallb IP 池
+metallb_vip_pool: 10.10.10.50-10.10.10.99
+
+# ingress
+ingress_type: nginx_ingress
+# ingress metallb IP, ingress 地址要在 metallb 地址池内
+ingress_lb_address: 10.10.10.99
+
+# storageclass
+# nfs_server_path: "/mnt/k8s-nfs"
+# NFS server地址和路径
+nfs_server: 10.10.10.3
+nfs_server_path: "/nfs/data"

@@ -259,7 +259,7 @@ binary:
   k9s:
     enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
     type: kube_cluster
-    url: "https://github.com/derailed/k9s/releases/download/v{{ k9s_version }}/k9s_Linux_x86_64.tar.gz"
+    url: "https://github.com/derailed/k9s/releases/download/v{{ k9s_version }}/k9s_v{{ k9s_version }}_Linux_x86_64.tar.gz"
     file: "k9s_Linux_x86_64-v{{ k9s_version }}.tar.gz"
     archive_dir: "k9s-v{{ k9s_version }}"
     install_dir: "{{ kubernetes_bin_dir }}"
@@ -312,16 +312,3 @@ binary:
       extra_opt: "['--strip-components=1']"
     bin:
       - bin/istioctl
-
-  # istioctl:
-  #   enable: "{%- if enable_kubectl_krew is defined and enable_kubectl_krew -%}true{% else %}false{%- endif -%}"
-  #   type: kube_cluster
-  #   url: "https://github.com/istio/istio/releases/download/{{ istio_version }}/istioctl-{{ istio_version }}-linux-amd64.tar.gz"
-  #   file: "istioctl-{{ istio_version }}-linux-amd64.tar.gz"
-  #   archive_dir: "istioctl-{{ istio_version }}"
-  #   install_dir: "{{ istio_bin_dir }}"
-  #   unarchive:
-  #     extra_opt: "['--strip-components=0']"
-  #   bin:
-  #     - istioctl
-  #   image: ""

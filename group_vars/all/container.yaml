@@ -1,0 +1,55 @@
+# docker 设置代理是，不需要代理的镜像仓库（默认已设置过滤阿里云等仓库不代理）
+noproxy_registries:
+  - registry.local.com
+  - harbor.local.com
+
+# 设定容器运行时，可选 docker 和 containerd
+container_runtime: containerd
+cgroup_driver: systemd
+# 开启 docker proxy，可访问gcr
+enable_proxy: true
+# docker 本地仓库地址
+local_image_repo:
+  - harbor.local.com
+
+# /var/run/containerd/containerd.sock
+cri_socket: >-
+  {%- if container_runtime == 'containerd' -%}
+  /run/containerd/containerd.sock
+  {%- else -%}
+  /var/run/dockershim.sock
+  {%- endif -%}
+
+# 应用于容器式守护进程的内存不足（OOM）分数（默认值：0）
+containerd_oom_score: -999
+containerd_grpc_max_recv_message_size: 16777216
+containerd_grpc_max_send_message_size: 16777216
+# 日志输出等级
+containerd_debug_level: "info"
+containerd_metrics_address: ""
+containerd_metrics_grpc_histogram: false
+containerd_max_container_log_line_size: -1
+containerd_default_runtime: "runc"
+containerd_snapshotter: "overlayfs"
+
+# docker0 ip
+bip: "192.168.100.1/24"
+# 定义国内加速镜像地址
+proxy_registries:
+  - "https://8trm4p9x.mirror.aliyuncs.com"
+  - "https://docker.mirrors.ustc.edu.cn"
+  - "https://registry.docker-cn.com"
+  - "http://010a79c4.m.daocloud.io"
+  - "http://hub-mirror.c.163.com"
+insecure_registries:
+  - "{{ vip_address.split('.')[:-1] | join('.') }}.0/24"
+
+# docker日志相关
+log_driver: "json-file"
+level: "warn"
+maxsize: "10m"
+maxfile: 3
+# 开启 docker daemon iptables 规则，如果要使用 docker 创建容器设置为 true
+enable_dockerd_iptables: true
+# 开启 Restful API
+enable_remote_api: false

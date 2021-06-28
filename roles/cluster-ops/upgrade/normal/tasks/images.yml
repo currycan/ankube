@@ -22,6 +22,8 @@
         docker images | grep kube | grep amd64 | awk '{print "docker tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
         docker images | grep kube | grep amd64 | awk '{print "docker rmi ",$1":"$2}' | sh -x;
         docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+      environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
 
     - debug: msg="docker pull基础镜像，根据网速不同，可能需要一定时间。。"
@@ -32,6 +34,7 @@
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: "docker pull {{ item.item.value.name }}"
       environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
         http_proxy: "{{ proxy_env.http_proxy }}"
         https_proxy: "{{ proxy_env.https_proxy }}"
       with_items: "{{ check_images['results'] }}"
@@ -42,6 +45,8 @@
         - not item.stat.exists
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
       shell: "docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}"
+      environment:
+        PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
     when: 'not (frozen_way is defined and frozen_way)'
 
@@ -57,7 +62,8 @@
       shell: >
         mkdir -p /tmp/images/manifests_dir;
         cd /tmp/images/;
-        download-frozen-image-v2.sh manifests_dir {{ item.item.value.name }};
+        img={% if 'docker.io' in item.item.value.name %}{{ item.item.value.name.split('/')[1:3]|join('/') }}{% else %}{{ image }}{% endif %};
+        download-frozen-image-v2.sh manifests_dir ${img};
         [ `ls -A manifests_dir` ] && \
         tar -cC manifests_dir . > {{ cache_dir + 'images/' + item.item.value.file }}.tar \
         || exit 1;

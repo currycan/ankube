@@ -1,5 +1,7 @@
 - name: 判断 docker 是否安装(报错请忽略!!)
   shell: "docker info >/dev/null 2>&1"
+  environment:
+    PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
   register: check_docker
   ignore_errors: true
 

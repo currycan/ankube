@@ -12,24 +12,6 @@
     system: yes
     groups: docker
 
-- name: 检查 docker sysctl 文件是否存在
-  stat: path=/etc/sysctl.d/99-docker.conf
-  register: check_sysctl_conf
-
-- name: 将 bridge-netfilter 和 ip-forward 写入系统变量
-  when: not check_sysctl_conf.stat.exists
-  copy:
-    content: |
-      net.ipv4.ip_forward=1
-      net.bridge.bridge-nf-call-ip6tables=1
-      net.bridge.bridge-nf-call-iptables=1
-      net.ipv4.conf.all.arp_ignore=1
-      net.ipv4.conf.all.arp_announce=2
-    dest: /etc/sysctl.d/99-docker.conf
-
-- name: sysctl 加载 bridge-netfilter 和 ip-forward 系统变量
-  command: "sysctl -p /etc/sysctl.d/99-docker.conf"
-
 - name: 安装 docker
   lineinfile:
     dest: "{{ ansible_env.HOME }}/.bash_profile"
@@ -92,7 +74,6 @@
     daemon_reload: yes
     state: started
     enabled: yes
-  register: docker_socket_started
 
 - name: 启动 Docker engine，并设置开机启动
   systemd:

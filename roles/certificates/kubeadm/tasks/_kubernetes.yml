@@ -3,6 +3,10 @@
     src: "{{ item }}"
   with_items:
     - "{{ kubernetes_ca }}"
+    # - "{{ apiserver_cert }}"
+    # - "{{ apiserver_cert_key }}"
+    # - "{{ apiserver_kubelet_cert }}"
+    # - "{{ apiserver_kubelet_cert_key }}"
   register: slurp_kubernetes_ca_certs
   run_once: true
   delegate_to: "{{ groups['kube_masters'] | difference(groups['delete_etcds']) | difference(groups['delete_masters']) | unique | first }}"

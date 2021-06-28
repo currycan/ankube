@@ -3,6 +3,7 @@
   environment:
     PATH: "{{ ansible_env.PATH }}:{{ ansible_user_dir }}/.go/bin"
   register: check_golang
+  ignore_errors: true
 
 - name: 安装 jq
   when: check_golang.rc != 0

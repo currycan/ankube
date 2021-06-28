@@ -1,23 +1,23 @@
 [deploy]
-10.10.10.10 iface=ens192
+test-env iface=ens33
 
 [chrony]
-test.andrew iface=ens34
+test-env iface=ens33
 
 [etcds]
-test.andrew iface=ens34
+test-env iface=ens33
 [add_etcds]
 
 [delete_etcds]
 
 [masters]
-test.andrew iface=ens34
+test-env iface=ens33
 [add_masters]
 
 [delete_masters]
 
 [nodes]
-test.andrew iface=ens34
+test-env iface=ens33
 
 [add_nodes]
 

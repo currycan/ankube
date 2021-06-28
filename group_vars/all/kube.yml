@@ -1,9 +1,24 @@
+# kubernetes各组件镜像仓库前缀，离线镜像包里的镜像是：registry.cn-hangzhou.aliyuncs.com/google_containers(k8s.gcr.io init时会报错)
+# kube_image_repository: k8s.gcr.io
+kube_image_repository: registry.cn-hangzhou.aliyuncs.com/google_containers
+# kube_image_repository: registry.aliyuncs.com/k8sxio
+# k8s 集群 master 节点证书配置，可以添加多个ip和域名（比如增加公网ip和域名）
+kube_master_external_ip:
+  - "8.8.8.8"
+kube_master_external_domain:
+  - "kubernetes.io"
+apiserver_secure_port: 6443
+
+# 集群参数
+cluster_name: kubernetes
+cluster_domain_name: "cluster.local"
+
 # kube-apiserver variables
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
 apiserver:
   advertise_address: "{{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}"
-  secure_port: 6443
+  secure_port: "{{ apiserver_secure_port }}"
   controlplane_endpoint: "{%- if groups['kube_masters'] | length == 1 -%}{{ groups['masters'][0] }}:{{ apiserver_secure_port }}{%- else -%}{{ vip_address }}:{{ lb_secure_port }}{%- endif %}"
   service_node_port_range: 30000-32767
   service_ip_range: "{{ service_subnet }}"
@@ -91,6 +106,7 @@ kubeadm_apiserver_extra_args:
   requestheader-username-headers: "X-Remote-User"
   runtime-config=api/all: "true"
   v: "2"
+
 kubeadm_controller_extra_args:
   alsologtostderr: "true"
   allocate-node-cidrs: "true"
@@ -113,15 +129,15 @@ kubeadm_controller_extra_args:
   log-dir: "{{ kubernetes_log_dir }}/kube-controller-manager"
   logtostderr: "false"
   port: "{{ controller_manager.insecure_port }}"
-  # requestheader-allowed-names: "front-proxy-client"
   # 使用 --requestheader-username-headers 指定的，允许在头部提供用户名的客户端证书通用名称列表。
   # 如果为空，任何通过 --requestheader-client-ca-file 中 authorities 验证的客户端证书都是被允许的。
-  requestheader-allowed-names: ""
   # 在信任请求头中以 --requestheader-username-headers 指示的用户名之前，用于验证接入请求中客户端证书的根证书捆绑。
+  requestheader-allowed-names: "front-proxy-client"
   requestheader-client-ca-file: "{{ front_ca }}"
   service-cluster-ip-range: "{{ apiserver.service_ip_range }}"
   secure-port: "{{ controller_manager.secure_port }}"
   v: "2"
+
 kubeadm_scheduler_extra_args:
   alsologtostderr: "true"
   # 可以调整至 100，默认值为 20
@@ -131,18 +147,11 @@ kubeadm_scheduler_extra_args:
   log-dir: "{{ kubernetes_log_dir }}/kube-scheduler"
   logtostderr: "false"
   port: "{{ scheduler.insecure_port }}"
-  # requestheader-allowed-names: "front-proxy-client"
   # 使用 --requestheader-username-headers 指定的，允许在头部提供用户名的客户端证书通用名称列表。
   # 如果为空，任何通过 --requestheader-client-ca-file 中 authorities 验证的客户端证书都是被允许的。
-  #- requestheader-allowed-names: ""
+  requestheader-allowed-names: "front-proxy-client"
   # 在信任请求头中以 --requestheader-username-headers 指示的用户名之前，用于验证接入请求中客户端证书的根证书捆绑。
-  #- requestheader-client-ca-file: "{{ front_ca }}"
-  # 在给定时间内的最大 non-mutating 请求数，默认 400，可以调整至 1000
-  max-requests-inflight: "1500"
-  # 在给定时间内的最大 mutating 请求数，调整 apiserver 的流控 qos，可以调整至 3000，默认为 200
-  max-mutating-requests-inflight: "500"
-  # 调大 resources 的 watch size，默认为 100，当集群中 node 以及 pod 数量非常多时可以稍微调大
-  watch-cache-sizes: "node#100,pod#1000"
+  requestheader-client-ca-file: "{{ front_ca }}"
   v: "2"
 
 ## Extra control plane host volume mounts
@@ -154,7 +163,11 @@ kubeadm_scheduler_extra_args:
 #    readOnly: true
 apiserver_extra_volumes: {}
 controller_manager_extra_volumes: {}
-scheduler_extra_volumes: {}
+scheduler_extra_volumes:
+  - name: k8s-certs
+    hostPath: /etc/kubernetes/pki
+    mountPath: /etc/kubernetes/pki
+    readOnly: true
 
 # kubelet variables
 # kubeadm config print init-defaults --component-configs KubeletConfiguration
@@ -166,7 +179,7 @@ kubelet:
   bind_healthz_port: 10248
   # 资源驱逐相关配置
   eviction_hard_imagefs_available: 15%
-  eviction_hard_memory_available: 1024Mi
+  eviction_hard_memory_available: 256Mi
   eviction_hard_nodefs_available: 10%
   eviction_hard_nodefs_inodes_free: 5%
   # kubernetes组件预留资源
@@ -179,7 +192,7 @@ kubelet:
   system_cpu_reserved: 500m
   # master节点设置memory=512Mi就会出现device or resource busy的情况,因为kubelet尝试对system.slice配置限制内存为你给定的值。而因实际使用已经超出
   # master节点最少配置 1024M
-  system_memory_reserved: "{%- if inventory_hostname in groups['kube_masters'] -%}1.2G{%- else -%}1G{%- endif -%}"
+  system_memory_reserved: "{%- if inventory_hostname in groups['kube_masters'] -%}0.3G{%- else -%}0.2G{%- endif -%}"
   system_ephemeral_storage_reserved: 10G
   #  以下资源默认也都是开启的
   feature_gates:
@@ -187,8 +200,8 @@ kubelet:
     CPUManager: true
     # 启用服务端证书轮换
     RotateKubeletServerCertificate: true
-    # 启用客户端证书轮换
-    RotateKubeletClientCertificate: true
+    # # 启用客户端证书轮换, 1.21 不支持
+    # RotateKubeletClientCertificate: true
 
 # kube-proxy variables
 kube_proxy:

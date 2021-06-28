@@ -13,10 +13,10 @@
   # 系统初始化
   - { role: initialize/init }
   # normal_install 为 true 时不会拉取二进制文件，只会配置环境变量
-  - { role: install-bin }
+  - { role: install-bin, normal_install: false }
   # 安装容器运行时
   - { role: container-runtime }
-  - { role: load-image }
+  - { role: load-image, normal_install: false }
   # 创建证书
   - { role: certificates/etcd }
   - { role: certificates/kubernetes }

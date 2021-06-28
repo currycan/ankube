@@ -28,6 +28,7 @@ docker_etc_dir: /etc/docker
 docker_data_dir: /var/lib/docker
 containerd_etc_dir: /etc/containerd
 containerd_data_dir: /var/lib/containerd
+containerd_state_dir: /run/containerd
 
 # etcd paths
 # 为了提高性能，一般使用 SSD 或者和 data-dir 和 wal-dir 不同的磁盘；

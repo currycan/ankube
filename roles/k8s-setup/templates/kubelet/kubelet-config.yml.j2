@@ -1,4 +1,5 @@
 ---
+{# https://kubernetes.io/zh/docs/reference/config-api/kubelet-config.v1beta1/#kubelet-config-k8s-io-v1beta1-KubeletConfiguration #}
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 # 身份验证
@@ -16,45 +17,24 @@ authorization:
   webhook:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
-{# AllowedUnsafeSysctls: net.core.somaxconn #}
-# 监听地址
-address: 0.0.0.0
-# kubelet监听端口
-port: {{ kubelet.bind_port }}
-# kubelet只读端口，用于指标数据采集
-readOnlyPort: {{ kubelet.bind_read_port }}
-# kubelet健康检查端口
-healthzBindAddress: 127.0.0.1
-healthzPort: {{ kubelet.bind_healthz_port }}
+cgroupDriver: "{{ cgroup_driver }}"
+cgroupRoot: "/"
+cgroupsPerQOS: true
 clusterDNS:
 - "{{ cluster_dns_ip }}"
 clusterDomain: "{{ cluster_domain_name }}"
 configMapAndSecretChangeDetectionStrategy: Watch
-{% if kubelet.feature_gates is defined -%}
-featureGates:
-{% for k,v in kubelet.feature_gates.items() %}
-  {{ k }}: {{ v | lower }}
-{% endfor -%}
-{% endif -%}
-staticPodPath: "{{ manifest_dir }}"
-staticPodURL: ""
-failSwapOn: true
-kubeletCgroups: "/podruntime.slice"
-systemCgroups: ""
-cgroupDriver: "{{ cgroup_driver }}"
-cgroupsPerQOS: true
-cgroupRoot: /
 containerLogMaxFiles: 10
 containerLogMaxSize: 20Mi
 contentType: application/vnd.kubernetes.protobuf
 cpuCFSQuota: true
 cpuCFSQuotaPeriod: 100ms
 cpuManagerPolicy: static
-# memoryMmanagerPolicy: static
 cpuManagerReconcilePeriod: 10s
+enableContentionProfiling: true
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
-enableContentionProfiling: true
+enableSystemLogHandler: true
 enforceNodeAllocatable:
 - pods
 {% if  kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
@@ -65,66 +45,120 @@ enforceNodeAllocatable:
 {% endif %}
 eventBurst: 10
 eventRecordQPS: 5
-# 镜像删除策略
-imageGCHighThresholdPercent: 85
-imageGCLowThresholdPercent: 80
-imageMinimumGCAge: 2m0s
 # Node 资源驱逐策略
 evictionHard:
   imagefs.available: "{{ kubelet.eviction_hard_imagefs_available }}"
   memory.available: "{{ kubelet.eviction_hard_memory_available }}"
   nodefs.available: "{{ kubelet.eviction_hard_nodefs_available }}"
   nodefs.inodesFree: "{{ kubelet.eviction_hard_nodefs_inodes_free }}"
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+{% if kubelet.feature_gates is defined -%}
+featureGates:
+{% for k,v in kubelet.feature_gates.items() %}
+  {{ k }}: {{ v | lower }}
+{% endfor -%}
+{% endif -%}
+fileCheckFrequency: 20s
+hairpinMode: hairpin-veth
+healthzBindAddress: 127.0.0.1
+# kubelet健康检查端口
+healthzPort: {{ kubelet.bind_healthz_port }}
+httpCheckFrequency: 20s
+# 镜像删除策略
+imageGCHighThresholdPercent: 85
+imageGCLowThresholdPercent: 80
+imageMinimumGCAge: 2m0s
+iptablesDropBit: 15
+iptablesMasqueradeBit: 14
+kubeAPIBurst: 200
+kubeAPIQPS: 100
 {% if  kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
 # kubelet 资源驱逐策略
 kubeReserved:
   cpu: "{{ kubelet.kube_cpu_reserved }}"
   memory: "{{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}"
-kubeReservedCgroup: "/podruntime.slice"
+kubeReservedCgroup: "/kube.slice"
 {% endif %}
-{% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
-# 系统资源驱逐策略
-systemReserved:
-  cpu: "{{ kubelet.system_cpu_reserved|default('500m') }}"
-  memory: "{{ kubelet.system_memory_reserved|default('512M')|regex_replace('Mi', 'M') }}"
-  ephemeral-storage: "{{ kubelet.system_ephemeral_storage_reserved|default('10Gi')|regex_replace('Gi', 'G') }}"
-systemReservedCgroup: "/system.slice"
-{% endif %}
-evictionSoft: {}
-evictionPressureTransitionPeriod: 5m0s
-fileCheckFrequency: 20s
-hairpinMode: hairpin-veth
-httpCheckFrequency: 20s
-iptablesDropBit: 15
-iptablesMasqueradeBit: 14
-kubeAPIBurst: 2000
-kubeAPIQPS: 1000
+logging: {}
 makeIPTablesUtilChains: true
 maxOpenFiles: 1000000
 maxPods: {{ kubelet.max_pods }}
 nodeLeaseDurationSeconds: 40
+nodeStatusMaxImages: 50
 {% if (kube_version is version('1.15.0', '>=')) %}
 nodeStatusReportFrequency: 1m0s
 {% endif %}
 nodeStatusUpdateFrequency: 10s
 oomScoreAdj: -999
 podPidsLimit: -1
-protectKernelDefaults: false
+# 监听地址
+address: 0.0.0.0
+# kubelet监听端口
+port: {{ kubelet.bind_port }}
+# kubelet只读端口，用于指标数据采集
+readOnlyPort: {{ kubelet.bind_read_port }}
 registryBurst: 20
+registryPullQPS: 5
 {% if ansible_distribution_release == "bionic" %}
 resolvConf: /run/systemd/resolve/resolv.conf
 {% else %}
 resolvConf: /etc/resolv.conf
 {% endif %}
-registryPullQPS: 5
 rotateCertificates: true
-serverTLSBootstrap: true
+# 只能设置为 false，否则启动报错: panic: runtime error: invalid memory address or nil pointer dereference
+runOnce: false
 runtimeRequestTimeout: 10m0s
 serializeImagePulls: false
+serverTLSBootstrap: true
+shutdownGracePeriod: 30s
+shutdownGracePeriodCriticalPods: 10s
+staticPodPath: "{{ manifest_dir }}"
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
+{% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
+# 系统资源驱逐策略
+systemReserved:
+  cpu: "{{ kubelet.system_cpu_reserved|default('500m') }}"
+  memory: "{{ kubelet.system_memory_reserved|default('512M')|regex_replace('Mi', 'M') }}"
+  ephemeral-storage: "{{ kubelet.system_ephemeral_storage_reserved|default('10Gi')|regex_replace('Gi', 'G') }}"
+  pid: "100"
+systemReservedCgroup: "/system.slice"
+{% endif %}
+tlsCipherSuites:
+- TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+- TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+- TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+- TLS_RSA_WITH_AES_256_GCM_SHA384
+- TLS_RSA_WITH_AES_128_GCM_SHA256
+volumePluginDir: /usr/libexec/kubernetes/kubelet-plugins/volume/exec/
+volumeStatsAggPeriod: 1m0s
+AllowedUnsafeSysctls:
+- net.core.somaxconn
+- kernel.msg*
+evictionSoft: {}
+evictionSoftGracePeriod: {}
+evictionMaxPodGracePeriod: 0
+evictionMinimumReclaim: {}
+kernelMemcgNotification: false
+reservedSystemCPUs: ""
+podsPerCore: 0
+protectKernelDefaults: false
+providerID: ""
+qosReserved: {}
+showHiddenMetricsForVersion: ""
+staticPodURL: ""
+staticPodURLHeader: {}
+# Cgroups
+kubeletCgroups: "/kube.slice"
+systemCgroups: "/system.slice"
+topologyManagerPolicy: "none"
+topologyManagerScope: "container"
 {% if kubeadm_way.kubeadm_cert is not defined or not kubeadm_way.kubeadm_cert %}
 tlsCertFile: "{{ kubelet_cert }}"
 tlsPrivateKeyFile: "{{ kubelet_cert_key }}"
 {% endif %}
-volumeStatsAggPeriod: 1m0s
+tlsMinVersion: ""

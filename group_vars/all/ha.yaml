@@ -1,0 +1,29 @@
+# keepalived 参数
+vip_interface: "{{ iface }}"
+# 区分多个instance的VRRP组播，同网段不能重复，取值在0-255之间
+# 因项目已设置vrrp报文单播模式，所以这个ROUTER_ID 即便同网段里面有重复也没关系
+virtual_router_id: "66"
+keepalived_password: "e82LKdrj59D0tHU"
+
+# haproxy监控绑定端口
+# haproxy负载均衡算法，常见如下：
+# "roundrobin": 基于服务器权重的轮询
+# "leastconn": 基于服务器最小连接数
+# "source": 基于请求源IP地址
+# "uri": 基于请求的URI
+lb_haproxy_balance_alg: "leastconn"
+
+# haproxy监控绑定端口
+lb_envoy_admin_address_port: 9090
+
+# Kubernetes  高可用配置
+# Kubernetes 高可用虚IP
+vip_address: 10.10.10.49
+# 有 openresty、nginx、haproxy、envoy 和 slb 可选，默认使用 openresty
+lb_mode: "nginx"
+lb_apiserver_ip: "{{ vip_address }}"
+lb_secure_port: 8443
+lb_healthcheck_port: 8081
+single_api_url: "https://{{ groups['masters'][0] }}:{{ apiserver_secure_port }}"
+lb_api_url: "https://{{ vip_address }}:{{ lb_secure_port }}"
+api_url: "{%- if groups['kube_masters'] | length == 1 -%}{{ single_api_url }}{%- else -%}{{ lb_api_url }}{%- endif %}"

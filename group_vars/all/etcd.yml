@@ -1,3 +1,6 @@
+# 配置etcd集群域名
+etcd_domain_name: k8s.etcd.local
+
 # etcd api version
 # 推荐在 Kubernetes 集群中使用 Etcd v3，v2 版本已在 Kubernetes v1.11 中弃用。
 # etcd_api_version: 2

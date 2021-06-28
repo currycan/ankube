@@ -1,0 +1,10 @@
+# ustc epel 源
+# epel_yum_repo: http://mirrors.aliyun.com/epel/7/$basearch
+epel_yum_repo: http://mirrors.ustc.edu.cn/epel/7/$basearch
+
+# 普通用户，docker/kubectl/helm 准入管理，非 root 也可以使用kubectl docker helm命令
+normal_user:
+  - devops
+
+# ansible 运行剧本时，某些任务会重试，设置重试间隔基础时间为5秒
+retry_stagger: 5
