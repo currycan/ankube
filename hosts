@@ -46,3 +46,9 @@ kube_nodes
 [kube_etcds:children]
 etcds
 add_etcds
+
+[all:vars]
+proxy_server="<proxy_serverv>:18080"
+proxy_user="<username>"
+proxy_passwd="<password>"
+no_proxy="registry.local.com,repo.local.com,localhost,127.0.0.1, ::1,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"

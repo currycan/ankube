@@ -4,62 +4,44 @@
 
 - name: 设置内核版本参数
   set_fact:
-    set_fact_kernel_version: "{{ get_kernel_version.stdout.split('-')[0] }}"
+    fact_kernel_version: "{{ get_kernel_version.stdout.split('-')[0] }}"
 
-- name: 下载 kernel
-  include_tasks: "{{ inventory_dir }}/roles/download/kernel/tasks/centos.yml"
+- name: "获取最新 {{ centos_kernel_repo_name }} 版本"
+  shell: >
+    yum --disablerepo="*" --enablerepo="{{ centos_kernel_repo_name }}" list available | tail -1 | awk -F' ' '{print $2}'
+  register: kernel_version
+
+- set_fact:
+    latest_kernel_version: "{{ kernel_version.stdout }}"
 
 - block:
+  - name: "下载 {{ latest_kernel_version }} kernel"
+    include_tasks: "{{ inventory_dir }}/roles/download/kernel/tasks/centos.yml"
+
   - name: 从 deploy 节点分发 rpm 文件到各节点
     when: inventory_hostname != groups['deploy'][0]
-    synchronize: src="{{ cache_dir + item }}" dest="{{ cache_dir + item }}"
-    with_items: "{{ centos_kernel_rpm_files }}"
+    synchronize: src="{{ cache_dir + 'kernel/' + centos_kernel_type }}" dest="{{ cache_dir + 'kernel/' }}"
 
   - debug: msg="rpm 安装内核，可能需要一定时间。。"
   - name: 安装内核
-    shell: "rpm -Uvh --nodeps --force {{ cache_dir + item }}"
-    with_items: "{{ centos_kernel_rpm_files }}"
-    when: 'centos_kernel_version not in set_fact_kernel_version'
-
-  - name: 卸载 kernel-ml
-    shell: "yum remove -y kernel-ml*"
-    when: 'centos_kernel_type == "lt"'
-
-  - name: 卸载 kernel-lt
-    shell: "yum remove -y kernel-lt*"
-    when: 'centos_kernel_type == "ml"'
-  when: enable_kernel_normal is defined and enable_kernel_normal
-
-- block:
-  - name: 从 deploy 节点分发 rpm 文件到各节点
-    when: inventory_hostname != groups['deploy'][0]
-    synchronize: src="{{ cache_dir + item }}" dest="{{ cache_dir + item }}"
-    with_items: "{{ kernel_longterm_rpm_files }}"
-
-  - debug: msg="rpm 安装内核，可能需要一定时间。。"
-  - name: 安装内核
-    shell: "rpm -Uvh --nodeps --force {{ cache_dir + item }}"
-    with_items: "{{ kernel_longterm_rpm_files }}"
-    when: 'centos_kernel_version not in set_fact_kernel_version'
-
-  - name: 卸载其他内核
-    shell: "yum remove -y kernel-ml* kernel-lt*"
-  when: enable_kernel_longterm is defined and enable_kernel_longterm
+    shell: >-
+      rpm -Uvh --nodeps --force {{ cache_dir + 'kernel/' + centos_kernel_type }}/*.rpm
+  when: 'fact_kernel_version not in latest_kernel_version'
 
 - name: 卸载 3.10 版本 kernel
   shell: "yum remove -y kernel*3.10*"
 
 - name: 设置默认内核为所需版本
   shell: >
-    grub2-set-default "CentOS Linux ({{ centos_kernel_version }}-1.el7.elrepo.x86_64) 7 (Core)" && grub2-mkconfig -o /boot/grub2/grub.cfg
+    grub2-set-default 0 && grub2-mkconfig -o /boot/grub2/grub.cfg
 
-- name: 禁用内核升级
-  lineinfile:
-    dest: "/etc/yum.conf"
-    state: present
-    regexp: "exclude=kernel"
-    line: |
-      exclude=kernel*
+# - name: 禁用内核升级
+#   lineinfile:
+#     dest: "/etc/yum.conf"
+#     state: present
+#     regexp: "exclude=kernel"
+#     line: |
+#       exclude=kernel*
 
 # - name: 检查是否需要重启更新 kernel 版本
 #   shell: uname -r

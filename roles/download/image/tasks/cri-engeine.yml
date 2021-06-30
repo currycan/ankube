@@ -1,0 +1,12 @@
+- name: 判断 cri-engine 是否安装(报错请忽略!!)
+  shell: "{{ cri_engine_cli }} info >/dev/null 2>&1"
+  environment:
+    PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
+  register: check_cri_engine
+  ignore_errors: true
+
+- name: 安装 container runtime engine
+  when: check_cri_engine.rc != 0
+  include_role:
+    name: container-runtime
+    # tasks_from: container-runtime/tasks/main.yml

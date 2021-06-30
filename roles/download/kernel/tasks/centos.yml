@@ -1,41 +1,46 @@
-- block:
-  - name: 判断 rpm 文件是否存在
-    stat: path="{{ cache_dir + item }}"
-    with_items: "{{ centos_kernel_rpm_files }}"
-    register: check_rpm
+- name: 删除原有 kernel repo
+  file:
+    name: /etc/yum.repos.d/kernel.repo
+    state: absent
 
-  - debug: msg="下载 kernel rpm包，根据网速不同，可能需要一定时间。。"
-  - name: "下载 kernel rpm 包"
-    when: not item.stat.exists
-    get_url:
-      url: "{{ centos_kernel_repo }}/{{ item.item }}"
-      dest: "{{ cache_dir + item.item }}"
-      validate_certs: False
-    with_items: "{{ check_rpm['results'] }}"
-    environment:
-        http_proxy: "{{ proxy_env.http_proxy }}"
-        https_proxy: "{{ proxy_env.https_proxy }}"
-  when: enable_kernel_normal is defined and enable_kernel_normal
-  connection: local
-  run_once: true
+- name: "添加 {{ centos_kernel_repo_name }} yum 仓库"
+  yum_repository:
+    name: "{{ centos_kernel_repo_name }}"
+    file: kernel
+    description: "{{ centos_kernel_repo_name }}"
+    baseurl: "{{ centos_kernel_repo_url }}"
+    enabled: no
+    gpgcheck: no
+    state: present
 
-- block:
-  - name: 判断 kernel longterm rpm 文件是否存在
-    stat: path="{{ cache_dir + item }}"
-    with_items: "{{ kernel_longterm_rpm_files }}"
-    register: check_longterm_rpm
+- name: "获取最新 {{ centos_kernel_repo_name }} 版本"
+  shell: >
+    yum --disablerepo="*" --enablerepo="{{ centos_kernel_repo_name }}" list available | tail -1 | awk -F' ' '{print $2}'
+  register: get_kernel_version
 
-  - debug: msg="下载 kernel longterm rpm包，根据网速不同，可能需要一定时间。。"
-  - name: "下载 kernel longterm rpm 包"
-    when: not item.stat.exists
-    get_url:
-      url: "{{ kernel_longterm_repo }}/{{ item.item }}"
-      dest: "{{ cache_dir + item.item }}"
-      validate_certs: False
-    with_items: "{{ check_longterm_rpm['results'] }}"
-    environment:
-        http_proxy: "{{ proxy_env.http_proxy }}"
-        https_proxy: "{{ proxy_env.https_proxy }}"
-  when: enable_kernel_longterm is defined and enable_kernel_longterm
-  connection: local
-  run_once: true
+- set_fact:
+    centos_kernel_version: "{{ get_kernel_version.stdout }}"
+
+- name: "下载 {{ centos_kernel_repo_name }} rpm 文件"
+  yum:
+    name: "{{ item }}"
+    state: latest
+    enablerepo: "{{ centos_kernel_repo_name }}"
+    download_only: true
+  with_items: "{{ centos_kernel_package }}"
+
+- name: "获取 {{ centos_kernel_repo_name }} rpm 离线文件"
+  find:
+    paths: "/var/cache/yum/x86_64/7/{{ centos_kernel_repo_name }}/packages/"
+    patterns: "*.rpm"
+    # use_regex: true
+  register: get_rpm_files
+
+- name: 创建内核离线 RPM 文件存放目录
+  file: path="{{ cache_dir + 'kernel/' + centos_kernel_type }}" state=directory
+
+- name: "复制 {{ centos_kernel_repo_name }} rpm 文件到归档目录"
+  copy:
+    src: "{{ item.path }}"
+    dest: "{{ cache_dir + 'kernel/' + centos_kernel_type + '/' + item.path.split('/')[-1] }}"
+  with_items: "{{ get_rpm_files.files }}"

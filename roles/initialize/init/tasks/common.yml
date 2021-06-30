@@ -76,30 +76,25 @@
   retries: 2
   delay: "{{ retry_stagger }}"
 
-- name: 判断 ipvs 规则文件是否存在
-  stat:
-    path: /etc/sysconfig/ipvsadm
-  register: ipvs_file_exist
+# - name: 判断 ipvs 规则文件是否存在
+#   stat:
+#     path: /etc/sysconfig/ipvsadm
+#   register: ipvs_file_exist
 
-- name: 安装 ipvsadm
-  package:
-    name:
-    - ipvsadm
+# - name: 配置 ipvsadm
+#   shell: ipvsadm --save > /etc/sysconfig/ipvsadm
+#   when: 'not ipvs_file_exist.stat.exists'
 
-- name: 配置 ipvsadm
-  shell: ipvsadm --save > /etc/sysconfig/ipvsadm
-  when: 'not ipvs_file_exist.stat.exists'
-
-- name: 启动 ipvsadm，并设置开机启动
-  systemd:
-    name: ipvsadm
-    daemon_reload: yes
-    state: restarted
-    enabled: yes
-  register: started_ipvsadm
-  until: started_ipvsadm is succeeded
-  retries: 3
-  delay: "{{ retry_stagger }}"
+# - name: 启动 ipvsadm，并设置开机启动
+#   systemd:
+#     name: ipvsadm
+#     daemon_reload: yes
+#     # state: restarted
+#     enabled: yes
+#   # register: started_ipvsadm
+#   # until: started_ipvsadm is succeeded
+#   # retries: 3
+#   # delay: "{{ retry_stagger }}"
 
 - name: 设置系统参数
   template:

@@ -23,7 +23,7 @@
 
 - name: 安装 docker-compose 和 docker 命令补全工具、 docker orphan 清理工具、docker-tag 工具
   copy:
-    src: "{{ item.file }}"
+    src: "{{ inventory_dir }}/roles/container-runtime/files/{{ item.file }}"
     dest: "{{ item.dir }}"
     mode: "{{ item.mode }}"
   with_items:
@@ -40,7 +40,7 @@
 
 - name: 配置 Docker engine service 文件
   template:
-    src: "docker/{{ item }}.j2"
+    src: "{{ inventory_dir }}/roles/container-runtime/templates/docker/{{ item }}.j2"
     dest: "{{ systemd_service_dir }}/{{ item }}"
     owner: root
     group: root
@@ -55,7 +55,9 @@
   file: path="{{ docker_etc_dir }}" state=directory
 
 - name: 配置 daemon.json
-  template: src=docker/daemon.json.j2 dest="{{ docker_etc_dir }}/daemon.json"
+  template:
+    src: "{{ inventory_dir }}/roles/container-runtime/templates/docker/daemon.json.j2"
+    dest: "{{ docker_etc_dir }}/daemon.json"
   # notify: 确认 docker 运行状态
 
 - name: flush-iptables

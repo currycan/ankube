@@ -39,13 +39,18 @@
     - ipset                       # ipvs 模式需要
     - ipvsadm                     # ipvs 模式需要
     - netcat-openbsd              # 使用lb时进行端口判断时会用到
+    - unzip
+    - tar
+    - btrfs-tools
+    - libseccomp2
+    - util-linux
     state: present
     allow_unauthenticated: true
-  # async表示上述命令的等待时间, 设置为0时会一直等待命令结束
-  async: 5
-  # poll表示检查step操作结果的间隔时长,设置为0表示 不用等待结果,继续做下面的操作,我们可以在下面的step中来验证这个命令是否成功执行.
-  poll: 0
-  register: package_result
+  # # async表示上述命令的等待时间, 设置为0时会一直等待命令结束
+  # async: 5
+  # # poll表示检查step操作结果的间隔时长,设置为0表示 不用等待结果,继续做下面的操作,我们可以在下面的step中来验证这个命令是否成功执行.
+  # poll: 0
+  # register: package_result
 
 - name: 判断 irqbalance 文件是否存在
   stat: path=/etc/default/irqbalance

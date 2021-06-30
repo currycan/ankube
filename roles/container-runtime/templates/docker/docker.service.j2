@@ -17,7 +17,7 @@ Environment="HTTP_PROXY={{ proxy_env.http_proxy }}"
 Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"
 Environment="NO_PROXY=localhost,127.0.0.1,127.0.0.0/8, {% for reg in local_image_repo -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% for reg in proxy_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% for reg in insecure_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}, {% if noproxy_registries is defined and noproxy_registries | length > 0 %}{% for reg in noproxy_registries -%}{{ reg }}{%- if not loop.last -%}, {% endif -%}{%- endfor -%}{%- endif -%}"
 {% endif -%}
-ExecStart={{ docker_bin_dir }}/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --icc=false
+ExecStart={{ docker_bin_dir }}/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --cri-containerd --icc=false
 ExecStartPost=-{{ docker_bin_dir }}/cleanup-docker-orphans.sh && /sbin/iptables -I FORWARD -s 0.0.0.0/0 -j ACCEPT
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always

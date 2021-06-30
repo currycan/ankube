@@ -4,7 +4,7 @@ Documentation=https://containerd.io
 After=network.target
 
 [Service]
-Environment="PATH={{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="PATH={{ containerd_bin_dir }}:{{ cni_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 {% if enable_proxy is defined and enable_proxy == true -%}
 Environment="HTTP_PROXY={{ proxy_env.http_proxy }}"
 Environment="HTTPS_PROXY={{ proxy_env.https_proxy }}"

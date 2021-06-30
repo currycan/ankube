@@ -38,20 +38,20 @@ binary:
     archive_dir: "kubernetes-v{{ kube_version }}"
     install_dir: "{{ kubernetes_bin_dir }}"
     unarchive:
-      extra_opt: "['--strip-components=1']"
+      extra_opt: "['--strip-components=3']"
     bin:
-      - server/bin/kubectl
-      - server/bin/kubeadm
-      - server/bin/kube-apiserver
-      - server/bin/kube-controller-manager
-      - server/bin/kube-scheduler
-      - server/bin/kubelet
-      - server/bin/kube-proxy
+      - kubectl
+      - kubeadm
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-scheduler
+      - kubelet
+      - kube-proxy
     images:
-      - server/bin/kube-apiserver.tar
-      - server/bin/kube-controller-manager.tar
-      - server/bin/kube-scheduler.tar
-      - server/bin/kube-proxy.tar
+      - kube-apiserver.tar
+      - kube-controller-manager.tar
+      - kube-scheduler.tar
+      - kube-proxy.tar
 
   kustomize:
     enable: "true"
@@ -81,51 +81,23 @@ binary:
   containerd:
     enable: "true"
     type: kube_cluster
-    url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz"
-    file: "containerd-{{ containerd_version }}-linux-amd64.tar.gz"
-    archive_dir: "containerd-{{ containerd_version }}"
+    url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/cri-containerd-cni-{{ containerd_version }}-linux-amd64.tar.gz"
+    file: "cri-containerd-cni-{{ containerd_version }}-linux-amd64.tar.gz"
+    archive_dir: "cri-containerd-cni-{{ containerd_version }}"
     install_dir: "{{ containerd_bin_dir }}"
     unarchive:
-      extra_opt: "['--strip-components=1']"
+      extra_opt: "['--strip-components=3']"
     bin:
       - containerd
       - containerd-shim
       - containerd-shim-runc-v1
       - containerd-shim-runc-v2
-      - ctr
-
-  runc:
-    enable: "true"
-    type: kube_cluster
-    url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64"
-    file: "runc.amd64-v{{ runc_version }}"
-    install_dir: "{{ containerd_bin_dir }}"
-    bin:
-      - runc
-
-  crictl:
-    enable: "true"
-    type: kube_cluster
-    url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tools_version }}/crictl-v{{ cri_tools_version }}-linux-amd64.tar.gz"
-    file: "crictl-v{{ cri_tools_version }}-linux-amd64.tar.gz"
-    archive_dir: "crictl-v{{ cri_tools_version }}"
-    install_dir: "{{ containerd_bin_dir }}"
-    unarchive:
-      extra_opt: "['--strip-components=0']"
-    bin:
+      - containerd-stress
       - crictl
-
-  critest:
-    enable: "true"
-    type: kube_cluster
-    url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tools_version }}/critest-v{{ cri_tools_version }}-linux-amd64.tar.gz"
-    file: "critest-v{{ cri_tools_version }}-linux-amd64.tar.gz"
-    archive_dir: "critest-v{{ cri_tools_version }}"
-    install_dir: "{{ containerd_bin_dir }}"
-    unarchive:
-      extra_opt: "['--strip-components=0']"
-    bin:
       - critest
+      - ctd-decoder
+      - ctr
+      - runc
 
   docker:
     enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
@@ -163,24 +135,29 @@ binary:
     archive_dir: "calico-v{{ calico_version }}"
     install_dir: "{{ calico_bin_dir }}"
     unarchive:
-      extra_opt: "['--strip-components=1']"
+      extra_opt: "['--strip-components=2']"
     bin:
-      - bin/calicoctl
+      - calicoctl
     image:
-      - images/calico-node.tar
-      - images/calico-pod2daemon-flexvol.tar
-      - images/calico-cni.tar
-      - images/calico-kube-controllers.tar
+      - calico-node.tar
+      - calico-pod2daemon-flexvol.tar
+      - calico-cni.tar
+      - calico-kube-controllers.tar
 
   cni:
     enable: "true"
     type: kube_cluster
-    url: "https://github.com/containernetworking/plugins/releases/download/v{{ cni_version }}/cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
-    file: "cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
-    archive_dir: "cni-{{ cni_version }}"
-    install_dir: "{{ cni_bin_dir }}"
+    # url: "https://github.com/containernetworking/plugins/releases/download/v{{ cni_version }}/cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
+    # file: "cni-plugins-linux-amd64-v{{ cni_version }}.tgz"
+    # archive_dir: "cni-{{ cni_version }}"
+    # unarchive:
+    #   extra_opt: "['--strip-components=1']"
+    url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/cri-containerd-cni-{{ containerd_version }}-linux-amd64.tar.gz"
+    file: "cri-containerd-cni-{{ containerd_version }}-linux-amd64.tar.gz"
+    archive_dir: "cri-containerd-cni-{{ containerd_version }}"
     unarchive:
-      extra_opt: "['--strip-components=1']"
+      extra_opt: "['--strip-components=3']"
+    install_dir: "{{ cni_bin_dir }}"
     bin:
       - bandwidth
       - bridge
@@ -198,6 +175,7 @@ binary:
       - static
       - tuning
       - vlan
+      - vrf
 
   helm2:
     enable: "{%- if helm_type == 'helm2' -%}true{% else %}false{%- endif -%}"
@@ -309,6 +287,6 @@ binary:
     archive_dir: "istio-{{ istio_version }}"
     install_dir: "{{ istio_bin_dir }}"
     unarchive:
-      extra_opt: "['--strip-components=1']"
+      extra_opt: "['--strip-components=2']"
     bin:
-      - bin/istioctl
+      - istioctl

@@ -9,7 +9,8 @@
   stat: path="{{ cache_dir + out_item.item.value.archive_dir}}/{{ in_item }}"
   loop_control:
     loop_var: in_item
-  with_items: "{{ out_item.item.value.bin }}"
+  # 选取第一个文件判断是否存在
+  with_items: "{{ out_item.item.value.bin[0] }}"
   register: check_bin_files
 
 - name: "{{ out_item.item.key }} 二进制文件归档"
