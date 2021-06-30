@@ -17,10 +17,6 @@ lb_haproxy_balance_alg: "leastconn"
 lb_envoy_admin_address_port: 9090
 
 # Kubernetes  高可用配置
-# Kubernetes 高可用虚IP
-vip_address: 10.10.10.49
-# 有 openresty、nginx、haproxy、envoy 和 slb 可选，默认使用 openresty
-lb_mode: "nginx"
 lb_apiserver_ip: "{{ vip_address }}"
 lb_secure_port: 8443
 lb_healthcheck_port: 8081

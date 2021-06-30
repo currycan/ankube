@@ -2,9 +2,6 @@
 # 详情可以查看：https://github.com/kubernetes/kubernetes/issues/70304
 
 ## centos 系统
-# 选择下载官方最新内核版本或者 longterm 版本
-enable_kernel_longterm: true
-
 centos_kernel_repo_name: >-
   {%- if enable_kernel_longterm is defined and enable_kernel_longterm -%}
   longterm-kernel

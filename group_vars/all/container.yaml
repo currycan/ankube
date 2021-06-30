@@ -3,14 +3,8 @@ noproxy_registries:
   - registry.local.com
   - harbor.local.com
 
-# 设定容器运行时，可选 docker 和 containerd
-container_runtime: containerd
+# cgroup driver
 cgroup_driver: systemd
-# 开启 docker proxy，可访问gcr
-enable_proxy: true
-# docker 本地仓库地址
-local_image_repo:
-  - harbor.local.com
 
 cri_engine_cli: >-
   {%- if container_runtime == 'docker' -%}

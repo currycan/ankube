@@ -1,15 +1,5 @@
-# 有效的私有网段，即以下网段及其子网：10.0.0.0/8，172.16-31.0.0/12-16，192.168.0.0/16
-pod_network_cidr: "172.30.0.0/16"
-# 可选范围：10.0.0.0/16-24，172.16-31.0.0/16-24，192.168.0.0/16-24
-service_subnet: 172.31.0.0/16
 api_service_ip: "{{ service_subnet.split('.')[:-1]|join('.') }}.1"
 cluster_dns_ip: "{{ service_subnet.split('.')[:-1]|join('.') }}.10"
-
-# 网络插件，目前只做了 flannel 和 calico 的集成
-container_network: flannel
-# container_network: cilium
-# container_network: kubeovn
-# container_network: calico
 
 # flannel
 # flannel 指定 cni 绑定网卡

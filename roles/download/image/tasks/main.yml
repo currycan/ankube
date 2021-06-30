@@ -11,6 +11,7 @@
     when:
       - not item.stat.exists
       - item.item.key.split('_')[0] == "calico"
+      - item.item.value.enable == "true"
     copy:
       src: "{{ cache_dir + item.item.key.split('_')[0] + '-' + item.item.value.name.split(':')[1] +  '/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }}"
       dest: "{{ cache_dir + 'images/' + item.item.value.file }}.tar"
@@ -47,7 +48,12 @@
         - not item.stat.exists
         - item.item.key.split('_')[0] != "calico"
         - item.item.value.enable == "true"
-      shell: "{{ cri_engine_cli }} pull {{ item.item.value.name }}"
+      shell: >
+        {% if container_runtime == 'docker' -%}
+        docker pull {{ item.item.value.name }};
+        {% elif container_runtime == 'containerd' -%}
+        ctr -n k8s.io images pull {{ item.item.value.name }};
+        {%- endif -%}
       environment:
         PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
         http_proxy: "{{ proxy_env.http_proxy }}"
@@ -78,10 +84,12 @@
       when:
         - not item.stat.exists
         - item.item.key.split('_')[0] != "calico"
+        - item.item.value.enable == "true"
       shell: >
         mkdir -p /tmp/images/manifests_dir;
         cd /tmp/images/;
-        download-frozen-image-v2.sh manifests_dir {{ item.item.value.name }};
+        img={% if 'docker.io' in item.item.value.name %}{{ item.item.value.name.split('/')[1:3]|join('/') }}{% else %}{{ image }}{% endif %};
+        download-frozen-image-v2.sh manifests_dir ${img};
         [ `ls -A manifests_dir` ] && \
         tar -cC manifests_dir . > {{ cache_dir + 'images/' + item.item.value.file }}.tar \
         || exit 1;

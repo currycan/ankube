@@ -48,7 +48,90 @@ etcds
 add_etcds
 
 [all:vars]
+# 代理配置
 proxy_server="<proxy_serverv>:18080"
 proxy_user="<username>"
 proxy_passwd="<password>"
 no_proxy="registry.local.com,repo.local.com,localhost,127.0.0.1, ::1,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+# 选择下载官方最新内核版本或者 longterm 版本
+enable_kernel_longterm=true
+
+# 设定容器运行时，可选 docker 和 containerd
+container_runtime=containerd
+# 开启 proxy，可访问gcr，加速下载 GitHub 文件
+enable_proxy=true
+# 不配置代理的本地私有仓库
+local_image_repo="harbor.local.com"
+
+# 配置etcd集群域名
+etcd_domain_name="k8s.etcd.local"
+
+# 集群参数
+cluster_name=kubernetes
+cluster_domain_name="cluster.local"
+
+# Kubernetes 高可用虚IP
+vip_address="10.10.10.49"
+# 有 openresty、nginx、haproxy、envoy 和 slb 可选，默认使用 openresty
+lb_mode="nginx"
+
+
+# 网络插件，目前只做了 flannel 和 calico 的集成
+container_network="flannel"
+# container_network="cilium"
+# container_network="kubeovn"
+# container_network="calico"
+# 有效的私有网段，即以下网段及其子网：10.0.0.0/8，172.16-31.0.0/12-16，192.168.0.0/16
+pod_network_cidr="172.30.0.0/16"
+# 可选范围：10.0.0.0/16-24，172.16-31.0.0/16-24，192.168.0.0/16-24
+service_subnet=172.31.0.0/16
+
+# coredns 自动安装
+local_dns_cache="169.254.20.10"
+
+# 选择安装 helm 的版本, helm2 或者 helm3, 默认安装 helm3
+helm_type=helm3
+
+# metallb
+# 选一段与node节点相同网段的地址
+# metallb_protocol=bgp
+metallb_protocol=layer2
+# metallb IP 池
+metallb_vip_pool="10.10.10.50-10.10.10.99"
+
+# ingress
+ingress_type=nginx_ingress
+# ingress metallb IP, ingress 地址要在 metallb 地址池内
+ingress_lb_address="10.10.10.99"
+
+# storageclass
+# nfs_server_path="/mnt/k8s-nfs"
+# NFS server地址和路径
+nfs_server="10.10.10.3"
+nfs_server_path="/nfs/data"
+
+# 是否相应安装 addons
+enable_kube_dns=true
+enable_metallb=true
+enable_galaxy=true
+enable_ingress_nginx=true
+enable_metric_server=true
+enable_npd=true
+enable_kuboard=true
+enable_storage_nfs=true
+
+enable_cert_manager=false
+enable_pv_browser=false
+enable_snapshotter=false
+enable_rbac_manager=false
+enable_kubectl_debug=false
+
+# 是否安装相应 tools
+enable_k9s=true
+enable_kubectl_krew=true
+enable_helmfile=false
+enable_kubecm=false
+enable_argocd=false
+enable_vela=false
+enable_istio=false

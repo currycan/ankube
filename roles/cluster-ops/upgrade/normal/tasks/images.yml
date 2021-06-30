@@ -1,50 +1,70 @@
 - block:
-  - name: 创建 docker save images 存放目录
+  - name: 创建离线镜像存放目录
     file: path="{{ cache_dir + 'images' }}" state=directory
 
-  - name: 判断 docker save images tar 包是否存在
+  - name: 判断离线镜像是否存在
     when: 'kube_image_repository in item.value.name and "kube-" in item.value.name'
     stat: path="{{ cache_dir + 'images/' + item.value.file }}.tar"
     with_dict: "{{ images }}"
     register: check_images
 
   - block:
-    - name: 安装 docker
-      include_tasks: "{{ inventory_dir }}/roles/download/image/tasks/install-docker.yml"
+    - name: 安装 crt engine
+      include_tasks: "{{ inventory_dir }}/roles/download/image/tasks/cri-engeine.yml"
 
-    - name: master 节点各组件镜像重打tag
+    - name: kubernetes 各组件镜像重打tag
       when:
         - item.stat.exists is defined
         - not item.stat.exists
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
+        - item.item.value.enable == "true"
       shell: >
-        docker load -i {{ cache_dir + 'kubernetes-v' + kube_version + '/server/bin/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
+        {% if container_runtime == 'docker' -%}
+        docker load -i {{ cache_dir + 'kubernetes-v' + kube_version + '/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
         docker images | grep kube | grep amd64 | awk '{print "docker tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
         docker images | grep kube | grep amd64 | awk '{print "docker rmi ",$1":"$2}' | sh -x;
         docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+        {% elif container_runtime == 'containerd' -%}
+        {{ containerd_bin_dir }}/ctr -n=k8s.io images import {{ cache_dir + 'kubernetes-v' + kube_version + '/' + item.item.value.file.split('-')[:-1] | join('-') + '.tar' }};
+        crictl images | grep kube | grep amd64 | awk '{print "ctr -n k8s.io images tag ",$1":"$2,$1":"$2}' | sed -e 's#-amd64##2' | sed -e 's#k8s.gcr.io#{{kube_image_repository}}#2' | sh -x;
+        crictl images| grep kube | grep amd64 | awk '{print "ctr -n k8s.io images rm ",$1":"$2}' | sh -x;
+        ctr -n k8s.io images export {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+        {%- endif -%}
       environment:
         PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
 
-    - debug: msg="docker pull基础镜像，根据网速不同，可能需要一定时间。。"
-    - name: docker pull images
+    - debug: msg="{{ cri_engine_cli }} pull 离线镜像，根据网速不同，可能需要一定时间。。"
+    - name: "{{ cri_engine_cli }} pull images"
       when:
         - item.stat.exists is defined
         - not item.stat.exists
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
-      shell: "docker pull {{ item.item.value.name }}"
+        - item.item.value.enable == "true"
+      shell: >
+        {% if container_runtime == 'docker' -%}
+        docker pull {{ item.item.value.name }};
+        {% elif container_runtime == 'containerd' -%}
+        ctr -n k8s.io images pull {{ item.item.value.name }};
+        {%- endif -%}
       environment:
         PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
         http_proxy: "{{ proxy_env.http_proxy }}"
         https_proxy: "{{ proxy_env.https_proxy }}"
       with_items: "{{ check_images['results'] }}"
 
-    - name: save docker images 至 {{ cache_dir + 'images' }}
+    - name: save 离线镜像至 {{ cache_dir + 'images' }}
       when:
         - item.stat.exists is defined
         - not item.stat.exists
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
-      shell: "docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}"
+        - item.item.value.enable == "true"
+      shell: >
+        {% if container_runtime == 'docker' -%}
+        docker save -o {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }};
+        {% elif container_runtime == 'containerd' -%}
+        ctr -n k8s.io images export {{ cache_dir + 'images/' + item.item.value.file }}.tar {{ item.item.value.name }}
+        {%- endif -%}
       environment:
         PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
       with_items: "{{ check_images['results'] }}"
@@ -59,6 +79,7 @@
         - item.stat.exists is defined
         - not item.stat.exists
         - kube_image_repository in item.item.value.name and "kube-" in item.item.value.name
+        - item.item.value.enable == "true"
       shell: >
         mkdir -p /tmp/images/manifests_dir;
         cd /tmp/images/;
