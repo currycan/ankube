@@ -12,7 +12,13 @@ enable_proxy: true
 local_image_repo:
   - harbor.local.com
 
-# /var/run/containerd/containerd.sock
+cri_engine_cli: >-
+  {%- if container_runtime == 'docker' -%}
+  docker
+  {%- elif container_runtime == 'containerd' -%}
+  crictl
+  {%- endif -%}
+
 cri_socket: >-
   {%- if container_runtime == 'containerd' -%}
   /run/containerd/containerd.sock
@@ -25,12 +31,28 @@ containerd_oom_score: -999
 containerd_grpc_max_recv_message_size: 16777216
 containerd_grpc_max_send_message_size: 16777216
 # 日志输出等级
-containerd_debug_level: "info"
+containerd_debug_level: "debug"
 containerd_metrics_address: ""
 containerd_metrics_grpc_histogram: false
 containerd_max_container_log_line_size: -1
 containerd_default_runtime: "runc"
 containerd_snapshotter: "overlayfs"
+containerd_runtimes:
+  - name: runc
+    type: "io.containerd.runc.v2"
+    engine: ""
+    root: ""
+    options:
+      # containerd 是否使用 systemd 作为 cgroup 驱动程序
+      SystemdCgroup: "true"
+containerd_use_systemd_cgroup: "true"
+# 配置 Dockerhub 国内镜像加速地址
+containerd_registries:
+  "docker.io": "https://registry-1.docker.io"
+  "gcr.io": "https://gcr.mirrors.ustc.edu.cn"
+  "k8s.gcr.io": "https://gcr.mirrors.ustc.edu.cn/google-containers/"
+  "quay.io": "https://quay.mirrors.ustc.edu.cn"
+containerd_extra_args: ""
 
 # docker0 ip
 bip: "192.168.100.1/24"
