@@ -1,3 +1,10 @@
+- name: 加载 container engine 依赖内核模块
+  modprobe: name={{ item }} state=present
+  with_items:
+    - br_netfilter
+    - overlay
+    - bridge
+
 - name: 检查 cri sysctl 文件是否存在
   stat: path=/etc/sysctl.d/99-cri.conf
   register: check_sysctl_conf
@@ -17,11 +24,11 @@
   command: "sysctl -p /etc/sysctl.d/99-cri.conf"
 
 - name: 安装 containerd
-  include_tasks: containerd/main.yml
-  when: inventory_hostname in groups['kube_cluster']
+  include_tasks: "{{ inventory_dir }}/roles/container-runtime/tasks/containerd/main.yml"
+  when: inventory_hostname in ((groups['deploy'] + groups['kube_cluster'])| unique)
 
 - name: 安装 docker
-  include_tasks: docker/main.yml
+  include_tasks: "{{ inventory_dir }}/roles/container-runtime/tasks/docker/main.yml"
   when:
     - container_runtime == 'docker'
-    - inventory_hostname in groups['kube_cluster']
+    - inventory_hostname in ((groups['deploy'] + groups['kube_cluster'])| unique)

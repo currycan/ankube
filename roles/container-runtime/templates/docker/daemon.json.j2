@@ -4,8 +4,8 @@
     {% if proxy_registries is defined and proxy_registries | length > 0 -%}
     "registry-mirrors": [{% for reg in proxy_registries %}"{{ reg }}"{% if not loop.last %}, {% endif %}{% endfor %}],
     {% endif -%}
-    {% if insecure_registries is defined and insecure_registries | length > 0 -%}
-    "insecure-registries": [{% for reg in insecure_registries %}"{{ reg }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+    {% if insecure_registry_cidr is defined and insecure_registry_cidr | length > 0 -%}
+    "insecure-registries": [{% for reg in insecure_registry_cidr %}"{{ reg }}"{% if not loop.last %}, {% endif %}{% endfor %}],
     {% endif -%}
     "storage-opts": ["overlay2.override_kernel_check=true"],
     "max-concurrent-downloads": 10,

@@ -1,19 +1,19 @@
 - name: kube_cluster 和 kube_etcds 节点安装二进制文件
-  include_tasks: _binary.yml
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_binary.yml"
   when:
     - inventory_hostname in (groups['kube_cluster'] + (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique))
     - out_item.value.type == 'all'
     - out_item.value.enable == 'true'
 
 - name: kube_cluster 节点安装二进制文件
-  include_tasks: _binary.yml
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_binary.yml"
   when:
-    - inventory_hostname in groups['kube_cluster']
+    - inventory_hostname in ((groups['deploy'] + groups['kube_cluster'])| unique)
     - out_item.value.type == 'kube_cluster'
     - out_item.value.enable == 'true'
 
 - name: kube_etcds 节点安装二进制文件
-  include_tasks: _binary.yml
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_binary.yml"
   when:
     - inventory_hostname in (groups['kube_etcds'] | difference(groups['delete_etcds']) | unique)
     - out_item.value.type == 'kube_etcds'

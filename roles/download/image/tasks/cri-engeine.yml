@@ -5,6 +5,22 @@
   register: check_cri_engine
   ignore_errors: true
 
+- name: 拉取 containerd 二进制文件并安装
+  when: out_item.key == "containerd"
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_install.yml"
+  loop_control:
+    loop_var: out_item
+  with_dict: "{{ binary }}"
+
+- name: 拉取 docker 二进制文件并安装
+  when:
+    - out_item.key == "docker"
+    - container_runtime == "docker"
+  include_tasks: "{{ inventory_dir }}/roles/install-bin/tasks/_install.yml"
+  loop_control:
+    loop_var: out_item
+  with_dict: "{{ binary }}"
+
 - name: 安装 container runtime engine
   when: check_cri_engine.rc != 0
   include_role:

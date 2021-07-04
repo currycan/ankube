@@ -18,7 +18,6 @@
 - name: 删除所有 kubernetes 和 container-runtime 各组件运行数据文件和配置
   file: path="{{ item }}" state=absent
   with_items:
-    - "{{ cni_etc_dir }}"
     - "{{ manifest_dir }}"
     - "{{ kubernetes_log_dir }}"
     - "{{ cni_etc_dir }}"

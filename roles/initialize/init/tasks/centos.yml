@@ -19,6 +19,18 @@
     enabled: no
   when: '"active" in firewalld_already_installed.stdout'
 
+- name: 判断 NetworkManager 是否安装
+  shell: >
+    systemctl status NetworkManager | grep active || echo "not be found"
+  register: network_manager_already_installed
+
+- name: 禁用 NetworkManager
+  service:
+    name: NetworkManager
+    state: stopped
+    enabled: no
+  when: '"active" in network_manager_already_installed.stdout'
+
 - name: 设置 yum obsoletes 值为 0
   lineinfile:
     path: /etc/yum.conf

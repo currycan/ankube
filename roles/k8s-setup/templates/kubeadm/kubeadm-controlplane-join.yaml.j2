@@ -21,9 +21,7 @@ nodeRegistration:
     network-plugin: cni
     root-dir: {{ kubelet_data_dir }}
     hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
-{% if container_runtime == 'docker' %}
     pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
-{% endif %}
   criSocket: {{ cri_socket }}
   name: {{ inventory_hostname }}
 {% if inventory_hostname in groups['kube_masters'] and inventory_hostname not in groups['kube_nodes'] %}
@@ -47,6 +45,9 @@ certificatesDir: {{ k8s_pki_dir }}
 {% if (kube_version is version('1.15.0', '>=')) %}
 dns:
   type: CoreDNS
+  # imageRepository: "docker.io"
+  imageRepository: "docker.io/coredns"
+  imageTag: "{{ images.coredns.name.split(':')[1] }}"
 {% endif %}
 etcd:
   external:
@@ -89,7 +90,7 @@ apiServer:
     encryption-provider-config: "{{ k8s_pki_dir }}/secrets-encryption.yaml"
 {% endif %}
     endpoint-reconciler-type: "lease"
-    feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
+    feature-gates: "{%- if apiserver.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}"
     kubelet-certificate-authority: {{ kubernetes_ca }}
     kubelet-client-certificate: {{ apiserver_kubelet_cert }}
     kubelet-client-key: {{ apiserver_kubelet_cert_key }}
@@ -159,7 +160,7 @@ controllerManager:
     bind-address: 127.0.0.1
     controllers: "*,bootstrapsigner,tokencleaner"
     experimental-cluster-signing-duration: "{{ controller_manager.kube_certs_expired }}"
-    feature-gates: "{% for k,v in controller_manager.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}"
+    feature-gates: "{%- if controller_manager.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}"
     profiling: "false"
     node-monitor-grace-period: {% if controller_manager.node_monitor_grace_period is defined %}{{ controller_manager.node_monitor_grace_period }}
 {% else %}
@@ -210,6 +211,7 @@ controllerManager:
 scheduler:
   extraArgs:
     bind-address: 127.0.0.1
+    feature-gates: "{%- if scheduler.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}"
     profiling: "false"
 {% if kubeadm_scheduler_extra_args|length > 0 %}
 {% for key in kubeadm_scheduler_extra_args %}

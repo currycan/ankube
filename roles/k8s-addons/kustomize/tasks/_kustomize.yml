@@ -46,9 +46,8 @@
   - name: 创建 {{ addon.name }} 组件所在 namespace
     shell: >
       [ `{{ kubernetes_bin_dir }}/kubectl get ns {{ addon.namespace }} --ignore-not-found | wc -l` -eq 0 ] && \
-      {{ kubernetes_bin_dir }}/kubectl create ns {{ addon.namespace }};
-      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite;
-      exit 0
+      {{ kubernetes_bin_dir }}/kubectl create ns {{ addon.namespace }} || exit 1;
+      {{ kubernetes_bin_dir }}/kubectl label ns {{ addon.namespace }} kube-component/app={{ addon.name }} --overwrite || exit 1;
     args:
       executable: /bin/bash
 

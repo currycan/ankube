@@ -7,7 +7,7 @@ Wants=docker.socket
 {% else %}
 Wants={{ container_runtime }}.service
 {% endif %}
-Requires=kube.slice
+Requires=kubelet.slice
 
 [Service]
 User=root
@@ -15,13 +15,8 @@ WorkingDirectory={{ kubelet_data_dir }}
 {% if ansible_distribution == "Debian" and ansible_distribution_version|int >= 10 %}
 ExecStartPre=/bin/mount -o remount,rw '/sys/fs/cgroup'
 {% endif %}
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/podruntime.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/podruntime.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/podruntime.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/podruntime.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/podruntime.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/podruntime.slice
 
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu,cpuacct/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice
@@ -30,18 +25,18 @@ ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice
 
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/kube.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/kube.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/kube.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/kube.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/kube.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/kube.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu,cpuacct/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/kubelet.slice
 
 
 {% if ansible_distribution != "Debian" %}
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/podruntime.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/kube.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/kubelet.slice
 {% endif %}
 
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice/kubelet.service

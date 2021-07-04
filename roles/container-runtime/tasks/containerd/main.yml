@@ -21,9 +21,6 @@
     - "{{ containerd_etc_dir }}"
     - "{{ cni_etc_dir }}"
 
-- name: 加载内核模块 overlay
-  modprobe: name=overlay state=present
-
 - name: 配置 crictl 客户端
   template:
     src: "{{ inventory_dir }}/roles/container-runtime/templates/containerd/crictl.yaml.j2"

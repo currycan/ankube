@@ -2,15 +2,16 @@
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig={{kubernetes_etc_dir}}/bootstrap-kubelet.conf --kubeconfig={{kubernetes_etc_dir}}/kubelet.conf"
 Environment="KUBELET_CONFIG_ARGS=--config={{ kubelet_data_dir }}/config.yaml"
 EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
-Environment="CRI_RUNTIME_ARGS=--container-runtime=remote --container-runtime-endpoint=unix://{{ cri_socket }} --runtime-cgroups=/podruntime.slice --containerd-namespace=k8s.io"
+Environment="CRI_ENGINE_ARGS=--runtime-cgroups=/system.slice/containerd.service {% if container_runtime == 'containerd' %}--container-runtime=remote{% endif %} --runtime-request-timeout=15m0s --container-runtime-endpoint=unix://{{ cri_socket }}"
 {% if (kube_version is version('1.15.0', '<')) %}
 Environment="KUBELET_PODS_ARGS=--allow-privileged=true"
 {% endif %}
 {% if container_runtime == 'docker' -%}
-Environment="KUBELET_DOCKER_ARGS=--image-pull-progress-deadline=15m0s --network-plugin=cni --network-plugin=cni --cni-conf-dir={{ cni_etc_dir }} --cni-bin-dir={{ cni_bin_dir }} --pod-infra-container-image={{ kubelet.pod_infra_container_image }}
+Environment="KUBELET_DOCKER_ARGS=--image-pull-progress-deadline=15m0s --pod-infra-container-image={{ kubelet.pod_infra_container_image }}
 {% endif %}
+Environment="KUBELET_NETWORK_ARGS=--network-plugin=cni --network-plugin=cni --cni-conf-dir={{ cni_etc_dir }} --cni-bin-dir={{ cni_bin_dir }}"
 Environment="KUBELET_EXTRA_ARGS=--hostname-override={{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }} --alsologtostderr=true --logtostderr=false --log-dir={{ kubernetes_log_dir }}/kubelet --v=2"
 
 ExecStart=
-ExecStart={{ kubernetes_bin_dir }}/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $CRI_RUNTIME_ARGS $KUBELET_PODS_ARGS $KUBELET_DOCKER_ARGS $KUBELET_EXTRA_ARGS
+ExecStart={{ kubernetes_bin_dir }}/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $CRI_ENGINE_ARGS $KUBELET_PODS_ARGS $KUBELET_DOCKER_ARGS $KUBELET_NETWORK_ARGS $KUBELET_EXTRA_ARGS
 Restart=always

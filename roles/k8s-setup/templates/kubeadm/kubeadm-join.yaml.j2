@@ -17,8 +17,6 @@ nodeRegistration:
     network-plugin: cni
     root-dir: {{ kubelet_data_dir }}
     hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
-{% if container_runtime == 'docker' %}
     pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
-{% endif %}
   criSocket: {{ cri_socket }}
   name: {{ inventory_hostname }}

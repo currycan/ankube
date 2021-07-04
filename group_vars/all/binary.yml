@@ -92,12 +92,12 @@ binary:
       - containerd-shim
       - containerd-shim-runc-v1
       - containerd-shim-runc-v2
-      - containerd-stress
       - crictl
       - critest
-      - ctd-decoder
       - ctr
       - runc
+      # - containerd-stress
+      # - ctd-decoder
 
   docker:
     enable: "{%- if container_runtime == 'docker' -%}true{% else %}false{%- endif -%}"
@@ -175,7 +175,7 @@ binary:
       - static
       - tuning
       - vlan
-      - vrf
+      # - vrf
 
   helm2:
     enable: "{%- if helm_type == 'helm2' -%}true{% else %}false{%- endif -%}"
@@ -202,7 +202,7 @@ binary:
       - helm
 
   helmfile:
-    enable: "{{ enable_helmfile }}"
+    enable: "{%- if enable_helmfile is defined -%}{{ enable_helmfile }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/roboll/helmfile/releases/download/v{{ helmfile_version }}/helmfile_linux_amd64"
     file: "helmfile_linux_amd64-v{{ helmfile_version }}"
@@ -211,7 +211,7 @@ binary:
       - helmfile
 
   krew:
-    enable: "{{ enable_kubectl_krew }}"
+    enable: "{%- if enable_kubectl_krew is defined -%}{{ enable_kubectl_krew }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/kubernetes-sigs/krew/releases/download/v{{ krew_version }}/krew.tar.gz"
     file: "krew-v{{ krew_version }}.tar.gz"
@@ -223,7 +223,7 @@ binary:
       - krew-linux_amd64
 
   kubectl_debug:
-    enable: "{{ enable_kubectl_debug }}"
+    enable: "{%- if enable_kubectl_debug is defined -%}{{ enable_kubectl_debug }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/aylei/kubectl-debug/releases/download/v{{ kubectl_debug_version }}/kubectl-debug_{{ kubectl_debug_version }}_linux_amd64.tar.gz"
     file: "kubectl-debug_{{ kubectl_debug_version }}_linux_amd64.tar.gz"
@@ -235,7 +235,7 @@ binary:
       - kubectl-debug
 
   k9s:
-    enable: "{{ enable_k9s }}"
+    enable: "{%- if enable_k9s is defined -%}{{ enable_k9s }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/derailed/k9s/releases/download/v{{ k9s_version }}/k9s_v{{ k9s_version }}_Linux_x86_64.tar.gz"
     file: "k9s_Linux_x86_64-v{{ k9s_version }}.tar.gz"
@@ -247,7 +247,7 @@ binary:
       - k9s
 
   kubecm:
-    enable: "{{ enable_kubecm }}"
+    enable: "{%- if enable_kubecm is defined -%}{{ enable_kubecm }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/sunny0826/kubecm/releases/download/v{{ kubecm_version }}/kubecm_{{ kubecm_version }}_Linux_x86_64.tar.gz"
     file: "kubecm_{{ kubecm_version }}_Linux_x86_64.tar.gz"
@@ -259,7 +259,7 @@ binary:
       - kubecm
 
   argocd:
-    enable: "{{ enable_argocd }}"
+    enable: "{%- if enable_argocd is defined -%}{{ enable_argocd }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/argoproj/argo-cd/releases/download/v{{ argocd_version }}/argocd-linux-amd64"
     file: "argocd-linux-amd64-v{{ argocd_version }}"
@@ -268,7 +268,7 @@ binary:
       - argocd
 
   vela:
-    enable: "{{ enable_vela }}"
+    enable: "{%- if enable_vela is defined -%}{{ enable_vela }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/oam-dev/kubevela/releases/download/v{{ vela_version }}/vela-v{{ vela_version }}-linux-amd64.tar.gz"
     file: "vela-v{{ vela_version }}-linux-amd64.tar.gz"
@@ -280,7 +280,7 @@ binary:
       - vela
 
   istio:
-    enable: "{{ enable_istio }}"
+    enable: "{%- if enable_istio is defined -%}{{ enable_istio }}{% else %}false{%- endif -%}"
     type: kube_cluster
     url: "https://github.com/istio/istio/releases/download/{{ istio_version }}/istio-{{ istio_version }}-linux-amd64.tar.gz"
     file: "istio-{{ istio_version }}-linux-amd64.tar.gz"

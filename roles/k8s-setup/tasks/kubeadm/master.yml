@@ -1,17 +1,4 @@
 - block:
-  - name: 重打 coredns 镜像tag
-    shell: >
-      img=`{{ kubernetes_bin_dir }}/kubeadm config images list --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml | grep coredns`;
-      {% if container_runtime == 'docker' -%}
-      {{ docker_bin_dir }}/docker tag {{ images.coredns.name }} ${img};
-      {% elif container_runtime == 'containerd' -%}
-      [ `{{ containerd_bin_dir }}/ctr -n k8s.io images ls | grep ${img} | wc -l` -eq 0 ] && \
-      {{ containerd_bin_dir }}/ctr -n k8s.io images tag {{ images.coredns.name }} ${img};
-      {%- endif -%}
-      exit 0
-    args:
-      executable: /bin/bash
-
   - name: 获取第一个 master 节点各组件状态
     when:
       - inventory_hostname == groups['masters'][0]
@@ -29,7 +16,18 @@
     register: cs_statuses_result
 
   - block:
-    # kubeadm init --pod-network-cidr="172.30.0.0/16" --kubernetes-version=v1.18.6 --image-repository=registry.aliyuncs.com/k8sxio --ignore-preflight-errors=all --dry-run
+    - debug: msg="第一个 master 节点拉取镜像，可能需要一定时间。。"
+    - name: 拉取镜像
+      shell: >
+        {{ kubernetes_bin_dir }}/kubeadm config images pull --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
+      register: img_pull_rslt
+      until: img_pull_rslt.rc == 0
+      retries: 3
+      delay: "{{ retry_stagger | random + 10 }}"
+
+    # kubeadm init --pod-network-cidr="172.30.0.0/16" --kubernetes-version=v1.18.6 --image-repository=registry.aliyuncs.com/k8sxio --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests --dry-run
     - debug: msg="初始化第一个 master 节点，可能需要一定时间。。"
     - name: 初始化第一个 master 节点
       shell: >
@@ -37,7 +35,7 @@
         rm -f {{ kubelet_data_dir }}/cpu_manager_state;
         rm -f {{ kubelet_data_dir }}/memory_manager_state;
         rm -f {{ manifest_dir }}/kube-*;
-        {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
+        {{ kubernetes_bin_dir }}/kubeadm init --config={{ kubernetes_etc_dir }}/kubeadm-config.yaml --ignore-preflight-errors=all
       environment:
         PATH: "{{ ansible_env.PATH }}:{{ kubernetes_bin_dir }}:{{ docker_bin_dir }}:{{ containerd_bin_dir }}"
       register: init_rslt

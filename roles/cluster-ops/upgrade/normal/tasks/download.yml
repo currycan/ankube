@@ -2,14 +2,14 @@
   - name: 创建下载二进制文件存放目录
     file: path="{{ cache_dir }}" state=directory
 
-  - name: "判断 {{ item.value.file }} 文件是否存在"
+  - name: "判断二进制文件是否存在"
     when: "item.key == upgrade_cs"
     stat: path="{{ cache_dir + item.value.file }}"
     with_dict: "{{ binary }}"
     register: check_files
 
   - debug: msg="下载二进制文件包，根据网速不同，可能需要一定时间。。"
-  - name: "下载 {{ item.value.file }} 二进制文件包"
+  - name: "下载二进制文件包"
     when:
       - item.item.key == upgrade_cs
       - out_item.item.value.enable == "true"
@@ -24,7 +24,7 @@
     with_items: "{{ check_files['results'] }}"
     register: download_files
 
-  - name: "归档 {{ item.value.file }} 二进制文件"
+  - name: "归档二进制文件"
     when:
       - out_item.item.key == upgrade_cs
       - out_item.item.value.enable == "true"

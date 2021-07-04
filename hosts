@@ -62,7 +62,7 @@ container_runtime=containerd
 # 开启 proxy，可访问gcr，加速下载 GitHub 文件
 enable_proxy=true
 # 不配置代理的本地私有仓库
-local_image_repo="harbor.local.com"
+local_image_repo="harbor1.local.com, harbor2.local.com"
 
 # 配置etcd集群域名
 etcd_domain_name="k8s.etcd.local"

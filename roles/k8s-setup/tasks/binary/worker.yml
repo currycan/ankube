@@ -6,7 +6,7 @@
     group="root"
     mode="0644"
   with_items:
-    - { src: "cni-plugin/cni-default.conf", dest: "{{ cni_etc_dir }}/cni-default.conf" }
+    # - { src: "cni-plugin/10-containerd-net.conflist", dest: "{{ cni_etc_dir }}/10-containerd-net.conflist" }
     - { src: "kubelet/kubelet-config.yml", dest: "{{ kubelet_data_dir }}/config.yaml" }
     - { src: "kubelet/10-kubelet.conf", dest: "{{ systemd_service_dir }}/kubelet.service.d/10-kubelet.conf" }
     - { src: "kubelet/kubelet.service", dest: "{{ systemd_service_dir }}/kubelet.service" }

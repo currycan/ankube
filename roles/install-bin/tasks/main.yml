@@ -1,6 +1,5 @@
-- block:
-  - name: 二进制安装各组件
-    include_tasks: _install.yml
-    loop_control:
-      loop_var: out_item
-    with_dict: "{{ binary }}"
+- name: 二进制安装各组件
+  include_tasks: _install.yml
+  loop_control:
+    loop_var: out_item
+  with_dict: "{{ binary }}"

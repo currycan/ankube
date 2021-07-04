@@ -5,6 +5,7 @@ kube_version: "1.21.2"
 # https://download.docker.com/linux/static/stable/x86_64
 docker_version: "20.10.7"
 # https://github.com/containerd/containerd/tags
+# containerd_version: "1.4.3"
 containerd_version: "1.5.2"
 # https://github.com/opencontainers/runc/tags
 runc_version: "1.0.0"

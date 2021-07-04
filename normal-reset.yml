@@ -36,8 +36,8 @@
     with_items:
       - "{{ kubernetes_etc_dir }}/manifests/"
       - "{{ cni_etc_dir }}"
-      - "{{ kubelet_data_dir }}/cpu_manager_state"
-      - "{{ kubelet_data_dir }}/memory_manager_state"
+      - "{{ kubelet_data_dir }}"
+      - "{{ systemd_service_dir }}/kubelet.service.d/"
 
   - name: 删除 IP-in-IP tunnel
     command: "modprobe -r ipip"

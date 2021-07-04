@@ -7,4 +7,4 @@ Before=slices.target
 Wants=-.slice
 After=-.slice
 [Slice]
-MemoryLimit={{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}
+#MemoryLimit={{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}

@@ -14,24 +14,15 @@
     # token_bytes: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_letters,digits') | lower | b64encode }}"
     image: "docker.io/coredns/coredns:{{ coredns_version }}"
     file: "coredns-{{ coredns_version }}"
+    # feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{%- if k != 'None' -%}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}"
   # roles:
   tasks:
-  - name: 加载 {{ image }} 镜像
-    shell: >
-      {% if container_runtime == 'docker' -%}
-      img={% if 'docker.io' in image %}{{ image.split('/')[1:3]|join('/') }}{% else %}{{ image }}{% endif %};
-      name=`echo $img | awk -F':' '{print $1}'`;
-      tag=`echo $img | awk -F':' '{print $2}'`;
-      [ `{{ docker_bin_dir }}/docker images | grep ${name} | grep ${tag} | wc -l` -eq 0 ] && \
-      {{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + file }}.tar
-      {% elif container_runtime == 'containerd' -%}
-      img={{ image }};
-      name=`echo $img | awk -F':' '{print $1}'`;
-      tag=`echo $img | awk -F':' '{print $2}'`;
-      [ `{{ containerd_bin_dir }}/crictl images | grep ${name} | grep ${tag} | wc -l` -eq 0 ] && \
-      {{ containerd_bin_dir }}/ctr -n=k8s.io images import {{ cache_dir + 'images/' + file }}.tar;
-      {%- endif -%}
-  # - debug: var=ansible_kernel
+  - debug: var=controller_manager.feature_gates
+  - debug: var="controller_manager.feature_gates == None"
+  # - debug: var=image.split('/')[0:2]|join('/')
+  # - debug: var=image.split('/')[1:3]|join('/')
+
+  # - debug: var=binary
   # - debug: var=ansible_facts
 
   # - name: 生成 bootstrap_token_id

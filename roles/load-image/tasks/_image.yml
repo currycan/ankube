@@ -11,15 +11,14 @@
     name=`echo $img | awk -F':' '{print $1}'`;
     tag=`echo $img | awk -F':' '{print $2}'`;
     [ `{{ docker_bin_dir }}/docker images | grep ${name} | grep ${tag} | wc -l` -eq 0 ] && \
-    {{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + out_item.item.value.file }}.tar
+    {{ docker_bin_dir }}/docker load -i {{ cache_dir + 'images/' + out_item.item.value.file }}.tar || exit 1
     {% elif container_runtime == 'containerd' -%}
     img={{ out_item.item.value.name }};
     name=`echo $img | awk -F':' '{print $1}'`;
     tag=`echo $img | awk -F':' '{print $2}'`;
     [ `{{ containerd_bin_dir }}/crictl images | grep ${name} | grep ${tag} | wc -l` -eq 0 ] && \
-    {{ containerd_bin_dir }}/ctr -n=k8s.io images import {{ cache_dir + 'images/' + out_item.item.value.file }}.tar;
+    {{ containerd_bin_dir }}/ctr -n=k8s.io images import {{ cache_dir + 'images/' + out_item.item.value.file }}.tar|| exit 1
     {%- endif -%}
-    exit 0
   args:
     executable: /bin/bash
   # async表示上述命令的等待时间, 设置为0时会一直等待命令结束

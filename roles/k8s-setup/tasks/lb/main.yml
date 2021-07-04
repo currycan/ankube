@@ -67,7 +67,7 @@
     # https://github.com/kubernetes/kubernetes/issues/43856
     - name: 停止 slice
       shell: >
-        for i in $(/usr/bin/systemctl list-unit-files --no-legend --no-pager -l | grep --color=never -o .*.slice | grep kubepod);do systemctl stop $i;done; exit 0
+        for i in $(/usr/bin/systemctl list-unit-files --no-legend --no-pager -l | grep --color=never -o .*.slice | grep kubepod);do systemctl stop $i;done;
       register: lb_status
 
     - name: bootstrap lb 服务

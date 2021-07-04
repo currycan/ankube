@@ -48,11 +48,13 @@
         - not item.stat.exists
         - item.item.key.split('_')[0] != "calico"
         - item.item.value.enable == "true"
+      # https://github.com/containerd/containerd/issues/3340
+      # --all-platforms 参数一定要配置上
       shell: >
         {% if container_runtime == 'docker' -%}
         docker pull {{ item.item.value.name }};
         {% elif container_runtime == 'containerd' -%}
-        ctr -n k8s.io images pull {{ item.item.value.name }};
+        ctr -n k8s.io images pull {{ item.item.value.name }} --all-platforms;
         {%- endif -%}
       environment:
         PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"

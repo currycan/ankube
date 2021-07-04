@@ -108,17 +108,18 @@ pvcreate /dev/${DISK1}1
 # 创建 VG
 vgcreate k8s /dev/${DISK1}1
 # 创建 LV
-lvcreate -L 35G -n k8s-cache k8s
+lvcreate -L 35G -n download k8s
+# lvcreate -l 100%VG -n download k8s
 lvcreate -L 14G -n data k8s
 # 格式化 LVM 分区
-mkfs.xfs /dev/k8s/k8s-cache
+mkfs.xfs /dev/k8s/download
 mkfs.xfs /dev/k8s/data
 # 挂载 LVM 分区(/k8s_cache)
 mkdir -p /k8s_cache
 mkdir -p /var/lib/docker
-mount /dev/k8s/k8s-cache /k8s_cache/
+mount /dev/k8s/download /k8s_cache/
 mount /dev/k8s/data /var/lib/docker
-echo "/dev/k8s/k8s-cache    /k8s_cache     xfs    defaults        0 0" >>/etc/fstab
+echo "/dev/k8s/download    /k8s_cache     xfs    defaults        0 0" >>/etc/fstab
 echo "/dev/k8s/data   /var/lib/docker    xfs    defaults        0 0" >>/etc/fstab
 ```
 

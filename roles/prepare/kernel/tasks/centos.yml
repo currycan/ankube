@@ -15,12 +15,18 @@
     latest_kernel_version: "{{ kernel_version.stdout }}"
 
 - block:
-  - name: "下载 {{ latest_kernel_version }} kernel"
-    include_tasks: "{{ inventory_dir }}/roles/download/kernel/tasks/centos.yml"
+  # - name: "下载 {{ latest_kernel_version }} kernel"
+  #   include_tasks: "{{ inventory_dir }}/roles/download/kernel/tasks/centos.yml"
 
   - name: 从 deploy 节点分发 rpm 文件到各节点
     when: inventory_hostname != groups['deploy'][0]
     synchronize: src="{{ cache_dir + 'kernel/' + centos_kernel_type }}" dest="{{ cache_dir + 'kernel/' }}"
+
+  - name: 关闭禁用内核升级
+    lineinfile:
+      dest: "/etc/yum.conf"
+      state: absent
+      regexp: 'exclude=kernel*'
 
   - debug: msg="rpm 安装内核，可能需要一定时间。。"
   - name: 安装内核

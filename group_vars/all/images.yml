@@ -1,10 +1,26 @@
 # 基础镜像
 images:
   infra:
-    # name: "{{ kube_image_repository }}/pause:3.2"
-    # file: "pause-3.2"
-    name: "{{ kube_image_repository }}/pause:3.4.1"
-    file: "pause-3.4.1"
+    name: >-
+      # {%- if (containerd_version is version('1.5.0', '>=')) %}
+      {%- if (kube_version is version('1.22.0', '>=')) %}
+      "{{ kube_image_repository }}/pause:3.5"
+      # {%- elif (containerd_version is version('1.4.0', '>=') and containerd_version is version('1.5.0', '<') ) %}
+      {%- elif (kube_version is version('1.20.0', '>=') and containerd_version is version('1.22.0', '<') ) %}
+      "{{ kube_image_repository }}/pause:3.4.1"
+      {%- else %}
+      "{{ kube_image_repository }}/pause:3.2"
+      {%- endif %}
+    file: >-
+      # {%- if (containerd_version is version('1.5.0', '>=')) %}
+      {%- if (kube_version is version('1.22.0', '>=')) %}
+      "pause-3.5"
+      # {%- elif (containerd_version is version('1.4.0', '>=') and containerd_version is version('1.5.0', '<') ) %}
+      {%- elif (kube_version is version('1.20.0', '>=') and containerd_version is version('1.22.0', '<') ) %}
+      ""pause-3.4.1"
+      {%- else %}
+      "pause-3.2"
+      {%- endif %}
     type: all
     enable: "true"
 
@@ -24,7 +40,7 @@ images:
     type: master
     enable: "{%- if ((groups['kube_masters'] | length > 1) and lb_mode == 'envoy') or container_network == 'cilium' -%}true{% else %}false{%- endif -%}"
   nginx:
-    name: "docker.io/nginx:1.19-alpine"
+    name: "docker.io/library/nginx:1.19-alpine"
     file: "nginx-1.19-alpine"
     type: master
     enable: "{%- if (groups['kube_masters'] | length > 1) and lb_mode == 'nginx' -%}true{% else %}false{%- endif -%}"

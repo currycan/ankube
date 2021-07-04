@@ -3,6 +3,12 @@
     name: /etc/yum.repos.d/kernel.repo
     state: absent
 
+- name: 关闭禁用内核升级
+  lineinfile:
+    dest: "/etc/yum.conf"
+    state: absent
+    regexp: 'exclude=kernel*'
+
 - name: "添加 {{ centos_kernel_repo_name }} yum 仓库"
   yum_repository:
     name: "{{ centos_kernel_repo_name }}"
@@ -16,6 +22,9 @@
 - name: "获取最新 {{ centos_kernel_repo_name }} 版本"
   shell: >
     yum --disablerepo="*" --enablerepo="{{ centos_kernel_repo_name }}" list available | tail -1 | awk -F' ' '{print $2}'
+  environment:
+    http_proxy: "{{ proxy_env.http_proxy }}"
+    https_proxy: "{{ proxy_env.https_proxy }}"
   register: get_kernel_version
 
 - set_fact:
@@ -28,6 +37,9 @@
     enablerepo: "{{ centos_kernel_repo_name }}"
     download_only: true
   with_items: "{{ centos_kernel_package }}"
+  environment:
+    http_proxy: "{{ proxy_env.http_proxy }}"
+    https_proxy: "{{ proxy_env.https_proxy }}"
 
 - name: "获取 {{ centos_kernel_repo_name }} rpm 离线文件"
   find:

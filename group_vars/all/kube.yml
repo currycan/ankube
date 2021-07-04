@@ -9,10 +9,6 @@ kube_master_external_domain:
   - "kubernetes.io"
 apiserver_secure_port: 6443
 
-# 集群参数
-cluster_name: kubernetes
-cluster_domain_name: "cluster.local"
-
 # kube-apiserver variables
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
@@ -38,19 +34,23 @@ apiserver:
     - ValidatingAdmissionWebhook
     - ResourceQuota
     - NodeRestriction
-    # PodPresets API and admission plugin 在 Kubernetes 1.20 版本中移除
-    # - PodPreset
     - PersistentVolumeLabel
-    - Priority
   disable_admission_plugins: []
   feature_gates:
-    RemoveSelfLink: false
+    # 开启 kube debug, 默认关闭
+    EphemeralContainers: true
+    TTLAfterFinished: true
+    # # 1.20 中推出默认关闭, 1.21 版本中是默认启用
+    # GracefulNodeShutdown: true
 
 # kube-controller-manager variables
 controller_manager:
   feature_gates:
-    RotateKubeletServerCertificate: true
-    VolumeSnapshotDataSource: true
+    # # 开启 kube debug, 默认关闭
+    # EphemeralContainers: true
+    # TTLAfterFinished: true
+    # # # 1.20 中推出默认关闭, 1.21 版本中是默认启用
+    # # GracefulNodeShutdown: true
   node_cidr_mask_size: 24
   kube_certs_expired: 87600h0m0s
   horizontal_pod_autoscaler:
@@ -78,6 +78,12 @@ controller_manager:
 scheduler:
   secure_port: 10259
   insecure_port: 10251
+  feature_gates:
+    # # 开启 kube debug, 默认关闭
+    # EphemeralContainers: true
+    # TTLAfterFinished: true
+    # # # 1.20 中推出默认关闭, 1.21 版本中是默认启用
+    # # GracefulNodeShutdown: true
 
 ## Extra args for k8s components passing by kubeadm
 kubeadm_apiserver_extra_args:
@@ -184,24 +190,23 @@ kubelet:
   eviction_hard_nodefs_inodes_free: 5%
   # kubernetes组件预留资源
   kube_reserved_enabled: true
-  kube_cpu_reserved: 500m
+  kube_cpu_reserved: 200m
   kube_memory_reserved: 512M
   kube_ephemeral_storage_reserved: 1G
   # 操作系统守护进程预留资源，需要根据实际经验开启，预留资源过大，资源浪费，过小kubelet无法启动
   system_reserved_enabled: true
-  system_cpu_reserved: 500m
+  system_cpu_reserved: 100m
   # master节点设置memory=512Mi就会出现device or resource busy的情况,因为kubelet尝试对system.slice配置限制内存为你给定的值。而因实际使用已经超出
   # master节点最少配置 1024M
   system_memory_reserved: "{%- if inventory_hostname in groups['kube_masters'] -%}0.3G{%- else -%}0.2G{%- endif -%}"
   system_ephemeral_storage_reserved: 10G
   #  以下资源默认也都是开启的
   feature_gates:
-    DevicePlugins: true
-    CPUManager: true
-    # 启用服务端证书轮换
-    RotateKubeletServerCertificate: true
-    # # 启用客户端证书轮换, 1.21 不支持
-    # RotateKubeletClientCertificate: true
+    # 开启 kube debug, 默认关闭
+    # EphemeralContainers: true
+    # TTLAfterFinished: true
+    # # # 1.20 中推出默认关闭, 1.21 版本中是默认启用
+    # # GracefulNodeShutdown: true
 
 # kube-proxy variables
 kube_proxy:

@@ -53,7 +53,7 @@ evictionHard:
   nodefs.inodesFree: "{{ kubelet.eviction_hard_nodefs_inodes_free }}"
 evictionPressureTransitionPeriod: 5m0s
 failSwapOn: true
-{% if kubelet.feature_gates is defined -%}
+{% if kubelet.feature_gates is defined and kubelet.feature_gates != None-%}
 featureGates:
 {% for k,v in kubelet.feature_gates.items() %}
   {{ k }}: {{ v | lower }}
@@ -78,7 +78,8 @@ kubeAPIQPS: 100
 kubeReserved:
   cpu: "{{ kubelet.kube_cpu_reserved }}"
   memory: "{{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}"
-kubeReservedCgroup: "/kube.slice"
+kubeReservedCgroup: "/kubelet.slice"
+#kubeReservedCgroup: "/system.slice"
 {% endif %}
 logging: {}
 makeIPTablesUtilChains: true
@@ -111,8 +112,10 @@ runOnce: false
 runtimeRequestTimeout: 10m0s
 serializeImagePulls: false
 serverTLSBootstrap: true
+{% if (kube_version is version('1.21.0', '>=')) %}
 shutdownGracePeriod: 30s
 shutdownGracePeriodCriticalPods: 10s
+{% endif %}
 staticPodPath: "{{ manifest_dir }}"
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
@@ -153,7 +156,7 @@ showHiddenMetricsForVersion: ""
 staticPodURL: ""
 staticPodURLHeader: {}
 # Cgroups
-kubeletCgroups: "/kube.slice"
+kubeletCgroups: "/kubelet.slice"
 systemCgroups: "/system.slice"
 topologyManagerPolicy: "none"
 topologyManagerScope: "container"
