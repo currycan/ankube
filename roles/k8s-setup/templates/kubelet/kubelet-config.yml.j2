@@ -29,7 +29,6 @@ containerLogMaxSize: 20Mi
 contentType: application/vnd.kubernetes.protobuf
 cpuCFSQuota: true
 cpuCFSQuotaPeriod: 100ms
-cpuManagerPolicy: static
 cpuManagerReconcilePeriod: 10s
 enableContentionProfiling: true
 enableControllerAttachDetach: true
@@ -73,13 +72,15 @@ iptablesDropBit: 15
 iptablesMasqueradeBit: 14
 kubeAPIBurst: 200
 kubeAPIQPS: 100
-{% if  kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
+# Cgroups
+kubeletCgroups: "/systemd/system.slice"
+{% if kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
+cpuManagerPolicy: static
 # kubelet 资源驱逐策略
 kubeReserved:
   cpu: "{{ kubelet.kube_cpu_reserved }}"
   memory: "{{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}"
-kubeReservedCgroup: "/kubelet.slice"
-#kubeReservedCgroup: "/system.slice"
+kubeReservedCgroup: "/systemd/system.slice"
 {% endif %}
 logging: {}
 makeIPTablesUtilChains: true
@@ -119,6 +120,8 @@ shutdownGracePeriodCriticalPods: 10s
 staticPodPath: "{{ manifest_dir }}"
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
+# Cgroups
+systemCgroups: "/system.slice"
 {% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
 # 系统资源驱逐策略
 systemReserved:
@@ -155,9 +158,6 @@ qosReserved: {}
 showHiddenMetricsForVersion: ""
 staticPodURL: ""
 staticPodURLHeader: {}
-# Cgroups
-kubeletCgroups: "/kubelet.slice"
-systemCgroups: "/system.slice"
 topologyManagerPolicy: "none"
 topologyManagerScope: "container"
 {% if kubeadm_way.kubeadm_cert is not defined or not kubeadm_way.kubeadm_cert %}

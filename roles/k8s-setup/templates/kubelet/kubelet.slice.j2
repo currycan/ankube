@@ -1,4 +1,4 @@
-#  https://github.com/kubernetes/kubernetes/issues/92175
+# https://github.com/kubernetes/kubernetes/issues/92175
 
 [Unit]
 Description=Limited resources slice for containers and pods
@@ -7,4 +7,4 @@ Before=slices.target
 Wants=-.slice
 After=-.slice
 [Slice]
-#MemoryLimit={{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}
+# MemoryLimit={{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}

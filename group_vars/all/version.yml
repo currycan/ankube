@@ -16,6 +16,7 @@ docker_compose_version: "1.29.2"
 # https://github.com/cloudflare/cfssl/tags
 cfssl_version: "1.6.0"
 # https://github.com/etcd-io/etcd/tags
+# etcd_version: "3.4.16"
 etcd_version: "3.5.0"
 # https://github.com/containernetworking/plugins/tags
 cni_version: "0.9.1"

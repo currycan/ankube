@@ -7,7 +7,9 @@ Wants=docker.socket
 {% else %}
 Wants={{ container_runtime }}.service
 {% endif %}
+{# {% if  kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
 Requires=kubelet.slice
+{% endif %} #}
 
 [Service]
 User=root

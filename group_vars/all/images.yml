@@ -1,26 +1,24 @@
 # 基础镜像
 images:
+      # {%- if (containerd_version is version('1.5.0', '>=')) %}
+      # {%- elif (containerd_version is version('1.4.0', '>=') and containerd_version is version('1.5.0', '<') ) %}
   infra:
     name: >-
-      # {%- if (containerd_version is version('1.5.0', '>=')) %}
-      {%- if (kube_version is version('1.22.0', '>=')) %}
-      "{{ kube_image_repository }}/pause:3.5"
-      # {%- elif (containerd_version is version('1.4.0', '>=') and containerd_version is version('1.5.0', '<') ) %}
-      {%- elif (kube_version is version('1.20.0', '>=') and containerd_version is version('1.22.0', '<') ) %}
-      "{{ kube_image_repository }}/pause:3.4.1"
-      {%- else %}
-      "{{ kube_image_repository }}/pause:3.2"
-      {%- endif %}
+      {%- if (kube_version is version('1.21.0', '>=')) -%}
+      {{ kube_image_repository }}/pause:3.5
+      {%- elif (kube_version is version('1.19.0', '>=') and containerd_version is version('1.21.0', '<') ) -%}
+      {{ kube_image_repository }}/pause:3.4.1
+      {%- else -%}
+      {{ kube_image_repository }}/pause:3.2
+      {%- endif -%}
     file: >-
-      # {%- if (containerd_version is version('1.5.0', '>=')) %}
-      {%- if (kube_version is version('1.22.0', '>=')) %}
-      "pause-3.5"
-      # {%- elif (containerd_version is version('1.4.0', '>=') and containerd_version is version('1.5.0', '<') ) %}
-      {%- elif (kube_version is version('1.20.0', '>=') and containerd_version is version('1.22.0', '<') ) %}
-      ""pause-3.4.1"
-      {%- else %}
-      "pause-3.2"
-      {%- endif %}
+      {%- if (kube_version is version('1.21.0', '>=')) -%}
+      pause-3.5
+      {%- elif (kube_version is version('1.19.0', '>=') and containerd_version is version('1.21.0', '<') ) -%}
+      pause-3.4.1
+      {%- else -%}
+      pause-3.2
+      {%- endif -%}
     type: all
     enable: "true"
 
