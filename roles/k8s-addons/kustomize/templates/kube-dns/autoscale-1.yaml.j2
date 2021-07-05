@@ -102,6 +102,7 @@ spec:
           - /cluster-proportional-autoscaler
           - --namespace=kube-system
           - --configmap=kube-dns-autoscaler
+          # 指定autoscaler的资源
           - --target=deployment/coredns
           # replicas = max( ceil( cores * 1/coresPerReplica ) , ceil( nodes * 1/nodesPerReplica ) )
           # Should keep target in sync with cluster/addons/dns/kube-dns.yaml.base

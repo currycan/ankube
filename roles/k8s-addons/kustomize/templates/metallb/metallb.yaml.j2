@@ -65,6 +65,8 @@ spec:
   hostPorts:
   - max: 7472
     min: 7472
+  - max: 7946
+    min: 7946
   privileged: true
   readOnlyRootFilesystem: true
   requiredDropCapabilities:
@@ -151,6 +153,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ''
   resources:
@@ -200,6 +209,37 @@ rules:
   - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: metallb-controller
+  namespace: kube-system
+  labels:
+    app: metallb
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  resourceNames:
+  - memberlist
+  verbs:
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - controller
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: metallb-system:controller
@@ -260,6 +300,21 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: metallb-speaker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metallb-controller
+  namespace: kube-system
+  labels:
+    app: metallb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: metallb-controller
+subjects:
+- kind: ServiceAccount
+  name: metallb-controller
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -320,6 +375,11 @@ spec:
         ports:
         - containerPort: 7472
           name: monitoring
+        - containerPort: 7946
+          name: memberlist-tcp
+        - containerPort: 7946
+          name: memberlist-udp
+          protocol: UDP
         resources:
           limits:
             cpu: 100m
@@ -340,10 +400,10 @@ spec:
       serviceAccountName: metallb-speaker
       terminationGracePeriodSeconds: 2
       tolerations:
-      # 默认没有添加,否则 master 节点不会运行副本
       - operator: Exists
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
+        operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -372,6 +432,11 @@ spec:
       - args:
         - --port=7472
         - --config=metallb-config
+        env:
+        - name: METALLB_ML_SECRET_NAME
+          value: memberlist
+        - name: METALLB_DEPLOYMENT
+          value: controller
         image: metallb-controller
         imagePullPolicy: Always
         name: controller
@@ -388,6 +453,11 @@ spec:
             drop:
             - all
           readOnlyRootFilesystem: true
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+        - operator: Exists
       nodeSelector:
         kubernetes.io/os: linux
       securityContext:

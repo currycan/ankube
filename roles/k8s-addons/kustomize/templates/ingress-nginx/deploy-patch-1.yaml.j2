@@ -10,9 +10,21 @@ spec:
 {% endif %}
   template:
     spec:
+      # pod 亲和/反亲和配置中 topologyKey 不允许为空，topologyKey 决定 pod 是要运行在哪种属性的 node
       affinity:
+        # # pod 亲和性，尽力只调度到 kubernetes.io/hostname 标签的节点,且该节点上的 pod 有 app.kubernetes.io/instance 存在（和下面的反亲和互斥）
+        # podAffinity:
+        #   preferredDuringSchedulingIgnoredDuringExecution:  # 软策略
+        #   - weight: 1
+        #     podAffinityTerm:
+        #       labelSelector:
+        #         matchExpressions:
+        #         - key: 'app.kubernetes.io/instance'
+        #           operator: "Exists"
+        #       topologyKey: "kubernetes.io/hostname"
+        # # pod 反亲和性，强制在 kubernetes.io/hostname 标签的节点中不能同时运行多个app.kubernetes.io/instance=ingress-nginx 的 pod,也就是保证了副本都打散到不同节点
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
+          requiredDuringSchedulingIgnoredDuringExecution:  # 硬策略
           - labelSelector:
               matchExpressions:
               - key: 'app.kubernetes.io/instance'
@@ -20,13 +32,16 @@ spec:
                 values:
                 - 'ingress-nginx'
             topologyKey: "kubernetes.io/hostname"
+        # node 亲和性
         nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
+          # 调度到 node-role.kubernetes.io/ingress 标签的节点
+          requiredDuringSchedulingIgnoredDuringExecution:  # 硬策略
             nodeSelectorTerms:
             - matchExpressions:
               - key: 'node-role.kubernetes.io/ingress'
                 operator: "Exists"
-          preferredDuringSchedulingIgnoredDuringExecution:
+          # 尽力调度到master节点
+          preferredDuringSchedulingIgnoredDuringExecution:  # 软策略
           - weight: 50
             preference:
               matchExpressions:
