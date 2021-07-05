@@ -122,7 +122,6 @@ enable_kuboard=true
 enable_storage_nfs=true
 
 enable_cert_manager=false
-enable_pv_browser=false
 enable_snapshotter=false
 enable_rbac_manager=false
 enable_kubectl_debug=false

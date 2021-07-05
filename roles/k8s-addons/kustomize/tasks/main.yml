@@ -1,6 +1,6 @@
 - name: kustomize 模式安装相关组件
   when:
-    - out_item.value.enable
+    - out_item.value.enable == "true"
   include_tasks: _kustomize.yml
   loop_control:
     loop_var: out_item
