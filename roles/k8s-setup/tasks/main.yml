@@ -124,7 +124,7 @@
 
   - name: 手动 approve csr
     shell: >
-      {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve || exit 1
+      {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve
     environment:
         KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
     args:
