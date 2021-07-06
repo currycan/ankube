@@ -11,6 +11,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
   --attach-detach-reconcile-sync-period={{ controller_manager.attach_detach_reconcile_sync_period }} \
   --authentication-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
   --authorization-kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
+  --bind-address=0.0.0.0 \
   --client-ca-file={{ kubernetes_ca }} \
   --cluster-cidr={{ pod_network_cidr }} \
   --cluster-name={{ cluster_name }} \
@@ -22,14 +23,14 @@ ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
   --concurrent-service-syncs=2 \
   --controllers=*,bootstrapsigner,tokencleaner \
   --experimental-cluster-signing-duration={{ controller_manager.kube_certs_expired }} \
-  --feature-gates={% for k,v in controller_manager.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %} \
+  --feature-gates={%- if controller_manager.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}} \
   --horizontal-pod-autoscaler-cpu-initialization-period={{ controller_manager.horizontal_pod_autoscaler.cpu_initialization_period }} \
   --horizontal-pod-autoscaler-downscale-stabilization={{ controller_manager.horizontal_pod_autoscaler.downscale_delay }} \
   --horizontal-pod-autoscaler-initial-readiness-delay={{ controller_manager.horizontal_pod_autoscaler.readiness_delay }} \
   --horizontal-pod-autoscaler-sync-period={{ controller_manager.horizontal_pod_autoscaler.sync_period }} \
   --horizontal-pod-autoscaler-tolerance={{ controller_manager.horizontal_pod_autoscaler.tolerance }} \
-  --kube-api-burst=200 \
-  --kube-api-qps=500 \
+  --kube-api-burst=100 \
+  --kube-api-qps=100 \
   --kubeconfig={{kubernetes_etc_dir}}/controller-manager.conf \
   --leader-elect=true \
   --log-dir={{ kubernetes_log_dir }}/kube-controller-manager \

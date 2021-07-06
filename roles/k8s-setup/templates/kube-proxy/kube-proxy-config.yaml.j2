@@ -6,7 +6,7 @@ healthzBindAddress: "127.0.0.1:{{ kube_proxy.healthz_port }}"
 metricsBindAddress: "0.0.0.0:{{ kube_proxy.metrics_port }}"
 clientConnection:
   acceptContentTypes: ""
-  burst: 200
+  burst: 100
   contentType: application/vnd.kubernetes.protobuf
   kubeconfig: "{{kube_proxy_data_dir}}/kubeconfig.conf"
   qps: 100

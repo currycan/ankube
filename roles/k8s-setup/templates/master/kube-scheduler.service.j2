@@ -6,8 +6,10 @@ Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 ExecStart={{ kubernetes_bin_dir }}/kube-scheduler \
-  --kube-api-burst=200 \
-  --kube-api-qps=500 \
+  --bind-address=0.0.0.0 \
+  --feature-gates={%- if scheduler.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %} \
+  --kube-api-burst=100 \
+  --kube-api-qps=100 \
   --kubeconfig={{kubernetes_etc_dir}}/scheduler.conf \
   --leader-elect=true \
   --log-dir={{ kubernetes_log_dir }}/kube-scheduler \
@@ -19,6 +21,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-scheduler \
   --authorization-kubeconfig={{kubernetes_etc_dir}}/scheduler.conf \
 {# 探活端口 #}
   --port={{ scheduler.insecure_port }} \
+  --requestheader-allowed-names= \
   --requestheader-client-ca-file={{ front_ca }} \
   --secure-port={{ scheduler.secure_port }} \
 {% if kubeadm_way is not defined or not kubeadm_way.kubeadm_cert %}

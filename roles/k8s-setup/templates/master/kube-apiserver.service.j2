@@ -11,7 +11,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --alsologtostderr=true \
   --anonymous-auth=false \
   --api-audiences=api,istio-ca \
-  --apiserver-count={{ groups['kube_masters'] | length }} \
+  --apiserver-count={{ groups['masters']|length + groups['add_masters']|length }} \
   --audit-log-maxage=30 \
   --audit-log-maxbackup=10 \
   --audit-log-maxsize=100 \
@@ -20,7 +20,12 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --audit-policy-file={{ kubernetes_etc_dir }}/audit/policy.yaml \
   --authorization-mode=Node,RBAC \
   --client-ca-file={{ kubernetes_ca }} \
-  --enable-admission-plugins={% if apiserver.enable_admission_plugins|length > 0 %}{{ apiserver.enable_admission_plugins | join(',') }}{% endif %} \
+{% if apiserver.disable_admission_plugins|length > 0 %}
+  --disable-admission-plugins={{ apiserver.disable_admission_plugins | join(',') }} \
+{% endif %}
+{% if apiserver.enable_admission_plugins|length > 0 %}
+  --enable-admission-plugins={{ apiserver.enable_admission_plugins | join(',') }} \
+{% endif %}
   --enable-aggregator-routing=true \
   --enable-bootstrap-token-auth=true \
 {% if (kube_version is version('1.12.0', '>')) %}
@@ -31,9 +36,8 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --etcd-certfile={{ etcd_cert_apiserver_server }} \
   --etcd-keyfile={{ etcd_cert_apiserver_server_key }} \
   --etcd-servers={{ etcd_servers }} \
-{% if (kube_version is version('1.17.0', '<')) %}
+  --feature-gates={%- if apiserver.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %} \
   --insecure-port=0 \
-{% endif %}
   --kubelet-certificate-authority={{ kubernetes_ca }} \
   --kubelet-client-certificate={{ apiserver_kubelet_cert }} \
   --kubelet-client-key={{ apiserver_kubelet_cert_key }} \
@@ -44,9 +48,9 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --max-mutating-requests-inflight=500 \
   --max-requests-inflight=1500 \
   --profiling=false \
-  --proxy-client-cert-file={{ front_client }} \
+  -={{ front_client }} \
   --proxy-client-key-file={{ front_client_key }} \
-  --requestheader-allowed-names=aggregator \
+  --requestheader-allowed-names= \
   --requestheader-client-ca-file={{ front_ca }} \
   --requestheader-extra-headers-prefix=X-Remote-Extra- \
   --requestheader-group-headers=X-Remote-Group \
@@ -61,7 +65,8 @@ ExecStart={{ kubernetes_bin_dir }}/kube-apiserver \
   --tls-cert-file={{ apiserver_cert }} \
   --tls-private-key-file={{ apiserver_cert_key }} \
   --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256 \
-  --v=2
+  --v=2 \
+  --watch-cache-sizes=node#100,pod#1000
 
 Type=notify
 LimitNOFILE=65536
