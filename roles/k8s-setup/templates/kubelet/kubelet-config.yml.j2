@@ -110,7 +110,7 @@ resolvConf: /etc/resolv.conf
 rotateCertificates: true
 # 只能设置为 false，否则启动报错: panic: runtime error: invalid memory address or nil pointer dereference
 runOnce: false
-runtimeRequestTimeout: 10m0s
+runtimeRequestTimeout: 15m0s
 serializeImagePulls: false
 serverTLSBootstrap: true
 {% if (kube_version is version('1.21.0', '>=')) %}

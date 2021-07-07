@@ -14,21 +14,34 @@
   with_items:
     - { src: "{{ cache_dir }}krew-v{{ krew_version }}.tar.gz", dest: "{{ krew_bin_dir }}/krew-v{{ krew_version }}.tar.gz" }
 
+- name: "获取 krew-v{{ krew_version }}.tar.gz 文件 sha256值"
+  stat:
+    path: "{{ krew_bin_dir }}/krew-v{{ krew_version }}.tar.gz"
+    checksum_algorithm: sha256
+    get_checksum: yes
+  register: krew_file_st
+
+- set_fact:
+    krew_file_sha256: "{{ krew_file_st.stat.checksum }}"
+
 - name: 渲染 krew 配置文件
   template: src="krew/krew.yaml.j2" dest="{{ krew_bin_dir }}/krew.yaml"
 
-- name: 判断 krew 是否安装
-  stat: path="{{ ansible_env.HOME }}/.krew/bin"
-  register: check_krew_installation
-
-- debug: msg="安装 krew，可能需要一定时间。。"
 - name: 安装 krew
-  when: not check_krew_installation.stat.exists
   shell: >
     {{ krew_bin_dir }}/krew-linux_amd64 install --manifest={{ krew_bin_dir }}/krew.yaml --archive={{ krew_bin_dir }}/krew-v{{ krew_version }}.tar.gz;
     rm -f {{ ansible_env.HOME }}/krew.tar.gz;
-    # {{ ansible_env.HOME }}/.krew/bin/kubectl-krew update;
-    # {{ ansible_env.HOME }}/.krew/bin/kubectl-krew install ns;
+
+- debug: msg="安装 kubectl krew 插件，可能需要一定时间。。"
+- name: 安装 kubectl krew 插件
+  shell: >
+    {{ ansible_env.HOME }}/.krew/bin/kubectl-krew update;
+    {{ ansible_env.HOME }}/.krew/bin/kubectl-krew install {{ item }};
+  with_items:
+    - ns
+  environment:
+    http_proxy: "{{ proxy_env.http_proxy }}"
+    https_proxy: "{{ proxy_env.https_proxy }}"
 
 - name: 配置 krew 环境变量
   lineinfile:

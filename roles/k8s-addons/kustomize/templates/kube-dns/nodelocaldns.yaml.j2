@@ -161,7 +161,7 @@ spec:
         resources:
           requests:
             cpu: 25m
-            memory: 5Mi
+            memory: 25Mi
 {% if kube_proxy.proxy_mode == 'ipvs' %}
         args: [ "-localip", "{{ local_dns_cache }}", "-conf", "/etc/Corefile", "-upstreamsvc", "kube-dns-upstream" ]
 {% else %}

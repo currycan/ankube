@@ -2,7 +2,7 @@
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig={{kubernetes_etc_dir}}/bootstrap-kubelet.conf --kubeconfig={{kubernetes_etc_dir}}/kubelet.conf"
 Environment="KUBELET_CONFIG_ARGS=--config={{ kubelet_data_dir }}/config.yaml"
 EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
-Environment="CRI_ENGINE_ARGS=--runtime-cgroups=/systemd/system.slice {% if container_runtime == 'containerd' %}--container-runtime=remote{% endif %} --runtime-request-timeout=15m0s --container-runtime-endpoint=unix://{{ cri_socket }}"
+Environment="CRI_ENGINE_ARGS=--runtime-cgroups=/systemd/system.slice {% if container_runtime == 'containerd' %}--container-runtime=remote{% endif %} --container-runtime-endpoint=unix://{{ cri_socket }}"
 {% if (kube_version is version('1.15.0', '<')) %}
 Environment="KUBELET_PODS_ARGS=--allow-privileged=true"
 {% endif %}

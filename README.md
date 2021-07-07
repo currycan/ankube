@@ -170,17 +170,6 @@ exportfs -rv
 showmount -e localhost
 ```
 
-- base.yml 修改:
-  - 各组件版本, 根据需要修改
-  - pod cidr 和 service cidr, 可选择默认不修改
-  - vip_address/metallb 地址池/ingress 地址/nfs_server地址, **必须修改**
-  - helm 版本, 默认安装 helm3
-
-- global.yml 修改
-  - container_runtime, 支持 docker 和 containerd, 默认: docker
-  - nfs_server_path 路径, 默认: /nfs/data
-  - docker/kubectl/helm 客户端普通用户操作集群权限, 如: devops 用户
-
 如需要修改其他内容, 请确保了解整个安装过程
 
 ## 3. 安装说明

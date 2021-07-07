@@ -20,9 +20,16 @@
       - ipvsadm.service
     ignore_errors: true
 
-  - name: 删除已运行docker 容器
+  - name: 删除已运行容器
     shell: >
-      {{ docker_bin_dir }}/docker ps -aq | xargs {{ docker_bin_dir }}/docker rm -f
+      {% if container_runtime == 'docker' -%}
+      docker ps -aq | xargs docker rm -f
+      {% elif container_runtime == 'containerd' -%}
+      crictl ps -aq | xargs crictl rm -f
+      crictl ps -aq | xargs crictl rm -f
+      {%- endif -%}
+    environment:
+      PATH: "{{ docker_bin_dir }}:{{ containerd_bin_dir }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin"
     ignore_errors: true
 
   - name: 删除 kubernetes kubeconfig 文件
@@ -35,9 +42,10 @@
     file: path="{{ item }}" state=absent
     with_items:
       - "{{ kubernetes_etc_dir }}/manifests/"
-      - "{{ cni_etc_dir }}"
+      # - "{{ cni_etc_dir }}"
       - "{{ kubelet_data_dir }}"
       - "{{ systemd_service_dir }}/kubelet.service.d/"
+    ignore_errors: true
 
   - name: 删除 IP-in-IP tunnel
     command: "modprobe -r ipip"
@@ -93,19 +101,19 @@
     - ip link del ovn0
     - ip link del ovs-system
 
-- hosts: kube_etcds
-  become: true
-  gather_facts: false
-  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-  tasks:
-  - name: 停止运行 etcd
-    systemd: name=etcd state=stopped enabled=no
-    ignore_errors: True
+# - hosts: kube_etcds
+#   become: true
+#   gather_facts: false
+#   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+#   tasks:
+#   - name: 停止运行 etcd
+#     systemd: name=etcd state=stopped enabled=no
+#     ignore_errors: True
 
-  - name: 删除所有 etcd 文件及目录
-    file: path="{{ item }}" state=absent
-    with_items:
-      - "{{ etcd_data_dir }}"
-      - "{{ etcd_wal_dir }}"
-      - "{{ etcd_config_dir }}"
-      - "{{ etcd_data_bak_dir }}"
+#   - name: 删除所有 etcd 文件及目录
+#     file: path="{{ item }}" state=absent
+#     with_items:
+#       - "{{ etcd_data_dir }}"
+#       - "{{ etcd_wal_dir }}"
+#       - "{{ etcd_config_dir }}"
+#       - "{{ etcd_data_bak_dir }}"

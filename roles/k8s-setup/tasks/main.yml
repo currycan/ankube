@@ -125,7 +125,7 @@
   - name: 手动 approve csr
     shell: >
       [ `{{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | wc -l` -ne 0 ] && \
-      {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve
+      {{ kubernetes_bin_dir }}/kubectl get csr | grep 'Pending' | awk '{print $1}'| xargs {{ kubernetes_bin_dir }}/kubectl certificate approve || exit 0
     environment:
         KUBECONFIG: "{{ kubernetes_etc_dir }}/admin.conf"
     args:
@@ -206,6 +206,6 @@
     include_tasks: common/normal-user-admission.yml
 
   - name: 安装 k8s kubectl-krew
-    when: enable_kubectl_krew is defined and enable_kubectl_krew
+    when: enable_kubectl_krew is defined and enable_kubectl_krew == "true"
     include_tasks: common/kubectl-krew.yml
   when: inventory_hostname in groups['kube_cluster']

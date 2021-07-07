@@ -1,7 +1,7 @@
 normal_addons:
   metric_server:
     name: metric-server
-    enable: "{{ enable_metallb }}"
+    enable: "{{ enable_metric_server }}"
     namespace: kube-system
     directories:
       - metric-server

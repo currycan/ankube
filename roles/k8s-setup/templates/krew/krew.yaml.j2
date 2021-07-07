@@ -26,11 +26,11 @@ spec:
       https://krew.sigs.k8s.io/docs/user-guide/quickstart/.
 
   platforms:
-  - uri: https://github.com/kubernetes-sigs/krew/releases/download/v{{ krew_version }}/krew.tar.gz
-    sha256: 039fbb18c784f6b097b7ee6d048d36dfdb055c6e3a7c76e7251536594d6027a2
+  - uri: "{{ krew_bin_dir }}/krew-v{{ krew_version }}.tar.gz"
+    sha256: "{{ krew_file_sha256 }}"
     bin: krew
     files:
-    - from: ./krew-linux_amd64
+    - from: krew-linux_amd64
       to: krew
     selector:
       matchLabels:

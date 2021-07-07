@@ -94,23 +94,23 @@ subjects:
   name: kuboard-viewer
   namespace: {{ addon.namespace }}
 
-# ---
-# apiVersion: extensions/v1beta1
-# kind: Ingress
-# metadata:
-#   name: kuboard
-#   namespace: {{ addon.namespace }}
-#   annotations:
-#     k8s.kuboard.cn/displayName: kuboard
-#     k8s.kuboard.cn/workload: kuboard
-#     nginx.org/websocket-services: "kuboard"
-#     nginx.com/sticky-cookie-services: "serviceName=kuboard srv_id expires=1h path=/"
-# spec:
-#   rules:
-#   - host: kuboard.yourdomain.com
-#     http:
-#       paths:
-#       - path: /
-#         backend:
-#           serviceName: kuboard
-#           servicePort: http
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kuboard
+  namespace: {{ addon.namespace }}
+  annotations:
+    k8s.kuboard.cn/displayName: kuboard
+    k8s.kuboard.cn/workload: kuboard
+    nginx.org/websocket-services: "kuboard"
+    nginx.com/sticky-cookie-services: "serviceName=kuboard srv_id expires=1h path=/"
+spec:
+  rules:
+  - host: kuboard.local.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kuboard
+          servicePort: http
