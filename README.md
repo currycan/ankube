@@ -62,7 +62,7 @@ ansible all -a "ntpdate -u cn.pool.ntp.org"
 ansible all -a "hwclock -w"
 ```
 
-### 1.4 deploy 节点创建离线文件目录,确保磁盘空间大于 30G
+### 1.4 deploy 节点创建离线文件目录,确保磁盘空间大于 20G
 
 ```bash
 mkdir -p /k8s_cache
@@ -108,9 +108,9 @@ pvcreate /dev/${DISK1}1
 # 创建 VG
 vgcreate k8s /dev/${DISK1}1
 # 创建 LV
-lvcreate -L 35G -n download k8s
+lvcreate -L 10G -n download k8s
 # lvcreate -l 100%VG -n download k8s
-lvcreate -L 14G -n data k8s
+lvcreate -L 10G -n data k8s
 # 格式化 LVM 分区
 mkfs.xfs /dev/k8s/download
 mkfs.xfs /dev/k8s/data
@@ -134,7 +134,25 @@ lvremove /dev/k8s/data
 
 ## 2. 配置
 
-所有配置文件都在 group_vars, 一般来说只需要自定义修改 [base.yml](group_vars/all/base.yml) 和 [global.yml](group_vars/all/global.yml) 即可.
+配置文件在 group_vars 和 hosts 中都有体现，核心参数是在 hosts 中进行调整。各组件版本在[version.yml](group_vars/all/version.yml)中，另外关于集群的安装方式和证书的创建方式，在[certs.yml](group_vars/all/certs.yml)中:
+
+```yaml
+## 设定安装方式：二进制安装或者kubeadm安装
+binary_way:
+  enable: false
+  ## 设定证书生成方式：cfssl或者openssl
+  cfssl_cert: false
+  openssl_cert: true
+kubeadm_way:
+  enable: true
+  ## 设定证书是自定义签发或者kubeadm签发, 使用kubeadm方式搭建集群暂不支持cfssl生成的pem证书
+  kubeadm_cert: true
+```
+
+举例来说，若是需要用二进制安装方式，但是用 kubeadm 创建证书，则：
+binary_way.enable=true
+kubeadm_way.enable=false
+kubeadm_way.kubeadm_cert=true
 
 另外, 关于 storage class 默认选择的是: nfs, 且安装在 master3 节点, 根据需要可以调整.
 
@@ -176,32 +194,41 @@ showmount -e localhost
 - 00.1-parted_disks.yml: 磁盘分区, 给docker 和 kubelet 数据单独的磁盘,同样 etcd 也可以配置单独的数据盘
 - 00.2-download.yml: 自行下载集群依赖的二进制文件和离线镜像(可能比较耗时,最好有代理能够下载国外文件)
 - 00.3-kernel.yml: 安装需要的 Linux 内核
-- 00.4-preinstall.yml: 在 deploy 节点预装二进制文件, 方便之后的同步至集群节点
-- 00.5-python3.yml: 安装 Python3
+- 00.4-python3.yml: 安装 Python3
 
 ### 3.2 集群搭建
 
 cluster_setup.yml 支持一键安装,当然也可以根据实际需要一步步安装.
 
+- 01.initialize.yml: 基础环境校验，并进行初始化依赖安装，参数优化
+- 02.container.yml: 安装容器运行时引擎（docker/containderd）,并加载离线镜像
+- 03.certs.yml: 创建依赖的证书，支持三种方式: kubeadm 、openssl 和 cfssl，证书有效期 10 年
+- 04.etcd.yml: 安装 etcd 集群，二进制安装，保证性能
+- 05.kubernetes.yml: 安装 kubernetes 集群，支持二进制和 kubeadm 安装
+- 06.network.yml: 安装网络插件
+- ansible-playbook 07.helm.yml: 安装 helm
+- ansible-playbook 08.addons.yml: 安装一些常见插件，比如: ingress、metallb
+
 ``` bash
 # 分步安装, 核心组件
 ansible-playbook 01.initialize.yml
 ansible-playbook 02.container.yml
-ansible-playbook 03.etcd.yml
-ansible-playbook 04.kubernetes.yml
-ansible-playbook 05.network.yml
-ansible-playbook 06.coredns.yml
+ansible-playbook 03.certs.yml
+ansible-playbook 04.etcd.yml
+ansible-playbook 05.kubernetes.yml
+ansible-playbook 06.network.yml
 
 # 其他组件, 如果不需要安装 非核心组件,以下无需执行
 ansible-playbook 07.helm.yml
 ansible-playbook 08.addons.yml
-ansible-playbook 09.storage.yml
 
 # 一键安装, 默认注释了非核心组件安装
 ansible-playbook cluster_setup.yml
 ```
 
 ## 4. 维护
+
+支持集群一键备份和迁移
 
 ## 5. 安装异常处理
 
