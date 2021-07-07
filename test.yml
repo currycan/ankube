@@ -1,6 +1,6 @@
-- hosts: "{{ groups['masters'][0] }}"
-# - hosts:
-#   - kube_cluster
+# - hosts: "{{ groups['masters'][0] }}"
+- hosts:
+  - kube_cluster
 # - hosts: "{{ groups['masters'] }}"
 # - hosts: kube_cluster
 # - hosts: "{{groups['kube_nodes']}}"
@@ -11,19 +11,10 @@
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   vars:
     # ansible_python_interpreter: "/usr/bin/python3"
-    # token_bytes: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_letters,digits') | lower | b64encode }}"
-    image: "docker.io/coredns/coredns:{{ coredns_version }}"
-    file: "coredns-{{ coredns_version }}"
-    # feature-gates: "{% for k,v in apiserver.feature_gates.items() %}{%- if k != 'None' -%}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}"
+    token_bytes: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_letters,digits') | lower | b64encode }}"
   # roles:
   tasks:
-  - debug: var=controller_manager.feature_gates
-  - debug: var="controller_manager.feature_gates == None"
-  - debug: msg="{{ cache_dir + 'images/' + images.infra.file }}"
-  # - debug: var=image.split('/')[0:2]|join('/')
-  # - debug: var=image.split('/')[1:3]|join('/')
-
-  # - debug: var=binary
+  # - debug: var=ansible_kernel
   # - debug: var=ansible_facts
 
   # - name: 生成 bootstrap_token_id
@@ -42,13 +33,13 @@
   # - name: test
   #   include_role:
   #     name: k8s-setup
-  #     # tasks_from: k8s-setup/tasks/common/tools.yml
+  #     # tasks_from: k8s-setup/install/tasks/common/tools.yml
 
   # - name: Reset etcd cluster
   #   include_tasks: "{{ inventory_dir }}/roles/etcd/install/tasks/clean.yml"
 
   # - name: Reset k8s cluster
-  #   include_tasks: "{{ inventory_dir }}/roles/k8s-setup/tasks/clean.yml"
+  #   include_tasks: "{{ inventory_dir }}/roles/k8s-setup/install/tasks/clean.yml"
 
   # - name: helm 安装 cert-manager
   #   register: cert_result
@@ -62,3 +53,6 @@
   #       --set prometheus.enabled=false \
   #       --set webhook.image.tag=v1.1.0 \
   #       --set cainjector.image.tag=v1.1.0;
+  - debug: var="binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert"
+    when:
+      - binary_way is defined and binary_way.enable and kubeadm_way.kubeadm_cert
