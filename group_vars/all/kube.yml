@@ -9,6 +9,11 @@ kube_master_external_domain:
   - "kubernetes.io"
 apiserver_secure_port: 6443
 
+kubeadm_certificate_key: "{{ lookup('password', credentials_dir + '/kubeadm_certificate_key.creds length=64 chars=hexdigits') | lower }}"
+
+authorization_modes: ['Node', 'RBAC']
+rbac_enabled: "{{ 'RBAC' in authorization_modes }}"
+
 # kube-apiserver variables
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
