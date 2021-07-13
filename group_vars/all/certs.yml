@@ -14,11 +14,6 @@ certs_expired: 3650
 # kubernetes根证书过期时间（天）
 ca_certs_expired: 36500
 
-## Automatically renew K8S control plane certificates on first Monday of each month
-auto_renew_certificates: false
-# First Monday of each month
-auto_renew_certificates_systemd_calendar: "Mon *-*-1,2,3,4,5,6,7 03:{{ groups['kube_control_plane'].index(inventory_hostname) }}0:00"
-
 # certs hosts
 master_cert_hosts: "{%- if groups['kube_masters'] | length > 1 -%}{{ vip_address }},{%- endif %}{% for host in groups['kube_masters'] %}{{ hostvars[host]['ansible_' + iface].ipv4.address }}{% if not loop.last %},{% endif %}{% endfor %},{% for host in groups['kube_masters']%}{{ hostvars[host].ansible_hostname }}{% if not loop.last %},{% endif %}{% endfor %}"
 

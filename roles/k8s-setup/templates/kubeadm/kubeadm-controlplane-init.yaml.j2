@@ -8,9 +8,6 @@ kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: {{ apiserver.advertise_address }}
   bindPort: {{ apiserver_secure_port }}
-{% if kubeadm_certificate_key is defined %}
-certificateKey: {{ kubeadm_certificate_key }}
-{% endif %}
 nodeRegistration:
   kubeletExtraArgs:
     network-plugin: cni
@@ -18,10 +15,6 @@ nodeRegistration:
     hostname-override: {{ hostvars[inventory_hostname]['ansible_' + iface].ipv4.address }}
     pod-infra-container-image: {{ kubelet.pod_infra_container_image }}
   criSocket: {{ cri_socket }}
-{% if cloud_provider is defined and cloud_provider in ["external"] %}
-  kubeletExtraArgs:
-    cloud-provider: external
-{% endif %}
   name: {{ inventory_hostname }}
 {% if inventory_hostname in groups['kube_masters'] and inventory_hostname not in groups['kube_nodes'] %}
   taints:
@@ -81,16 +74,8 @@ networking:
   dnsDomain: {{ cluster_domain_name }}
   podSubnet: {{ pod_network_cidr }}
   serviceSubnet: {{ apiserver.service_ip_range }}
-{% if kubeadm_feature_gates %}
-featureGates:
-{%   for feature in kubeadm_feature_gates %}
-  {{ feature|replace("=", ": ") }}
-{%   endfor %}
-{% endif %}
 apiServer:
   extraArgs:
-    anonymous-auth: "true"
-    authorization-mode: {{ authorization_modes | join(',') }}
     allow-privileged: "true"
     apiserver-count: "{{ groups['masters']|length + groups['add_masters']|length }}"
     api-audiences: "api,istio-ca"
@@ -100,8 +85,6 @@ apiServer:
     audit-log-maxsize: "100"
     audit-log-truncate-enabled: "true"
     audit-policy-file: "{{kubernetes_etc_dir}}/audit/policy.yaml"
-    default-not-ready-toleration-seconds: "300"
-    default-unreachable-toleration-seconds: "300"
     service-account-issuer: "https://kubernetes.default.svc.{{ cluster_domain_name }}"
     service-account-signing-key-file: "{{ sa_private_key }}"
 {% if apiserver.enable_admission_plugins|length > 0 %}
@@ -121,16 +104,6 @@ apiServer:
     kubelet-https: "true"
     profiling: "false"
     service-node-port-range: {{ apiserver.service_node_port_range }}
-    service-cluster-ip-range: {{ apiserver.service_ip_range }}
-    kubelet-preferred-address-types: "InternalDNS,InternalIP,Hostname,ExternalDNS,ExternalIP"
-    request-timeout: "1m0s"
-{% if tls_min_version is defined %}
-    tls-min-version: {{ tls_min_version }}
-{% endif %}
-{% if tls_cipher_suites is defined %}
-    tls-cipher-suites: {% for tls in tls_cipher_suites %}{{ tls }}{{ "," if not loop.last else "" }}{% endfor %}
-
-{% endif %}
 {% if kubeadm_apiserver_extra_args|length > 0 %}
 {% for key in kubeadm_apiserver_extra_args %}
     {{ key }}: "{{ kubeadm_apiserver_extra_args[key] }}"
@@ -221,20 +194,10 @@ controllerManager:
 
     terminated-pod-gc-threshold: "{{ controller_manager.terminated_pod_gc_threshold }}"
     node-cidr-mask-size: "{{ controller_manager.node_cidr_mask_size }}"
-{% if tls_min_version is defined %}
-    tls-min-version: {{ tls_min_version }}
-{% endif %}
-{% if tls_cipher_suites is defined %}
-    tls-cipher-suites: {% for tls in tls_cipher_suites %}{{ tls }}{{ "," if not loop.last else "" }}{% endfor %}
-
-{% endif %}
 {% if kubeadm_controller_extra_args|length > 0 %}
 {% for key in kubeadm_controller_extra_args %}
     {{ key }}: "{{ kubeadm_controller_extra_args[key] }}"
 {% endfor %}
-{% endif %}
-{% if kubelet_flexvolumes_plugins_dir is defined %}
-    flex-volume-plugin-dir: {{kubelet_flexvolumes_plugins_dir}}
 {% endif %}
   extraVolumes:
     - hostPath: /etc/localtime
@@ -257,13 +220,6 @@ scheduler:
     bind-address: 127.0.0.1
     feature-gates: "{%- if scheduler.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}"
     profiling: "false"
-{% if tls_min_version is defined %}
-    tls-min-version: {{ tls_min_version }}
-{% endif %}
-{% if tls_cipher_suites is defined %}
-    tls-cipher-suites: {% for tls in tls_cipher_suites %}{{ tls }}{{ "," if not loop.last else "" }}{% endfor %}
-
-{% endif %}
 {% if kubeadm_scheduler_extra_args|length > 0 %}
 {% for key in kubeadm_scheduler_extra_args %}
     {{ key }}: "{{ kubeadm_scheduler_extra_args[key] }}"
