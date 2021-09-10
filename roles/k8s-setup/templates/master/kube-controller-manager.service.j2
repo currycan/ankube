@@ -23,7 +23,7 @@ ExecStart={{ kubernetes_bin_dir }}/kube-controller-manager \
   --concurrent-service-syncs=2 \
   --controllers=*,bootstrapsigner,tokencleaner \
   --experimental-cluster-signing-duration={{ controller_manager.kube_certs_expired }} \
-  --feature-gates={%- if controller_manager.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}} \
+  --feature-gates={%- if controller_manager.feature_gates != None -%}{% for k,v in apiserver.feature_gates.items() %}{{ k }}={{ v | lower }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %} \
   --horizontal-pod-autoscaler-cpu-initialization-period={{ controller_manager.horizontal_pod_autoscaler.cpu_initialization_period }} \
   --horizontal-pod-autoscaler-downscale-stabilization={{ controller_manager.horizontal_pod_autoscaler.downscale_delay }} \
   --horizontal-pod-autoscaler-initial-readiness-delay={{ controller_manager.horizontal_pod_autoscaler.readiness_delay }} \

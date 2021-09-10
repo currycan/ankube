@@ -1,0 +1,21 @@
+evictionHard:
+  imagefs.available: "15%"
+  memory.available: "300Mi"
+  nodefs.available: "10%"
+  nodefs.inodesFree: "5%"
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+enforceNodeAllocatable:
+- pods
+- kube-reserved    # 开启 kube 资源预留
+- system-reserved  # 开启 system 资源预留
+kubeReserved:
+  # cpu: "100m"
+  memory: "400Mi"
+  ephemeral-storage: "1Gi"
+kubeReservedCgroup: "/kubelet.slice"  # 指定 kube 资源预留的 cgroup
+systemReserved:
+  # cpu: "200m"
+  memory: "300Mi"
+  ephemeral-storage: "1Gi"
+systemReservedCgroup: "/system.slice"  # 指定 system 资源预留的 cgroup

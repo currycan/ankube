@@ -9,6 +9,11 @@ kube_master_external_domain:
   - "kubernetes.io"
 apiserver_secure_port: 6443
 
+kubeadm_certificate_key: "{{ lookup('password', k8s_pki_dir + '/kubeadm_certificate_key.creds length=64 chars=hexdigits') | lower }}"
+
+authorization_modes: ['Node', 'RBAC']
+rbac_enabled: "{{ 'RBAC' in authorization_modes }}"
+
 # kube-apiserver variables
 # https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/626
 # 配置聚合层： https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
@@ -172,26 +177,9 @@ kubelet:
   bind_port: 10250
   bind_read_port: 10255
   bind_healthz_port: 10248
-  # 资源驱逐相关配置
-  eviction_hard_imagefs_available: 15%
-  eviction_hard_memory_available: 300Mi
-  eviction_hard_nodefs_available: 10%
-  eviction_hard_nodefs_inodes_free: 5%
-  # kubernetes组件预留资源
-  # TODO: 1.21 版本 配置资源预留会报错！！！！
-  # kubelet[12958]: E0706 13:52:07.402324   12958 remote_runtime.go:360] UpdateContainerResources "2335835cd5742b59bf5cce402cbaeacba366e6a743a7c5651bcf12ba000b572c" from runtime service failed: rpc error: code = Unknown desc = failed to update resources: failed to update resources: runc did not terminate successfully: exit status 2: runtime/cgo: pthread_create failed: Resource temporarily unavailable
-  kube_reserved_enabled: false
-  kube_cpu_reserved: 150m
-  kube_memory_reserved: 512M
-  kube_ephemeral_storage_reserved: 5G
-  # 操作系统守护进程预留资源，需要根据实际经验开启，预留资源过大，资源浪费，过小kubelet无法启动
-  # TODO: 1.21 版本 配置资源预留会报错！！！！
+  kube_reserved_enabled: true
+  # TODO: 1.21 版本 配置系统资源预留会报错！！！！
   system_reserved_enabled: false
-  system_cpu_reserved: 500m
-  # master节点设置memory=512Mi就会出现device or resource busy的情况,因为kubelet尝试对system.slice配置限制内存为你给定的值。而因实际使用已经超出
-  # master节点最少配置 1024M
-  system_memory_reserved: "{%- if inventory_hostname in groups['kube_masters'] -%}400Mi{%- else -%}300Mi{%- endif -%}"
-  system_ephemeral_storage_reserved: 10G
   #  以下资源默认也都是开启的
   feature_gates:
     RotateKubeletServerCertificate: true

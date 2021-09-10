@@ -22,6 +22,7 @@
     - debug: msg="worker 节点加入集群，可能需要一定时间。。"
     - name: worker 节点加入集群
       shell: >
+        timeout -k 600s 600s;
         systemctl stop kubelet.service;
         rm -f {{ kubelet_data_dir }}/cpu_manager_state;
         rm -f {{ kubelet_data_dir }}/memory_manager_state;

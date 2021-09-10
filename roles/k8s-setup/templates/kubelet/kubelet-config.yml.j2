@@ -34,24 +34,44 @@ enableContentionProfiling: true
 enableControllerAttachDetach: true
 enableDebuggingHandlers: true
 enableSystemLogHandler: true
+# Node 资源驱逐策略
+evictionHard:
+  imagefs.available: "15%"
+  memory.available: "300Mi"
+  nodefs.available: "10%"
+  nodefs.inodesFree: "5%"
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+cpuManagerPolicy: static
+# Node 资源预留
 enforceNodeAllocatable:
 - pods
 {% if  kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
-- kube-reserved
+- kube-reserved # 开启 kube 资源预留
 {% endif %}
 {% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
-- system-reserved
+- system-reserved # 开启 system 资源预留
+{% endif %}
+# Cgroups
+{% if kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
+# kubelet 资源驱逐策略
+kubeReserved:
+  # cpu: "100m"
+  memory: "400Mi"
+  ephemeral-storage: "1Gi"
+kubeReservedCgroup: "/kubelet.slice"  # 指定 kube 资源预留的 cgroup
+{% endif %}
+# Cgroups
+{% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
+# 系统资源驱逐策略
+systemReserved:
+  # cpu: "200m"
+  memory: "300Mi"
+  ephemeral-storage: "1Gi"
+systemReservedCgroup: "/system.slice"  # 指定 system 资源预留的
 {% endif %}
 eventBurst: 10
 eventRecordQPS: 5
-# Node 资源驱逐策略
-evictionHard:
-  imagefs.available: "{{ kubelet.eviction_hard_imagefs_available }}"
-  memory.available: "{{ kubelet.eviction_hard_memory_available }}"
-  nodefs.available: "{{ kubelet.eviction_hard_nodefs_available }}"
-  nodefs.inodesFree: "{{ kubelet.eviction_hard_nodefs_inodes_free }}"
-evictionPressureTransitionPeriod: 5m0s
-failSwapOn: true
 {% if kubelet.feature_gates is defined and kubelet.feature_gates != None-%}
 featureGates:
 {% for k,v in kubelet.feature_gates.items() %}
@@ -72,16 +92,6 @@ iptablesDropBit: 15
 iptablesMasqueradeBit: 14
 kubeAPIBurst: 100
 kubeAPIQPS: 100
-# Cgroups
-kubeletCgroups: "/systemd/system.slice"
-{% if kubelet.kube_reserved_enabled is defined and  kubelet.kube_reserved_enabled %}
-cpuManagerPolicy: static
-# kubelet 资源驱逐策略
-kubeReserved:
-  cpu: "{{ kubelet.kube_cpu_reserved }}"
-  memory: "{{ kubelet.kube_memory_reserved|regex_replace('Mi', 'M') }}"
-kubeReservedCgroup: "/systemd/system.slice"
-{% endif %}
 logging: {}
 makeIPTablesUtilChains: true
 maxOpenFiles: 1000000
@@ -120,17 +130,6 @@ shutdownGracePeriodCriticalPods: 10s
 staticPodPath: "{{ manifest_dir }}"
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
-# Cgroups
-systemCgroups: "/system.slice"
-{% if  kubelet.system_reserved_enabled is defined and  kubelet.system_reserved_enabled %}
-# 系统资源驱逐策略
-systemReserved:
-  cpu: "{{ kubelet.system_cpu_reserved|default('500m') }}"
-  memory: "{{ kubelet.system_memory_reserved|default('512M')|regex_replace('Mi', 'M') }}"
-  ephemeral-storage: "{{ kubelet.system_ephemeral_storage_reserved|default('10Gi')|regex_replace('Gi', 'G') }}"
-  pid: "100"
-systemReservedCgroup: "/system.slice"
-{% endif %}
 tlsCipherSuites:
 - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
