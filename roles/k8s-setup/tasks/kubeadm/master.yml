@@ -31,6 +31,7 @@
     - debug: msg="初始化第一个 master 节点，可能需要一定时间。。"
     - name: 初始化第一个 master 节点
       shell: >
+        timeout -k 600s 600s;
         systemctl stop kubelet.service;
         rm -f {{ kubelet_data_dir }}/cpu_manager_state;
         rm -f {{ kubelet_data_dir }}/memory_manager_state;
@@ -75,6 +76,7 @@
     - debug: msg="其他 master 节点加入集群，可能需要一定时间。。"
     - name: 其他 master 节点加入集群
       shell: >
+        timeout -k 600s 600s
         systemctl stop kubelet.service;
         rm -f {{ kubelet_data_dir }}/cpu_manager_state;
         rm -f {{ kubelet_data_dir }}/memory_manager_state;

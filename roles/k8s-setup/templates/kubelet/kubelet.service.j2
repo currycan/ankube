@@ -22,31 +22,26 @@ CPUAccounting=true
 ## 添加 MemoryAccounting=true 选项，开启 systemd Memory 统计功能
 MemoryAccounting=true
 
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/system.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/system.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu,cpuacct/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/system.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice
 
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/kubelet.slice
+ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/kubelet.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu,cpuacct/kubelet.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpu/kubelet.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuacct/kubelet.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/kubelet.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/memory/kubelet.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/pids/kubelet.slice
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/systemd/kubelet.slice
-
 
 {% if ansible_distribution != "Debian" %}
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice
 ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/kubelet.slice
 {% endif %}
-
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/cpuset/system.slice/kubelet.service
-ExecStartPre=/bin/mkdir -p /sys/fs/cgroup/hugetlb/system.slice/kubelet.service
 
 ExecStart={{ kubernetes_bin_dir }}/kubelet
 
